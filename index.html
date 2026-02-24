@@ -1,1005 +1,1167 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   BUILDING MANAGER APP - Code.gs  v25.2
-   Changes from v25.1:
-     - doGet() now acts as API router for GitHub Pages frontend
-     - doPost() added to handle form submissions from GitHub Pages frontend
-     - All existing functions unchanged
-   ═══════════════════════════════════════════════════════════════════════════ */
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>idaraPRO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-// ============================================================================
-// ARABIC NUMERAL HELPERS
-// ============================================================================
+  <style>
+    /* ── TOKENS ─────────────────────────────────── */
+    :root {
+      --navy:     #1B2A4A;
+      --burg:     #9B2335;
+      --forest:   #1A6B3C;
+      --gold:     #C9A84C;
+      --bg:       #F0EFEB;
+      --surface:  #FFFFFF;
+      --border:   rgba(27,42,74,0.10);
+      --muted:    rgba(27,42,74,0.45);
+      --font:     'Cairo', sans-serif;
+      --mono:     'DM Mono', monospace;
+    }
 
-function toArabicNumerals(text) {
-  var westernToArabic = {'0':'٠','1':'١','2':'٢','3':'٣','4':'٤','5':'٥','6':'٦','7':'٧','8':'٨','9':'٩'};
-  return String(text).replace(/[0-9]/g, function(c) { return westernToArabic[c] || c; });
+    /* ── RESET ──────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0; padding: 0;
+    }
+
+    /* ── BODY — simple centering, page scrolls naturally ── */
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--navy);
+      -webkit-font-smoothing: antialiased;
+      direction: rtl;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* ── APP CONTAINER — full width on mobile ── */
+    .wrap {
+      width: 100%;
+      padding: 14px 14px 32px;
+    }
+
+    /* ── LOADING OVERLAY ────────────────────────── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+
+    #loader.out { opacity: 0; pointer-events: none; }
+
+    .ldr-brand {
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--navy);
+      direction: ltr;
+    }
+
+    .ldr-brand b {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--burg);
+      letter-spacing: 1.5px;
+    }
+
+    .ldr-track {
+      width: 72px; height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ldr-bar {
+      height: 100%; width: 40%;
+      background: linear-gradient(90deg, var(--burg), var(--gold));
+      border-radius: 2px;
+      animation: sweep 1s ease-in-out infinite;
+    }
+
+    @keyframes sweep {
+      0%   { transform: translateX(200%); }
+      100% { transform: translateX(-300%); }
+    }
+
+    .ldr-hint { font-size: 11px; color: var(--muted); }
+
+    /* ── TOP HEADER ─────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .bld-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+
+    .bld-sub {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--forest);
+      box-shadow: 0 0 0 3px rgba(26,107,60,0.15);
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .dot.off {
+      background: var(--burg);
+      box-shadow: 0 0 0 3px rgba(155,35,53,0.15);
+    }
+
+    /* ── DASHBOARD CARD ─────────────────────────── */
+    .dash-card {
+      background: var(--navy);
+      border-radius: 20px;
+      padding: 22px 20px 18px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(27,42,74,0.22);
+    }
+
+    .dash-card::before {
+      content: '';
+      position: absolute;
+      top: -45px; left: -45px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.07);
+      pointer-events: none;
+    }
+
+    .dash-card::after {
+      content: '';
+      position: absolute;
+      bottom: -45px; right: -25px;
+      width: 150px; height: 150px;
+      border-radius: 50%;
+      background: rgba(155,35,53,0.09);
+      pointer-events: none;
+    }
+
+    .d-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative; z-index: 1;
+    }
+
+    .d-lbl-en {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .d-lbl-ar {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+
+    .d-heart {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+      cursor: pointer;
+      position: relative; z-index: 1;
+    }
+
+    .d-heart-ico {
+      font-size: 20px; line-height: 1;
+      animation: hb 2s ease-in-out infinite;
+    }
+
+    @keyframes hb {
+      0%,100% { transform: scale(1); }
+      15%     { transform: scale(1.22); }
+      30%     { transform: scale(1); }
+      45%     { transform: scale(1.12); }
+    }
+
+    .d-heart-pct {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .d-amount {
+      font-family: var(--mono);
+      font-size: clamp(30px, 9vw, 44px);
+      font-weight: 500;
+      color: #fff;
+      direction: ltr;
+      text-align: right;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin: 10px 0 6px;
+      position: relative; z-index: 1;
+    }
+
+    .d-line {
+      height: 1px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+      opacity: 0.45;
+      border-radius: 1px;
+      position: relative; z-index: 1;
+    }
+
+    .d-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 9px;
+      position: relative; z-index: 1;
+    }
+
+    .d-time {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: rgba(255,255,255,0.28);
+    }
+
+    .d-refresh {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .d-refresh:active { opacity: 0.6; }
+    .d-refresh.spin { animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TABS ───────────────────────────────────── */
+    .tab-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      padding: 14px 8px 12px;
+      border-radius: 16px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 4px rgba(27,42,74,0.06);
+    }
+
+    .tab-btn:active { transform: scale(0.96); }
+
+    .tab-btn.t-inc {
+      background: rgba(26,107,60,0.08);
+      border-color: var(--forest);
+      box-shadow: 0 4px 10px rgba(26,107,60,0.15);
+    }
+
+    .tab-btn.t-exp {
+      background: rgba(155,35,53,0.08);
+      border-color: var(--burg);
+      box-shadow: 0 4px 10px rgba(155,35,53,0.15);
+    }
+
+    .tab-btn.t-rep {
+      background: rgba(27,42,74,0.08);
+      border-color: var(--navy);
+      box-shadow: 0 4px 10px rgba(27,42,74,0.15);
+    }
+
+    .t-icon { font-size: 26px; line-height: 1; }
+
+    .t-ar {
+      font-size: 13px; font-weight: 700;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+
+    .t-en {
+      font-size: 9px; font-weight: 500;
+      color: var(--muted); opacity: 0.7;
+      transition: color 0.2s;
+    }
+
+    .tab-btn.t-inc .t-ar, .tab-btn.t-inc .t-en { color: var(--forest); opacity: 1; }
+    .tab-btn.t-exp .t-ar, .tab-btn.t-exp .t-en { color: var(--burg);   opacity: 1; }
+    .tab-btn.t-rep .t-ar, .tab-btn.t-rep .t-en { color: var(--navy);   opacity: 1; }
+
+    /* ── FORM CARD ──────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(27,42,74,0.05);
+    }
+
+    /* ── LABELS ─────────────────────────────────── */
+    .lbl {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .l-ar { font-size: 13px; font-weight: 700; color: var(--navy); }
+    .l-en { font-size: 9px; color: var(--muted); direction: ltr; }
+
+    /* ── INPUTS — ALL 16px to prevent iOS zoom ─── */
+    .inp {
+      width: 100%;
+      height: 54px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--navy);
+      padding: 0 14px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-align: right;
+    }
+
+    .inp:focus {
+      border-color: var(--navy);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(27,42,74,0.07);
+    }
+
+    .inp.err {
+      border-color: var(--burg);
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%     { transform: translateX(-5px); }
+      75%     { transform: translateX(5px); }
+    }
+
+    select.inp {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231B2A4A' opacity='.35'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 14px center;
+      padding-left: 36px;
+      cursor: pointer;
+    }
+
+    .inp-amt {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 400;
+      height: 62px;
+      text-align: center;
+      direction: ltr;
+      letter-spacing: -0.5px;
+    }
+
+    .inp-amt::placeholder { color: rgba(27,42,74,0.18); }
+
+    .inp-pin {
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 10px;
+      text-align: center;
+      direction: ltr;
+      height: 56px;
+    }
+
+    .inp-pin.vfy { border-color: var(--gold);   box-shadow: 0 0 0 3px rgba(201,168,76,0.13); }
+    .inp-pin.ok  { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.12); }
+    .inp-pin.bad { border-color: var(--burg);   box-shadow: 0 0 0 3px rgba(155,35,53,0.12); }
+
+    /* ── REPORT QUICK CARDS ─────────────────────── */
+    .r-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .rcard {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
+    }
+
+    .rcard:active { transform: scale(0.95); }
+    .rcard.on { background: var(--navy); border-color: var(--navy); }
+    .rcard.on .r-icon, .rcard.on .r-title, .rcard.on .r-sub { color: #fff; }
+
+    .r-icon  { font-size: 18px; }
+    .r-title { font-size: 11px; font-weight: 700; color: var(--navy); }
+    .r-sub   { font-size: 8px; color: var(--muted); }
+
+    /* ── SUBMIT BUTTON ──────────────────────────── */
+    .btn-sub {
+      width: 100%;
+      height: 58px;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--font);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 12px;
+      -webkit-appearance: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .btn-sub:active:not(:disabled) { opacity: 0.85; transform: scale(0.98); }
+    .btn-sub:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .b-inc { background: var(--forest); box-shadow: 0 4px 14px rgba(26,107,60,0.28); }
+    .b-exp { background: var(--burg);   box-shadow: 0 4px 14px rgba(155,35,53,0.26); }
+    .b-rep { background: var(--navy);   box-shadow: 0 4px 14px rgba(27,42,74,0.24); }
+
+    /* ── TOAST ──────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 16px; right: 16px;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 13px 16px;
+      border-radius: 12px;
+      font-size: 14px; font-weight: 600;
+      color: #fff; text-align: center;
+      z-index: 8000;
+      opacity: 0; transform: translateY(16px);
+      pointer-events: none;
+      transition: all 0.28s ease;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.ok   { background: var(--forest); }
+    #toast.fail { background: var(--burg); }
+    #toast.info { background: var(--navy); }
+
+    /* ── LOCK BANNER ────────────────────────────── */
+    #lock-banner {
+      display: none;
+      padding: 14px;
+      background: rgba(155,35,53,0.07);
+      border: 1px solid rgba(155,35,53,0.22);
+      border-radius: 12px;
+      font-size: 13px; color: var(--burg);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .lock-btn {
+      width: 100%; margin-top: 8px; padding: 10px;
+      background: var(--burg); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: var(--font); font-size: 14px; font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── BRAND FOOTER ───────────────────────────── */
+    .brand-foot {
+      text-align: center;
+      padding: 20px 0 8px;
+    }
+
+    .brand-wrap {
+      display: inline-flex;
+      align-items: baseline;
+      direction: ltr;
+    }
+
+    .b-idara {
+      font-family: var(--font);
+      font-size: 13px; font-weight: 700;
+      color: var(--navy);
+    }
+
+    .b-sep {
+      width: 1px; height: 9px;
+      background: var(--gold);
+      display: inline-block;
+      margin: 0 4px 1px;
+      opacity: 0.75;
+      vertical-align: middle;
+    }
+
+    .b-pro {
+      font-family: var(--mono);
+      font-size: 10px; font-weight: 500;
+      color: var(--burg);
+      letter-spacing: 1.5px;
+    }
+
+    .b-tag {
+      font-size: 8px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.4px;
+    }
+
+    /* ── MODAL ──────────────────────────────────── */
+    #modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(27,42,74,0.45);
+      z-index: 7000;
+      align-items: flex-end;
+      backdrop-filter: blur(3px);
+    }
+
+    #modal.open { display: flex; }
+
+    .m-sheet {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px 36px;
+      width: 100%;
+      animation: shup 0.3s ease;
+    }
+
+    @keyframes shup {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .m-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 16px; }
+
+    .m-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .m-row:last-of-type { border: none; }
+    .m-val { font-family: var(--mono); font-weight: 500; color: var(--forest); }
+
+    .m-confirm {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border-radius: 10px;
+      padding: 12px; margin: 12px 0;
+      cursor: pointer; font-size: 13px;
+    }
+
+    .m-confirm input { transform: scale(1.2); accent-color: var(--navy); }
+
+    .m-ok {
+      width: 100%; height: 50px;
+      background: var(--forest); color: #fff;
+      border: none; border-radius: 12px;
+      font-family: var(--font); font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-bottom: 10px;
+    }
+
+    .m-cancel {
+      width: 100%; height: 44px;
+      background: var(--bg); color: var(--muted);
+      border: none; border-radius: 12px;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hide { display: none !important; }
+    .disabled { opacity: 0.35; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ldr-brand">idara<b>PRO</b></div>
+  <div class="ldr-track"><div class="ldr-bar"></div></div>
+  <div class="ldr-hint">جاري التحميل / Loading...</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- APP WRAP -->
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="bld-name" id="bldName">...</div>
+      <div class="bld-sub">Building Management</div>
+    </div>
+    <div class="dot" id="dot"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dash-card">
+    <div class="d-top">
+      <div>
+        <div class="d-lbl-en">CASH ON HAND</div>
+        <div class="d-lbl-ar">النقد المتوفر</div>
+      </div>
+      <div class="d-heart" onclick="refreshDash()">
+        <span class="d-heart-ico" id="heart">💚</span>
+        <span class="d-heart-pct" id="hpct">—%</span>
+      </div>
+    </div>
+    <div class="d-amount" id="cashAmt">Loading...</div>
+    <div class="d-line"></div>
+    <div class="d-foot">
+      <div class="d-time" id="dashTime">—</div>
+      <button class="d-refresh" id="rBtn" onclick="refreshDash()">↻</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-row">
+    <div class="tab-btn t-inc" id="t-inc" onclick="setTab('Income')">
+      <span class="t-icon">💰</span>
+      <span class="t-ar">قبض</span>
+      <span class="t-en">Income</span>
+    </div>
+    <div class="tab-btn" id="t-exp" onclick="setTab('Expense')">
+      <span class="t-icon">📉</span>
+      <span class="t-ar">مصروف</span>
+      <span class="t-en">Expense</span>
+    </div>
+    <div class="tab-btn" id="t-rep" onclick="setTab('Report')">
+      <span class="t-icon">📄</span>
+      <span class="t-ar">تقارير</span>
+      <span class="t-en">Reports</span>
+    </div>
+  </div>
+
+  <!-- LOCK BANNER -->
+  <div id="lock-banner">
+    <strong>⚠️ Fiscal Year Mismatch</strong><br>
+    <span id="lock-msg"></span>
+    <button class="lock-btn" onclick="openFiscal()">إغلاق السنة / Close Year</button>
+  </div>
+
+  <!-- FORM -->
+  <form id="form" onsubmit="event.preventDefault(); doSubmit();">
+    <input type="hidden" id="eType" value="Income">
+
+    <!-- INCOME -->
+    <div class="card" id="f-inc">
+      <div class="lbl">
+        <span class="l-ar">شاغل القسم</span>
+        <span class="l-en">Occupant of Unit</span>
+      </div>
+      <select class="inp" id="sel-owner">
+        <option value="" disabled selected>اختر / Select...</option>
+      </select>
+      <div class="lbl" style="margin-top:12px;">
+        <span class="l-ar">الفئة</span>
+        <span class="l-en">Category</span>
+      </div>
+      <select class="inp" id="sel-icat">
+        <option value="" disabled selected>اختر / Select...</option>
+      </select>
+    </div>
+
+    <!-- EXPENSE -->
+    <div class="card hide" id="f-exp">
+      <div class="lbl">
+        <span class="l-ar">فئة المصروف</span>
+        <span class="l-en">Expense Category</span>
+      </div>
+      <select class="inp" id="sel-ecat">
+        <option value="" disabled selected>اختر / Select...</option>
+      </select>
+    </div>
+
+    <!-- REPORT -->
+    <div class="hide" id="f-rep">
+      <div class="r-grid">
+        <div class="rcard on" id="rc-ytd"     onclick="pickReport('YTD')">
+          <span class="r-icon">📊</span>
+          <span class="r-title">YTD</span>
+          <span class="r-sub">تراكمي</span>
+        </div>
+        <div class="rcard" id="rc-month"   onclick="pickReport('CurrentMonth')">
+          <span class="r-icon">📅</span>
+          <span class="r-title">هذا الشهر</span>
+          <span class="r-sub">This Month</span>
+        </div>
+        <div class="rcard" id="rc-journal" onclick="pickReport('Journal')">
+          <span class="r-icon">📖</span>
+          <span class="r-title">اليومية</span>
+          <span class="r-sub">Journal</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lbl">
+          <span class="l-ar">نوع التقرير</span>
+          <span class="l-en">Report Type</span>
+        </div>
+        <select class="inp" id="sel-rep" onchange="pickReport(this.value)">
+          <option value="YTD">YTD — تراكمي سنوي</option>
+          <option value="CurrentMonth">هذا الشهر / This Month</option>
+          <option value="LastMonth">الشهر الماضي / Last Month</option>
+          <option value="Journal">دفتر اليومية / Journal</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- AMOUNT -->
+    <div class="card" id="f-amt">
+      <div class="lbl">
+        <span class="l-ar">المبلغ</span>
+        <span class="l-en">Amount $</span>
+      </div>
+      <input type="number" step="0.01" min="0"
+             class="inp inp-amt" id="inp-amt"
+             placeholder="0.00" inputmode="decimal">
+    </div>
+
+    <!-- PIN + SUBMIT -->
+    <div class="card">
+      <div class="lbl">
+        <span class="l-ar">رمز الدخول</span>
+        <span class="l-en">PIN</span>
+      </div>
+      <input type="password" class="inp inp-pin" id="inp-pin"
+             pattern="[0-9]{4}" inputmode="numeric"
+             maxlength="4" placeholder="••••" autocomplete="off">
+
+      <button type="submit" class="btn-sub b-inc" id="btn-sub">
+        <span id="btn-ico">💰</span>
+        <span id="btn-txt">تسجيل الدفعة / Record Payment</span>
+      </button>
+    </div>
+
+  </form>
+
+  <!-- BRAND FOOTER -->
+  <div class="brand-foot">
+    <div class="brand-wrap">
+      <span class="b-idara">idara</span>
+      <span class="b-sep"></span>
+      <span class="b-pro">PRO</span>
+    </div>
+    <div class="b-tag">Building Management Platform</div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- FISCAL MODAL -->
+<div id="modal">
+  <div class="m-sheet">
+    <div class="m-title">إغلاق السنة المالية / Year-End Closing</div>
+    <div class="m-row"><span>Closing Year</span><span class="m-val" id="cy-close">—</span></div>
+    <div class="m-row"><span>New Year</span><span class="m-val" id="cy-open">—</span></div>
+    <div class="m-row"><span>Cash Carry Forward</span><span class="m-val" id="cy-cash">—</span></div>
+    <div class="m-row"><span>Units</span><span class="m-val" id="cy-units">—</span></div>
+    <label class="m-confirm">
+      <input type="checkbox" id="conf-chk">
+      I verify these balances are correct
+    </label>
+    <button class="m-ok"     onclick="execClose()">Execute & Close</button>
+    <button class="m-cancel" onclick="closeModal()">Cancel / إلغاء</button>
+  </div>
+</div>
+
+<script>
+var TAB    = 'Income';
+var REPORT = 'YTD';
+var _fiscal = null;
+var _rtimer = null;
+var _ttimer = null;
+var GAS    = 'https://script.google.com/macros/s/AKfycbxAXi3phO9lrfi9cWmbIVID-kwnbWSogVB7wM3PwvNi40y8uOgmmrHdU-EqIHz_rkXv/exec';
+
+// ── API HELPERS ──────────────────────────────────
+function gasGet(action) {
+  return fetch(GAS + '?action=' + action)
+    .then(function(r) { return r.json(); })
+    .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
 }
 
-function normalizeArabicNumerals(text) {
-  if (!text) return text;
-  var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
-  return String(text).replace(/[٠-٩]/g, function(c) { return map[c] || c; });
+function gasPost(body) {
+  return fetch(GAS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
 }
 
-function parseArabicNumber(value) {
-  if (value === null || value === undefined || value === '') return 0;
-  var n = parseFloat(normalizeArabicNumerals(String(value)));
-  return isNaN(n) ? 0 : n;
+// ── BOOT ────────────────────────────────────────
+window.onload = function() {
+  gasGet('getAppData')
+    .then(function(d) { initApp(d); })
+    .catch(bootErr);
+
+  refreshDash();
+  watchNet();
+  _rtimer = setInterval(refreshDash, 30000);
+};
+
+function bootErr() {
+  hideLo();
+  toast('⚠️ Connection failed. Please reload.', 'fail');
 }
 
-// ============================================================================
-// MENU
-// ============================================================================
-
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🏢 Building Manager')
-    .addItem('Launch App', 'showSidebar')
-    .addToUi();
+function hideLo() {
+  var lo = document.getElementById('loader');
+  if (!lo) return;
+  lo.classList.add('out');
+  setTimeout(function() { lo.style.display = 'none'; }, 500);
 }
 
-// ============================================================================
-// doGet — serves HTML for direct GAS URL, OR returns JSON for API calls
-// ============================================================================
+// ── INIT ─────────────────────────────────────────
+function initApp(d) {
+  if (!d) { bootErr(); return; }
 
-function doGet(e) {
-  // No action param = serve the Sidebar HTML (direct GAS URL access)
-  if (!e || !e.parameter || !e.parameter.action) {
-    return HtmlService.createHtmlOutputFromFile('Sidebar')
-      .setTitle('347 Portal')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  window._cats = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
+
+  if (d.legal && d.legal['BUILDING_NAME']) {
+    document.getElementById('bldName').textContent = d.legal['BUILDING_NAME'];
   }
 
-  // API mode — GitHub Pages frontend calls with ?action=xxx
-  var action = e.parameter.action;
-  var result;
+  // Owners
+  var sel  = document.getElementById('sel-owner');
+  var frag = document.createDocumentFragment();
+  var ph   = new Option('اختر / Select...', '');
+  ph.disabled = true; ph.selected = true;
+  frag.appendChild(ph);
+  (d.owners || []).forEach(function(o) {
+    var opt = new Option(o.display, o.name);
+    opt.dataset.section    = o.section    || '';
+    opt.dataset.contractId = o.contractId || '';
+    frag.appendChild(opt);
+  });
+  sel.innerHTML = ''; sel.appendChild(frag);
 
-  try {
-    if (action === 'getAppData') {
-      result = { ok: true, data: JSON.parse(getAppData()) };
+  fillCats('income');
 
-    } else if (action === 'getDashboardStats') {
-      result = { ok: true, data: getDashboardStats() };
-
-    } else if (action === 'getBuildingHealth') {
-      result = { ok: true, data: getBuildingHealth() };
-
-    } else if (action === 'previewFiscalClose') {
-      result = { ok: true, data: previewFiscalClose() };
-
-    } else {
-      result = { ok: false, error: 'Unknown action: ' + action };
-    }
-  } catch(err) {
-    result = { ok: false, error: err.message };
+  if (d.fiscal && d.fiscal.locked) {
+    document.getElementById('lock-banner').style.display = 'block';
+    document.getElementById('lock-msg').textContent = d.fiscal.msg || '';
+    document.getElementById('form').classList.add('disabled');
   }
 
-  return ContentService
-    .createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
+  setTab('Income');
+  hideLo();
 }
 
-// ============================================================================
-// doPost — handles form submissions from GitHub Pages frontend
-// ============================================================================
+// ── CATEGORIES ──────────────────────────────────
+function fillCats(type) {
+  var cats  = (window._cats && window._cats[type]) ? window._cats[type] : [];
+  var selId = type === 'income' ? 'sel-icat' : 'sel-ecat';
+  var sel   = document.getElementById(selId);
+  var frag  = document.createDocumentFragment();
+  var ph    = new Option('اختر / Select...', '');
+  ph.disabled = true; ph.selected = true;
+  frag.appendChild(ph);
+  cats.forEach(function(c) { frag.appendChild(new Option(c, c)); });
+  sel.innerHTML = ''; sel.appendChild(frag);
+}
 
-function doPost(e) {
-  var result;
+// ── TABS ─────────────────────────────────────────
+function setTab(type) {
+  TAB = type;
+  document.getElementById('eType').value = type;
 
-  try {
-    var body   = JSON.parse(e.postData.contents);
-    var action = body.action;
+  ['t-inc','t-exp','t-rep'].forEach(function(id) {
+    document.getElementById(id).className = 'tab-btn';
+  });
 
-    if (action === 'processEntry') {
-      result = { ok: true, data: processEntry(body.payload) };
+  ['f-inc','f-exp','f-rep','f-amt'].forEach(function(id) {
+    document.getElementById(id).classList.add('hide');
+  });
 
-    } else if (action === 'processReportRequest') {
-      result = { ok: true, data: processReportRequest(body.reportType, body.pin) };
+  var btn = document.getElementById('btn-sub');
+  var ico = document.getElementById('btn-ico');
+  var txt = document.getElementById('btn-txt');
 
-    } else if (action === 'commitFiscalClose') {
-      result = { ok: true, data: commitFiscalClose(body.payload) };
+  if (type === 'Income') {
+    document.getElementById('t-inc').classList.add('t-inc');
+    document.getElementById('f-inc').classList.remove('hide');
+    document.getElementById('f-amt').classList.remove('hide');
+    fillCats('income');
+    btn.className = 'btn-sub b-inc';
+    ico.textContent = '💰';
+    txt.textContent = 'تسجيل الدفعة / Record Payment';
 
-    } else {
-      result = { ok: false, error: 'Unknown action: ' + action };
-    }
-  } catch(err) {
-    result = { ok: false, error: err.message };
+  } else if (type === 'Expense') {
+    document.getElementById('t-exp').classList.add('t-exp');
+    document.getElementById('f-exp').classList.remove('hide');
+    document.getElementById('f-amt').classList.remove('hide');
+    fillCats('expense');
+    btn.className = 'btn-sub b-exp';
+    ico.textContent = '📉';
+    txt.textContent = 'تسجيل مصروف / Record Expense';
+
+  } else {
+    document.getElementById('t-rep').classList.add('t-rep');
+    document.getElementById('f-rep').classList.remove('hide');
+    pickReport('YTD');
+    btn.className = 'btn-sub b-rep';
+    ico.textContent = '📧';
+    txt.textContent = 'إرسال التقرير / Send Report';
   }
 
-  return ContentService
-    .createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
+  document.getElementById('inp-amt').value = '';
+  document.getElementById('inp-pin').value = '';
+  resetPin();
 }
 
-// ============================================================================
-// SIDEBAR (for Google Sheets menu launch)
-// ============================================================================
-
-function showSidebar() {
-  var html = HtmlService.createHtmlOutputFromFile('Sidebar')
-    .setTitle('347 Portal').setWidth(450);
-  SpreadsheetApp.getUi().showSidebar(html);
+// ── REPORT CARDS ─────────────────────────────────
+function pickReport(type) {
+  REPORT = type;
+  var sel = document.getElementById('sel-rep');
+  if (sel) sel.value = type;
+  ['rc-ytd','rc-month','rc-journal'].forEach(function(id) {
+    document.getElementById(id).classList.remove('on');
+  });
+  var map = { 'YTD':'rc-ytd', 'CurrentMonth':'rc-month', 'Journal':'rc-journal' };
+  if (map[type]) document.getElementById(map[type]).classList.add('on');
 }
 
-// ============================================================================
-// DASHBOARD
-// ============================================================================
+// ── DASHBOARD ────────────────────────────────────
+function refreshDash() {
+  var rb = document.getElementById('rBtn');
+  rb.classList.add('spin');
 
-function getDashboardStats() {
-  try {
-    var ss   = SpreadsheetApp.getActiveSpreadsheet();
-    var year = new Date().getFullYear();
-    var open = getCashOpeningForYear(year);
-    var data = ss.getSheetByName("Entries").getDataRange().getValues();
-    var delta = 0;
-    for (var i = 1; i < data.length; i++) {
-      if (new Date(data[i][0]).getFullYear() === year)
-        delta += parseArabicNumber(data[i][10]);
-    }
-    return "$" + (open + delta).toFixed(2);
-  } catch(e) { Logger.log('getDashboardStats: ' + e); return '$0.00'; }
+  gasGet('getDashboardStats')
+    .then(function(v) {
+      document.getElementById('cashAmt').textContent = v || '$0.00';
+      var n = new Date();
+      document.getElementById('dashTime').textContent =
+        pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+      rb.classList.remove('spin');
+    })
+    .catch(function() { rb.classList.remove('spin'); });
+
+  gasGet('getBuildingHealth')
+    .then(function(r) {
+      var pct = r && r.pct != null ? r.pct : 0;
+      document.getElementById('hpct').textContent = pct + '%';
+      document.getElementById('heart').textContent =
+        pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
+    })
+    .catch(function() {});
 }
 
-function getCashOpeningForYear(year) {
-  try {
-    var rows = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName("YearCash").getRange("A2:B").getValues();
-    for (var i = 0; i < rows.length; i++)
-      if (rows[i][0] == year) return parseArabicNumber(rows[i][1]);
-    return parseArabicNumber(getLegalSettings()['BUILDING_CASH_OPENING']);
-  } catch(e) { return 0; }
-}
+function pad(n) { return String(n).padStart(2, '0'); }
 
-// ============================================================================
-// GET CASH BALANCE
-// ============================================================================
+// ── SUBMIT ───────────────────────────────────────
+function doSubmit() {
+  var type  = TAB;
+  var pinEl = document.getElementById('inp-pin');
+  var pin   = pinEl.value;
 
-function getCashBalance() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var today = new Date();
-    var currentYear = today.getFullYear();
-    var opening = getCashOpeningForYear(currentYear);
-    var entries = ss.getSheetByName("Entries").getDataRange().getValues();
-    var totalIncome = 0;
-    var totalExpense = 0;
-    for (var i = 1; i < entries.length; i++) {
-      var entryDate = entries[i][0];
-      if (!entryDate) continue;
-      var year = new Date(entryDate).getFullYear();
-      if (year !== currentYear) continue;
-      var type = String(entries[i][4]).trim();
-      var amount = parseFloat(entries[i][7]) || 0;
-      if (type === 'Inflow') { totalIncome += amount; }
-      else if (type === 'Outflow') { totalExpense += amount; }
-    }
-    var cashBalance = opening + totalIncome - totalExpense;
-    return '$' + cashBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  } catch(e) {
-    Logger.log('getCashBalance error: ' + e);
-    return '$0.00';
+  if (!pin || pin.length !== 4) {
+    toast('❌ PIN must be 4 digits', 'fail');
+    markErr(pinEl); return;
   }
-}
 
-// ============================================================================
-// GET BUILDING HEALTH
-// ============================================================================
-
-function getBuildingHealth() {
-  try {
-    var ss      = SpreadsheetApp.getActiveSpreadsheet();
-    var year    = new Date().getFullYear();
-    var today   = new Date();
-    var rules   = getFeeRules(ss);
-    var open    = getCashOpeningForYear(year);
-
-    var occData = ss.getSheetByName("Occupancy").getDataRange().getValues();
-    var bldData = ss.getSheetByName("Building").getDataRange().getValues();
-
-    var unitDetailsMap = {};
-    for (var j = 1; j < bldData.length; j++) {
-      var uid = String(bldData[j][0]).trim();
-      if (uid) {
-        var ampVal  = parseArabicNumber(bldData[j][5]);
-        unitDetailsMap[uid] = {
-          section:  String(bldData[j][1]).trim(),
-          type:     bldData[j][4],
-          sqm:      bldData[j][3] || 0,
-          amperes:  (ampVal && !isNaN(ampVal) && ampVal > 0) ? ampVal : 0
-        };
-      }
+  if (type !== 'Report') {
+    var amt = parseFloat(document.getElementById('inp-amt').value);
+    if (!amt || amt <= 0) {
+      toast('❌ Enter a valid amount', 'fail');
+      markErr(document.getElementById('inp-amt')); return;
     }
-
-    var contractMap = {};
-    for (var i = 1; i < occData.length; i++) {
-      var contractId = String(occData[i][7]).trim();
-      var cName      = String(occData[i][0]).trim();
-      var section    = String(occData[i][1]).trim();
-      var unitId     = String(occData[i][4]).trim();
-      var sDate      = occData[i][2] ? new Date(occData[i][2]) : null;
-      var eDate      = occData[i][6] ? new Date(occData[i][6]) : null;
-
-      if (!contractId) continue;
-      if (eDate && eDate < today) continue;
-
-      var ud = unitDetailsMap[unitId] || { type:'', sqm:0, amperes:0 };
-      var dueStart = sDate && sDate > new Date(year,0,1) ? sDate : new Date(year,0,1);
-      var dueEnd   = today;
-
-      var due = calculateStandardDues(
-        normalizeArabicNumerals(section),
-        { type: ud.type, sqm: ud.sqm, amperes: ud.amperes, unitId: unitId, contractId: contractId },
-        dueStart, dueEnd, rules
-      );
-
-      contractMap[contractId] = { name: cName, section: section, due: due, paid: 0, prev: 0 };
+    if (type === 'Income' && !document.getElementById('sel-owner').value) {
+      toast('❌ Select an occupant', 'fail');
+      markErr(document.getElementById('sel-owner')); return;
     }
-
-    var opData = ss.getSheetByName("OpeningBalance").getDataRange().getValues();
-    for (var i = 1; i < opData.length; i++) {
-      var opSec  = normalizeArabicNumerals(String(opData[i][1]).trim());
-      var opName = String(opData[i][2]).trim();
-      var opYear = opData[i][3];
-      var opPrev = parseArabicNumber(opData[i][5]);
-      if (opYear != year) continue;
-      for (var cId in contractMap) {
-        var c = contractMap[cId];
-        if (normalizeArabicNumerals(c.section) === opSec && (c.name === opName || opName === '-')) {
-          c.prev = opPrev; break;
-        }
-      }
-    }
-
-    var entries = ss.getSheetByName("Entries").getDataRange().getValues();
-    for (var i = 1; i < entries.length; i++) {
-      var d = new Date(entries[i][0]);
-      if (d.getFullYear() !== year) continue;
-      if (entries[i][4] !== 'Inflow') continue;
-      var cId = String(entries[i][9]).trim();
-      var amt = parseArabicNumber(entries[i][10]);
-      if (contractMap[cId]) contractMap[cId].paid += amt;
-    }
-
-    var total = 0, healthy = 0;
-    for (var cId in contractMap) {
-      var c = contractMap[cId];
-      var bal = c.prev + c.paid - c.due;
-      total++;
-      if (bal >= 0) healthy++;
-    }
-
-    var pct = total > 0 ? Math.round((healthy / total) * 100) : 0;
-    Logger.log('getBuildingHealth: ' + healthy + '/' + total + ' = ' + pct + '%');
-    return { pct: pct, healthy: healthy, total: total };
-
-  } catch(e) {
-    Logger.log('getBuildingHealth error: ' + e);
-    return { pct: 0, healthy: 0, total: 0 };
   }
-}
 
-// ============================================================================
-// GET APP DATA
-// ============================================================================
+  var cat = '';
+  if (type === 'Income')  cat = document.getElementById('sel-icat').value;
+  if (type === 'Expense') cat = document.getElementById('sel-ecat').value;
+  if (type !== 'Report' && !cat) {
+    toast('❌ Select a category', 'fail'); return;
+  }
 
-function getAppData() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var incomeCategories = [];
-    var expenseCategories = [];
-    var activeNames = [];
-    var list = [];
+  var btn = document.getElementById('btn-sub');
+  btn.disabled = true;
+  pinEl.classList.add('vfy');
+  toast('🔐 Verifying...', 'info');
 
-    try { incomeCategories = getIncomeCategories(); } catch(e) { incomeCategories = ['سلفة عن تكاليف الاقسام المشتركة']; }
-    try { expenseCategories = getExpenseCategories(); } catch(e) { expenseCategories = ['رواتب', 'كهرباء لبنان', 'مصاريف متفرقة']; }
+  var tmout = setTimeout(function() {
+    onFail({ message: 'Timed out. Try again.' });
+  }, 30000);
 
-    try {
-      activeNames = ss.getSheetByName("Contacts").getDataRange().getValues()
-        .filter(function(r){ return r[4] === 'Active'; })
-        .map(function(r){ return String(r[1]).trim(); });
-    } catch(e) { activeNames = []; }
+  if (type === 'Report') {
+    gasPost({ action: 'processReportRequest', reportType: document.getElementById('sel-rep').value, pin: pin })
+      .then(function(r) {
+        clearTimeout(tmout);
+        pinEl.classList.remove('vfy'); pinEl.classList.add('ok');
+        setTimeout(function() { resetPin(); onOk(r.msg || r); }, 500);
+      })
+      .catch(function(e) { clearTimeout(tmout); pinFail(e); });
 
-    try {
-      var occSheet    = ss.getSheetByName("Occupancy");
-      var occRows     = occSheet.getDataRange().getDisplayValues();
-      var occRowsDate = occSheet.getDataRange().getValues();
-      var today       = new Date(); today.setHours(0,0,0,0);
-
-      for (var i = 1; i < occRows.length; i++) {
-        var cName      = String(occRows[i][0]).trim();
-        var section    = String(occRows[i][1]).trim();
-        var sDate      = occRowsDate[i][2] ? new Date(occRowsDate[i][2]) : null;
-        var eDate      = occRowsDate[i][6] ? new Date(occRowsDate[i][6]) : null;
-        var contractId = String(occRows[i][7]).trim();
-
-        if (!cName || !section) continue;
-        if (activeNames.indexOf(cName) === -1) continue;
-        if (sDate && sDate > today) continue;
-        if (eDate && eDate < today) continue;
-
-        var startDisplay = sDate ? Utilities.formatDate(sDate, "GMT+2", "MM/yyyy") : "";
-        var display = startDisplay
-          ? cName + ' - ' + section + ' (since ' + startDisplay + ')'
-          : cName + ' - ' + section;
-
-        list.push({ display: display, name: cName, section: section, contractId: contractId });
-      }
-
-      list.sort(function(a,b){ return parseArabicNumber(a.section) - parseArabicNumber(b.section); });
-    } catch(e) { list = []; }
-
-    var result = {
-      owners: list,
-      incomeCategories: incomeCategories,
-      expenseCategories: expenseCategories,
-      legal: {},
-      fiscal: {}
+  } else {
+    var ownerSel = document.getElementById('sel-owner');
+    var selOpt   = ownerSel.selectedIndex >= 0 ? ownerSel.options[ownerSel.selectedIndex] : null;
+    var payload  = {
+      entryType:  type,
+      ownerName:  type === 'Income' ? ownerSel.value : '',
+      category:   cat,
+      amount:     document.getElementById('inp-amt').value,
+      unit:       selOpt ? (selOpt.dataset.section    || '') : '',
+      contractId: selOpt ? (selOpt.dataset.contractId || '') : '',
+      pin:        pin
     };
 
-    try { result.legal = getLegalSettings(); } catch(e) { result.legal = { BUILDING_NAME: 'عقار ٣٤٧ المصيطبة' }; }
-    try { result.fiscal = getFiscalStatus(); } catch(e) { result.fiscal = { locked: false }; }
-
-    Logger.log('getAppData: owners=' + result.owners.length + ', income=' + result.incomeCategories.length + ', expense=' + result.expenseCategories.length);
-    return JSON.stringify(result);
-
-  } catch(e) {
-    Logger.log('getAppData CRITICAL: ' + e);
-    return JSON.stringify({
-      owners: [],
-      incomeCategories: ['سلفة عن تكاليف الاقسام المشتركة'],
-      expenseCategories: ['رواتب', 'كهرباء لبنان', 'مصاريف متفرقة'],
-      legal: { BUILDING_NAME: 'عقار ٣٤٧ المصيطبة' },
-      fiscal: { locked: false }
-    });
+    gasPost({ action: 'processEntry', payload: payload })
+      .then(function(r) {
+        clearTimeout(tmout);
+        pinEl.classList.remove('vfy'); pinEl.classList.add('ok');
+        setTimeout(function() { resetPin(); onOk(r); }, 500);
+      })
+      .catch(function(e) { clearTimeout(tmout); pinFail(e); });
   }
 }
 
-// ============================================================================
-// PROCESS ENTRY
-// ============================================================================
-
-function processEntry(f) {
-  try {
-    Logger.log('====== processEntry ======');
-    Logger.log('entryType : [' + f.entryType + ']');
-    Logger.log('ownerName : [' + f.ownerName + ']');
-    Logger.log('unit      : [' + f.unit      + ']');
-    Logger.log('contractId: [' + f.contractId + ']');
-    Logger.log('category  : [' + f.category  + ']');
-    Logger.log('amount    : [' + f.amount    + ']');
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var a  = validatePin(f.pin);
-    if (!a) return "❌ Invalid PIN";
-
-    var entryType = (f.entryType === 'Income')  ? 'Inflow'  :
-                    (f.entryType === 'Expense') ? 'Outflow' : f.entryType;
-
-    var unitSection = '';
-    if (entryType === 'Inflow') {
-      unitSection = String(f.unit || '').trim();
-      if (!unitSection) return "❌ Error: Unit/section is missing. Please re-select the occupant.";
-    }
-
-    var category = f.category;
-    if (!category) return "❌ Error: Category is required. Please select a category.";
-
-    var amount = parseArabicNumber(f.amount);
-    var n      = new Date();
-    var year   = n.getFullYear();
-    var dateOnly = new Date(year, n.getMonth(), n.getDate());
-
-    var trxId = generateTrxId(ss, entryType, year);
-    if (!trxId) return "❌ Error: Could not generate TRX ID. Please ensure year " + year + " is initialized in the YearCash sheet.";
-
-    var sheet = ss.getSheetByName("Entries");
-    if (!sheet) return "❌ Error: Entries sheet not found";
-
-    var lastRow = sheet.getLastRow();
-    var newRow  = lastRow + 1;
-    var contractId = String(f.contractId || '').trim();
-    var netAmount  = (entryType === 'Outflow') ? -Math.abs(amount) : Math.abs(amount);
-
-    sheet.appendRow([
-      dateOnly, trxId, "", f.ownerName, entryType,
-      category, "", amount, a.name, contractId, netAmount
-    ]);
-
-    if (entryType === 'Inflow' && unitSection) {
-      var unitCell = sheet.getRange(newRow, 3);
-      unitCell.setNumberFormat('@STRING@');
-      unitCell.setValue(unitSection);
-    }
-
-    Logger.log('✅ Saved: ' + trxId);
-    if (entryType === 'Inflow') return "✅ Payment recorded successfully ($" + amount + ")";
-    else return "✅ Expense recorded successfully ($" + amount + ")";
-
-  } catch(e) {
-    Logger.log('processEntry error: ' + e);
-    return "❌ Error: " + e.message;
+function onOk(msg) {
+  var ok = msg && (msg.includes('✅') || msg.includes('success') || msg.includes('Saved'));
+  toast(msg, ok ? 'ok' : 'fail');
+  document.getElementById('btn-sub').disabled = false;
+  if (ok && TAB !== 'Report') {
+    document.getElementById('inp-amt').value = '';
+    document.getElementById('inp-pin').value = '';
+    resetPin();
+    refreshDash();
+  } else {
+    document.getElementById('inp-pin').value = '';
+    resetPin();
   }
 }
 
-// ============================================================================
-// TRX ID GENERATION
-// ============================================================================
+function onFail(e) {
+  toast('❌ ' + (e.message || String(e)), 'fail');
+  document.getElementById('btn-sub').disabled = false;
+  resetPin();
+}
 
-function generateTrxId(ss, entryType, year) {
-  try {
-    var isInflow  = (entryType === 'Inflow');
-    var prefix    = isInflow ? 'INC' : 'EXP';
-    var colIndex  = isInflow ? 3 : 4;
-    var ycSheet   = ss.getSheetByName("YearCash");
-    var ycData    = ycSheet.getRange("A2:E").getValues();
-    var yearRow   = -1;
-    for (var i = 0; i < ycData.length; i++) {
-      if (ycData[i][0] == year) { yearRow = i; break; }
-    }
-    if (yearRow === -1) return null;
-    var currentCounter = parseArabicNumber(ycData[yearRow][colIndex]) || 0;
-    var newCounter     = currentCounter + 1;
-    ycSheet.getRange(yearRow + 2, colIndex + 1).setValue(newCounter);
-    var padded = String(newCounter);
-    while (padded.length < 5) padded = '0' + padded;
-    return prefix + '-' + year + '-' + padded;
-  } catch(e) {
-    Logger.log('generateTrxId error: ' + e);
-    return null;
+function pinFail(e) {
+  var pinEl = document.getElementById('inp-pin');
+  pinEl.classList.remove('vfy', 'ok');
+  pinEl.classList.add('bad');
+  pinEl.value = ''; pinEl.focus();
+  toast('❌ Wrong PIN. Try again.', 'fail');
+  document.getElementById('btn-sub').disabled = false;
+  setTimeout(resetPin, 3000);
+}
+
+// ── HELPERS ──────────────────────────────────────
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = type || 'info';
+  t.classList.add('show');
+  if (_ttimer) clearTimeout(_ttimer);
+  _ttimer = setTimeout(function() {
+    t.classList.remove('show');
+  }, type === 'fail' ? 5000 : 3000);
+}
+
+function markErr(el) {
+  if (!el) return;
+  el.classList.add('err');
+  setTimeout(function() { el.classList.remove('err'); }, 1800);
+}
+
+function resetPin() {
+  var p = document.getElementById('inp-pin');
+  if (p) p.classList.remove('vfy', 'ok', 'bad', 'err');
+  var b = document.getElementById('btn-sub');
+  if (b) b.disabled = false;
+}
+
+function watchNet() {
+  var dot = document.getElementById('dot');
+  window.addEventListener('online',  function() { dot.classList.remove('off'); toast('✅ Back online', 'ok'); });
+  window.addEventListener('offline', function() { dot.classList.add('off');    toast('⚠️ No internet', 'fail'); });
+}
+
+// ── FISCAL ───────────────────────────────────────
+function openFiscal() {
+  gasGet('previewFiscalClose')
+    .then(function(d) {
+      _fiscal = d;
+      document.getElementById('cy-close').textContent = d.yearClosing;
+      document.getElementById('cy-open').textContent  = d.yearOpening;
+      document.getElementById('cy-cash').textContent  = '$' + d.cashCarryForward.toFixed(2);
+      document.getElementById('cy-units').textContent = d.unitCount;
+      document.getElementById('modal').classList.add('open');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function execClose() {
+  if (!document.getElementById('conf-chk').checked) {
+    toast('Please confirm first', 'fail'); return;
   }
+  gasPost({ action: 'commitFiscalClose', payload: _fiscal })
+    .then(function(msg) {
+      toast(msg, 'ok');
+      closeModal();
+      setTimeout(function() { location.reload(); }, 2000);
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-// ============================================================================
-// FISCAL STATUS
-// ============================================================================
-
-function getFiscalStatus() {
-  try {
-    var ledger = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName("YearCash").getRange("A2:A").getValues()
-      .flat().filter(Number);
-    var y    = new Date().getFullYear();
-    var last = ledger.length ? Math.max.apply(null, ledger) : y - 1;
-    return { locked: y > last + 1, currentYear: y, lastClosed: last,
-             msg: y > last + 1 ? "⚠️ Year " + (last+1) + " is not initialized." : "" };
-  } catch(e) { return { locked:false, currentYear:new Date().getFullYear(), lastClosed:0, msg:'' }; }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
 }
 
-// ============================================================================
-// PIN VALIDATION
-// ============================================================================
-
-function validatePin(pin) {
-  try {
-    var data = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName("AdminSettings").getDataRange().getDisplayValues();
-    for (var i = 1; i < data.length; i++)
-      if (data[i][6] === String(pin).trim())
-        return { name: data[i][0], email: data[i][4] };
-    return null;
-  } catch(e) { Logger.log('validatePin: ' + e); return null; }
-}
-
-// ============================================================================
-// REPORTS
-// ============================================================================
-
-function processReportRequest(reportType, pin) { return sendReport(reportType, pin); }
-
-function sendReport(t, p) {
-  try {
-    var a = validatePin(p);
-    if (!a) return { msg: "❌ Invalid PIN" };
-    if (!a.email || String(a.email).trim() === '')
-      return { msg: "❌ No email configured for your account." };
-
-    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
-    var start, end, sub, blob;
-
-    if (t === 'YTD') {
-      start = new Date(y,0,1); end = now; sub = "Year " + y;
-      blob  = createFinancialPDF(start, end, sub, 'YTD', y);
-    } else if (t === 'CurrentMonth' || t === 'Monthly') {
-      start = new Date(y,m,1); end = now;
-      sub   = Utilities.formatDate(start,"GMT+2","MMMM yyyy");
-      blob  = createFinancialPDF(start, end, sub, 'MONTHLY', y);
-    } else if (t === 'Journal') {
-      start = new Date(y,0,1); end = now;
-      sub   = "دفتر اليومية العام - " + y;
-      blob  = createJournalPDF(start, end, sub, y);
-    } else if (t === 'LastMonth') {
-      var pM = m===0?11:m-1, pY = m===0?y-1:y;
-      start  = new Date(pY,pM,1); end = new Date(pY,pM+1,0);
-      sub    = Utilities.formatDate(start,"GMT+2","MMMM yyyy");
-      blob   = createFinancialPDF(start, end, sub, 'MONTHLY', y);
-    } else {
-      return { msg: "❌ Unknown report type: " + t };
-    }
-
-    MailApp.sendEmail({ to: a.email, subject: "Report: "+sub,
-      body: "Report attached.\n\nGenerated: "+Utilities.formatDate(new Date(),"GMT+2","dd/MM/yyyy HH:mm"),
-      attachments: [blob] });
-
-    return { msg: "✅ Report sent successfully to " + a.email };
-  } catch(e) { Logger.log('sendReport: '+e); return { msg:"❌ Error: "+e.message }; }
-}
-
-// ============================================================================
-// JOURNAL PDF
-// ============================================================================
-
-function createJournalPDF(reportStart, reportEnd, subTitle, year) {
-  try {
-    var ss      = SpreadsheetApp.getActiveSpreadsheet();
-    var legal   = getLegalSettings();
-    var raw     = ss.getSheetByName("Entries").getDataRange().getValues();
-    var openBal = getCashOpeningForYear(year);
-    var running = openBal;
-    var entries = [], totalIn = 0, totalOut = 0;
-
-    for (var i = 1; i < raw.length; i++) {
-      var d = new Date(raw[i][0]);
-      if (d.getFullYear()===year && d>=reportStart && d<=reportEnd) {
-        var net = parseArabicNumber(raw[i][10]);
-        running += net;
-        var isIn = raw[i][4]==='Inflow';
-        if (isIn) totalIn += parseArabicNumber(raw[i][7]);
-        else     totalOut += parseArabicNumber(raw[i][7]);
-        entries.push({
-          date:raw[i][0], unit:raw[i][2], name:raw[i][3],
-          type:raw[i][4], cat:raw[i][5],
-          contractId:String(raw[i][9]).trim(),
-          admin:String(raw[i][8]).trim() || '-',
-          amt:parseArabicNumber(raw[i][7]), net:net, bal:running
-        });
-      }
-    }
-
-    var html = getCommonCSS()+'<div class="page">';
-    html += '<div style="text-align:center;margin-bottom:20px;"><h2 style="margin:0;">'+legal['JOURNAL_TITLE']+'</h2>';
-    html += '<div style="color:#555;">'+legal['JOURNAL_SUBTITLE']+'</div></div>';
-    html += '<div class="disclaimer">'+legal['JOURNAL_DISCLAIMER']+'</div>';
-    html += '<div class="financial-card"><h3 style="margin-top:0;border-bottom:1px solid #ddd;padding-bottom:5px;">💰 الوضع المالي</h3>';
-    html += '<table class="no-border-table">';
-    html += '<tr><td>رصيد مدوّر من السنة السابقة:</td><td style="text-align:left;">$'+openBal.toFixed(2)+'</td></tr>';
-    html += '<tr><td>'+legal['JOURNAL_HEAD_IN']+' (+):</td><td style="text-align:left;color:#27ae60;">+ $'+totalIn.toFixed(2)+'</td></tr>';
-    html += '<tr><td>'+legal['JOURNAL_HEAD_OUT']+' (-):</td><td style="text-align:left;color:#c0392b;">- $'+totalOut.toFixed(2)+'</td></tr>';
-    html += '<tr><td colspan="2"><hr style="border:none;border-top:1px solid #eee;"></td></tr>';
-    html += '<tr style="font-size:16px;font-weight:bold;"><td>الرصيد النهائي:</td>';
-    html += '<td style="text-align:left;color:'+(running>=0?'#27ae60':'#c0392b')+';">$'+running.toFixed(2)+'</td></tr>';
-    html += '</table></div>';
-    html += '<h3 style="color:#2c3e50;border-bottom:2px solid #2c3e50;padding-bottom:5px;">📖 '+legal['JOURNAL_LBL_TABLE']+'</h3>';
-    html += '<table><thead><tr>';
-    html += '<th class="contract-id-header">Contract ID</th>';
-    html += '<th>'+legal['JOURNAL_HEAD_DATE']+'</th>';
-    html += '<th>'+legal['JOURNAL_HEAD_DESC']+'</th>';
-    html += '<th>'+legal['JOURNAL_HEAD_CAT']+'</th>';
-    html += '<th class="amount-header">'+legal['JOURNAL_HEAD_IN']+'</th>';
-    html += '<th class="amount-header">'+legal['JOURNAL_HEAD_OUT']+'</th>';
-    html += '<th class="amount-header">'+legal['JOURNAL_HEAD_BAL']+'</th>';
-    html += '<th>المسجل</th>';
-    html += '</tr></thead><tbody>';
-
-    entries.forEach(function(e){
-      var isIn = e.type==='Inflow';
-      html += '<tr><td class="contract-id">'+e.contractId+'</td>';
-      html += '<td>'+formatDate(e.date)+'</td>';
-      html += '<td style="text-align:right;">'+(e.unit?e.unit+' - ':'')+e.name+'</td>';
-      html += '<td style="text-align:right;">'+(e.cat||'-')+'</td>';
-      html += '<td class="amount-col" style="color:#27ae60;">'+(isIn?'$'+e.amt.toFixed(2):'-')+'</td>';
-      html += '<td class="amount-col" style="color:#c0392b;">'+(!isIn?'$'+e.amt.toFixed(2):'-')+'</td>';
-      html += '<td class="amount-col" style="color:'+(e.bal>=0?'#27ae60':'#c0392b')+';font-weight:bold;">$'+e.bal.toFixed(2)+'</td>';
-      html += '<td style="font-size:11px;color:#666;">'+e.admin+'</td></tr>';
-    });
-
-    html += '<tr style="background:#f8f9fa;font-weight:bold;border-top:2px solid #2c3e50;"><td colspan="4" style="text-align:right;">'+legal['JOURNAL_LBL_TOTALS']+'</td>';
-    html += '<td class="amount-col" style="color:#27ae60;">$'+totalIn.toFixed(2)+'</td>';
-    html += '<td class="amount-col" style="color:#c0392b;">$'+totalOut.toFixed(2)+'</td>';
-    html += '<td class="amount-col">$'+running.toFixed(2)+'</td><td></td></tr>';
-    html += '</tbody></table>'+getFooter(legal,'JOURNAL')+'</div>';
-    return createPdfBlob(html,'Journal_Report');
-  } catch(e) { Logger.log('createJournalPDF: '+e); throw new Error('Journal PDF failed: '+e.message); }
-}
-
-// ============================================================================
-// FINANCIAL PDF (Monthly / YTD)
-// ============================================================================
-
-function createFinancialPDF(reportStart, reportEnd, subTitle, typePrefix, year) {
-  try {
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
-    var legal = getLegalSettings();
-    var p     = typePrefix + "_";
-    var isYTD = (typePrefix === 'YTD');
-    var raw   = ss.getSheetByName("Entries").getDataRange().getValues();
-    var open  = getCashOpeningForYear(year);
-    var rules = getFeeRules(ss);
-
-    var bldData = ss.getSheetByName("Building").getDataRange().getValues();
-    var unitDetailsMap = {};
-    for (var j=1; j<bldData.length; j++) {
-      var uid = String(bldData[j][0]).trim();
-      if (uid) {
-        var ampVal = parseArabicNumber(bldData[j][5]);
-        unitDetailsMap[uid] = {
-          section: String(bldData[j][1]).trim(), type: bldData[j][4],
-          sqm: bldData[j][3] || 0,
-          amperes: (ampVal && !isNaN(ampVal) && ampVal > 0) ? ampVal : 0
-        };
-      }
-    }
-
-    var occData = ss.getSheetByName("Occupancy").getDataRange().getValues();
-    var contractMap = {};
-    for (var i=1; i<occData.length; i++) {
-      var contractId = String(occData[i][7]).trim();
-      var cName      = String(occData[i][0]).trim();
-      var section    = String(occData[i][1]).trim();
-      var unitId     = String(occData[i][4]).trim();
-      var sDate      = occData[i][2] ? new Date(occData[i][2]) : null;
-      var eDate      = occData[i][6] ? new Date(occData[i][6]) : null;
-      if (!contractId) continue;
-      var status = 'Active';
-      if (eDate && eDate < reportEnd) status = 'Closed';
-      var unitDetails = unitDetailsMap[unitId] || {type:'', sqm:0, amperes:0};
-      contractMap[contractId] = {
-        name: cName, section: section, sectionDisplay: section,
-        unitId: unitId, unitType: unitDetails.type, unitSqm: unitDetails.sqm,
-        unitAmperes: unitDetails.amperes, contractId: contractId,
-        status: status, startDate: sDate, endDate: eDate,
-        paid: 0, due: 0, prev: 0
-      };
-    }
-
-    for (var cId in contractMap) {
-      var c = contractMap[cId];
-      var cStart = c.startDate || new Date(year,0,1);
-      var cEnd = c.endDate || reportEnd;
-      if (cStart <= reportEnd && cEnd >= new Date(year,0,1)) {
-        var dueStart = cStart > new Date(year,0,1) ? cStart : new Date(year,0,1);
-        var dueEnd = cEnd < reportEnd ? cEnd : reportEnd;
-        c.due = calculateStandardDues(
-          normalizeArabicNumerals(c.section),
-          {type: c.unitType, sqm: c.unitSqm, amperes: c.unitAmperes, unitId: c.unitId, contractId: c.contractId},
-          dueStart, dueEnd, rules
-        );
-      }
-    }
-
-    var opData = ss.getSheetByName("OpeningBalance").getDataRange().getValues();
-    for (var i=1; i<opData.length; i++) {
-      var opSec = normalizeArabicNumerals(String(opData[i][1]).trim());
-      var opName = String(opData[i][2]).trim();
-      var opYear = opData[i][3];
-      var opPrev = parseArabicNumber(opData[i][5]);
-      if (opYear == year) {
-        for (var cId in contractMap) {
-          var c = contractMap[cId];
-          if (normalizeArabicNumerals(c.section) === opSec && (c.name === opName || opName === '-')) {
-            c.prev = opPrev; if (opName !== '-') c.name = opName; break;
-          }
-        }
-      }
-    }
-
-    var tInM=0,tOutM=0,tInY=0,tOutY=0,incRows=[],expRows=[];
-    for(var i=1;i<raw.length;i++){
-      var d=new Date(raw[i][0]);
-      var net=parseArabicNumber(raw[i][10]);
-      if(d.getFullYear()===year && d<=reportEnd){
-        if(raw[i][4]==='Inflow'){
-          tInY+=net;
-          var cId = String(raw[i][9]).trim();
-          if(cId && contractMap[cId]) contractMap[cId].paid += net;
-        } else { tOutY+=net; }
-        if(d>=reportStart){
-          if(raw[i][4]==='Inflow'){tInM+=net; incRows.push(raw[i]);}
-          else{tOutM+=Math.abs(net); expRows.push(raw[i]);}
-        }
-      }
-    }
-    var cash=open+tInY+tOutY;
-
-    var html=getCommonCSS()+'<div class="page">';
-    html+='<div style="text-align:center;margin-bottom:20px;"><h2 style="margin:0;">'+legal[p+'TITLE']+'</h2>';
-    html+='<div style="font-weight:bold;color:#555;margin-top:5px;">'+subTitle+'</div></div>';
-    html+='<div class="disclaimer">'+legal[p+'DISCLAIMER']+'</div>';
-    html+='<div class="financial-card"><h3 style="margin-top:0;border-bottom:1px solid #ddd;padding-bottom:5px;">💰 '+legal[p+'LBL_FIN_POS']+'</h3>';
-    html+='<table class="no-border-table">';
-    html+='<tr><td>'+legal[p+'LBL_CARRY_FWD']+' (01/01/'+year+'):</td><td>$'+open.toFixed(2)+'</td></tr>';
-    html+='<tr><td>'+legal[p+'LBL_TOTAL_IN']+' (YTD):</td><td style="color:#27ae60;">+ $'+tInY.toFixed(2)+'</td></tr>';
-    html+='<tr><td>'+legal[p+'LBL_TOTAL_OUT']+' (YTD):</td><td style="color:#c0392b;">$'+tOutY.toFixed(2)+'</td></tr>';
-    html+='<tr><td colspan="2"><hr></td></tr>';
-    html+='<tr style="font-size:16px;font-weight:bold;"><td>'+legal[p+'LBL_CASH']+':</td><td style="color:#2980b9;">$'+cash.toFixed(2)+'</td></tr>';
-    html+='</table></div>';
-
-    html+='<h3 style="color:#27ae60;border-bottom:2px solid #27ae60;padding-bottom:5px;">📥 '+legal[p+'LBL_TOTAL_IN']+' ($'+tInM.toFixed(2)+')</h3>';
-    if(isYTD){
-      var cTot={};
-      incRows.forEach(function(r){ var cId=String(r[9]).trim(),amt=parseArabicNumber(r[7]); if(!cTot[cId]) cTot[cId]={name:r[3],section:r[2],total:0}; cTot[cId].total+=amt; });
-      for(var cId in contractMap){ if(!cTot[cId]) cTot[cId]={name:contractMap[cId].name,section:contractMap[cId].sectionDisplay,total:0}; }
-      html+='<table><thead><tr><th class="contract-id-header">Contract ID</th><th>'+legal['YTD_HEAD_UNIT']+'</th><th>'+legal['YTD_HEAD_OCCUPANT']+'</th><th class="amount-header">'+legal['YTD_HEAD_AMT']+'</th></tr></thead><tbody>';
-      Object.keys(cTot).sort(function(a,b){ return parseArabicNumber(cTot[a].section)-parseArabicNumber(cTot[b].section); }).forEach(function(cId){
-        html+='<tr><td class="contract-id">'+cId+'</td><td>'+(cTot[cId].section||"-")+'</td><td style="text-align:right;">'+cTot[cId].name+'</td><td class="amount-col">$'+cTot[cId].total.toFixed(2)+'</td></tr>';
-      });
-      html+='</tbody></table>';
-    } else {
-      var cTotMonth={};
-      incRows.forEach(function(r){ var cId=String(r[9]).trim(),amt=parseArabicNumber(r[7]); if(!cTotMonth[cId]) cTotMonth[cId]={name:r[3],section:r[2],total:0}; cTotMonth[cId].total+=amt; });
-      for(var cId in contractMap){ if(!cTotMonth[cId]) cTotMonth[cId]={name:contractMap[cId].name,section:contractMap[cId].sectionDisplay,total:0}; }
-      html+='<table><thead><tr><th class="contract-id-header">Contract ID</th><th>'+legal['MONTHLY_HEAD_UNIT']+'</th><th>'+legal['MONTHLY_HEAD_OCCUPANT']+'</th><th class="amount-header">'+legal['MONTHLY_HEAD_AMT']+'</th></tr></thead><tbody>';
-      Object.keys(cTotMonth).sort(function(a,b){ return parseArabicNumber(cTotMonth[a].section)-parseArabicNumber(cTotMonth[b].section); }).forEach(function(cId){
-        html+='<tr><td class="contract-id">'+cId+'</td><td>'+(cTotMonth[cId].section||"-")+'</td><td style="text-align:right;">'+cTotMonth[cId].name+'</td><td class="amount-col">$'+cTotMonth[cId].total.toFixed(2)+'</td></tr>';
-      });
-      html+='<tr style="background:#e8f5e9;font-weight:bold;border-top:2px solid #27ae60;"><td colspan="3" style="text-align:right;">إجمالي الدفعات للفترة</td><td class="amount-col">$'+tInM.toFixed(2)+'</td></tr>';
-      html+='<tr style="background:#c8e6c9;font-weight:bold;"><td colspan="3" style="text-align:right;">إجمالي الدفعات حتى تاريخه (YTD)</td><td class="amount-col">$'+tInY.toFixed(2)+'</td></tr>';
-      html+='</tbody></table>';
-    }
-    html+='<div class="transition-notice notice-expense">⬇️ المصاريف في الصفحة التالية ⬇️</div><div class="page_break"></div>';
-
-    html+='<h3 style="color:#c0392b;border-bottom:2px solid #c0392b;padding-bottom:5px;">📤 '+legal[p+'LBL_TOTAL_OUT']+' ($'+tOutM.toFixed(2)+')</h3>';
-    if(isYTD){
-      var cTot={};
-      expRows.forEach(function(r){ var c=r[5],amt=parseArabicNumber(r[7]); if(!cTot[c]) cTot[c]=0; cTot[c]+=amt; });
-      html+='<table><thead><tr><th>'+legal['YTD_HEAD_CAT']+'</th><th>'+legal['YTD_HEAD_AMT']+'</th></tr></thead><tbody>';
-      Object.keys(cTot).sort(function(a,b){return cTot[b]-cTot[a];}).forEach(function(c){ html+='<tr><td style="text-align:right;">'+c+'</td><td>$'+cTot[c].toFixed(2)+'</td></tr>'; });
-      html+='</tbody></table>';
-    } else {
-      html+='<table><thead><tr><th>'+legal['MONTHLY_HEAD_DATE']+'</th><th>'+legal['MONTHLY_HEAD_CAT']+'</th><th>البيان</th><th>'+legal['MONTHLY_HEAD_AMT']+'</th><th>'+legal['MONTHLY_HEAD_ADMIN']+'</th></tr></thead><tbody>';
-      expRows.forEach(function(r){ html+='<tr><td>'+formatDate(r[0])+'</td><td style="text-align:right;">'+r[5]+'</td><td style="text-align:right;">'+r[6]+'</td><td>$'+parseArabicNumber(r[7]).toFixed(2)+'</td><td>'+r[8]+'</td></tr>'; });
-      html+='<tr style="background:#ffebee;font-weight:bold;border-top:2px solid #c0392b;"><td colspan="3" style="text-align:right;">إجمالي المصاريف للفترة</td><td>$'+tOutM.toFixed(2)+'</td><td></td></tr>';
-      html+='<tr style="background:#ffcdd2;font-weight:bold;"><td colspan="3" style="text-align:right;">إجمالي المصاريف حتى تاريخه (YTD)</td><td>$'+Math.abs(tOutY).toFixed(2)+'</td><td></td></tr>';
-      html+='</tbody></table>';
-    }
-    html+='<div class="transition-notice notice-balance">⬇️ مساهمات الأقسام والأرصدة في الصفحة التالية ⬇️</div><div class="page_break"></div>';
-
-    html+='<h3 style="color:#8e44ad;border-bottom:2px solid #8e44ad;padding-bottom:5px;">📋 '+legal[p+'LBL_UNIT_CONTRIB']+'</h3>';
-    html+='<table><thead><tr><th class="contract-id-header">Contract ID</th><th>'+legal['MONTHLY_HEAD_UNIT']+'</th><th>'+legal['MONTHLY_HEAD_OCCUPANT']+'</th><th class="amount-header">'+legal['MONTHLY_HEAD_PREV']+'</th><th class="amount-header">'+legal['MONTHLY_HEAD_DUE']+'</th><th class="amount-header">'+legal['MONTHLY_HEAD_AMT']+'</th><th class="amount-header">'+legal['MONTHLY_HEAD_FINAL']+'</th></tr></thead><tbody>';
-    Object.keys(contractMap).sort(function(a,b){ return parseArabicNumber(contractMap[a].section)-parseArabicNumber(contractMap[b].section); }).forEach(function(cId){
-      var c=contractMap[cId], bal=c.prev+c.paid-c.due, col=bal<0?'#c0392b':'#27ae60';
-      html+='<tr><td class="contract-id">'+cId+'</td><td>'+c.sectionDisplay+'</td><td style="text-align:right;">'+c.name+'</td><td class="amount-col">$'+c.prev.toFixed(2)+'</td><td class="amount-col">$'+c.due.toFixed(2)+'</td><td class="amount-col">$'+c.paid.toFixed(2)+'</td><td class="amount-col" style="font-weight:bold;color:'+col+';">$'+bal.toFixed(2)+'</td></tr>';
-    });
-    html+='</tbody></table>'+getFooter(legal,typePrefix)+'</div>';
-    return createPdfBlob(html,typePrefix+'_Report');
-  } catch(e) { Logger.log('createFinancialPDF: '+e); throw new Error('PDF failed: '+e.message); }
-}
-
-// ============================================================================
-// FEE CALCULATION
-// ============================================================================
-
-function getUnitOverrides(ss, unitId) {
-  try {
-    if (!unitId) return [];
-    var sheet = ss.getSheetByName("Unit_Fee_Overrides");
-    if (!sheet) return [];
-    var data = sheet.getDataRange().getValues();
-    var overrides = [];
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]).trim() !== unitId) continue;
-      overrides.push({
-        type: String(data[i][1]).trim(),
-        value: parseArabicNumber(data[i][2]),
-        appliesTo: String(data[i][3]).trim(),
-        start: data[i][5] ? new Date(data[i][5]) : null,
-        end: data[i][6] ? new Date(data[i][6]) : null
-      });
-    }
-    return overrides;
-  } catch(e) { return []; }
-}
-
-function calculateStandardDues(u, details, start, end, rules) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var overrides = getUnitOverrides(ss, details.unitId);
-    var total = 0;
-    var cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-
-    while (cursor <= end) {
-      var monthTotal = 0;
-      var monthDeductions = [];
-      var cursorMonth = cursor.getMonth();
-      var cursorYear  = cursor.getFullYear();
-      var daysInMonth = new Date(cursorYear, cursorMonth + 1, 0).getDate();
-
-      rules.forEach(function(rule) {
-        var override = overrides.find(function(o) {
-          return (o.appliesTo === 'All' || o.appliesTo === rule.name) &&
-                 (!o.start || cursor >= o.start) && (!o.end || cursor <= o.end);
-        });
-        if (override && override.type === 'Exempt') return;
-        if (override && override.type === 'Deduction') {
-          monthDeductions.push({ amount: override.value || 0, appliesTo: override.appliesTo });
-          override = null;
-        }
-
-        var applies = false;
-        if      (rule.targetType === 'All')           { applies = true; }
-        else if (rule.targetType === 'Category')      { applies = (rule.targetValue === details.type); }
-        else if (rule.targetType === 'Specific-Unit') { applies = (rule.targetValue === details.unitId); }
-        else if (rule.targetType === 'Contract')      { applies = (rule.targetValue === details.contractId); }
-        if (!applies) return;
-
-        var ruleStart = rule.start || new Date(2000, 0, 1);
-        var ruleEnd   = rule.end   || new Date(2100, 0, 1);
-        var monthStart = new Date(cursorYear, cursorMonth, 1);
-        var monthEnd   = new Date(cursorYear, cursorMonth, daysInMonth);
-        if (!((ruleStart <= monthEnd) && (ruleEnd >= monthStart))) return;
-
-        var amount = 0;
-        var feeType = rule.feeType || 'Fixed';
-        if      (feeType === 'Fixed')      { amount = rule.baseRate || 0; }
-        else if (feeType === 'Per-SqM')    { amount = (rule.baseRate || 0) * (details.sqm     || 0); }
-        else if (feeType === 'Per-Ampere') { amount = (rule.baseRate || 0) * (details.amperes || 0); }
-        else                               { amount = rule.baseRate || 0; }
-        if (isNaN(amount) || !amount) amount = 0;
-
-        if (override) {
-          if      (override.type === 'Custom-Rate')      { amount = override.value || 0; }
-          else if (override.type === 'Discount-Percent') { amount = amount * (1 - (override.value || 0) / 100); }
-        }
-
-        var prorationRule = rule.prorationRule || 'Full-Month';
-        if (prorationRule === 'Daily') {
-          var ruleStartDay = 1, contractStartDay = 1;
-          if (ruleStart.getFullYear() === cursorYear && ruleStart.getMonth() === cursorMonth) ruleStartDay = ruleStart.getDate();
-          if (start.getFullYear() === cursorYear && start.getMonth() === cursorMonth) contractStartDay = start.getDate();
-          var effectiveStartDay = Math.max(ruleStartDay, contractStartDay);
-          var ruleEndDay = daysInMonth, periodEndDay = daysInMonth;
-          if (ruleEnd.getFullYear() === cursorYear && ruleEnd.getMonth() === cursorMonth) ruleEndDay = ruleEnd.getDate();
-          if (end.getFullYear() === cursorYear && end.getMonth() === cursorMonth) periodEndDay = end.getDate();
-          var effectiveEndDay = Math.min(ruleEndDay, periodEndDay);
-          var daysToCharge = Math.max(0, effectiveEndDay - effectiveStartDay + 1);
-          if (daysToCharge < daysInMonth) amount = amount * (daysToCharge / daysInMonth);
-        }
-
-        monthTotal += amount;
-      });
-
-      var allDeduction = monthDeductions.find(function(d) { return d.appliesTo === 'All'; });
-      if (allDeduction) { monthTotal -= allDeduction.amount; if (monthTotal < 0) monthTotal = 0; }
-
-      total += monthTotal;
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-    return total;
-  } catch(e) { Logger.log('calculateStandardDues error: ' + e); return 0; }
-}
-
-function getFeeRules(ss) {
-  try {
-    var d = ss.getSheetByName("Fee_Settings").getDataRange().getValues();
-    var r = [];
-    for (var i = 1; i < d.length; i++) {
-      var chargeName = String(d[i][0]).trim();
-      if (!chargeName) continue;
-      r.push({
-        name:          chargeName,
-        frequency:     String(d[i][1]).trim(),
-        status:        String(d[i][2]).trim(),
-        targetType:    String(d[i][3]).trim(),
-        targetValue:   String(d[i][4]).trim(),
-        feeType:       String(d[i][5]).trim() || 'Fixed',
-        baseRate:      parseArabicNumber(d[i][6]),
-        variableRate:  parseArabicNumber(d[i][7]) || 0,
-        meterRef:      String(d[i][8]).trim(),
-        start:         d[i][9]  ? new Date(d[i][9])  : null,
-        end:           d[i][10] ? new Date(d[i][10]) : null,
-        prorationRule: String(d[i][11]).trim() || 'Full-Month',
-        category:      String(d[i][12]).trim(),
-        notes:         String(d[i][13]).trim()
-      });
-    }
-    return r;
-  } catch(e) { Logger.log('getFeeRules error: ' + e); return []; }
-}
-
-// ============================================================================
-// LEGAL SETTINGS
-// ============================================================================
-
-function getLegalSettings() {
-  try {
-    var l={};
-    SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName("Legal_Settings").getDataRange().getValues()
-      .forEach(function(r){ if(r[0]) l[r[0]]=r[1]; });
-    return l;
-  } catch(e){ return {}; }
-}
-
-// ============================================================================
-// CATEGORY HELPERS
-// ============================================================================
-
-function getIncomeCategories() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Income_Category") || ss.getSheetByName("Income_Categories");
-    if (!sheet) return getCategoriesLegacy();
-    var data = sheet.getDataRange().getValues();
-    var categories = [];
-    for (var i = 1; i < data.length; i++) {
-      var name = String(data[i][1]).trim();
-      var status = String(data[i][4]).trim();
-      if (name && (!status || status === 'Active')) categories.push(name);
-    }
-    return categories.length > 0 ? categories : ['سلفة عن تكاليف الاقسام المشتركة'];
-  } catch(e) { return ['سلفة عن تكاليف الاقسام المشتركة']; }
-}
-
-function getExpenseCategories() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Expense_Category") || ss.getSheetByName("Expense_Categories");
-    if (!sheet) return getCategoriesLegacy();
-    var data = sheet.getDataRange().getValues();
-    var categories = [];
-    for (var i = 1; i < data.length; i++) {
-      var name = String(data[i][1]).trim();
-      var status = String(data[i][4]).trim();
-      if (name && (!status || status === 'Active')) categories.push(name);
-    }
-    return categories.length > 0 ? categories : ['رواتب', 'كهرباء لبنان', 'مصاريف متفرقة'];
-  } catch(e) { return ['رواتب', 'كهرباء لبنان', 'مصاريف متفرقة']; }
-}
-
-function getCategoriesLegacy() {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Category_Master");
-    if (!sheet) return [];
-    var data = sheet.getDataRange().getValues();
-    var categories = [];
-    for (var i = 1; i < data.length; i++) {
-      var name = String(data[i][0]).trim();
-      if (name) categories.push(name);
-    }
-    return categories;
-  } catch(e) { return []; }
-}
-
-function clearCategoryCache() {
-  try {
-    var cache = CacheService.getScriptCache();
-    cache.remove('income_categories');
-    cache.remove('expense_categories');
-    return 'Cache cleared!';
-  } catch(e) { return 'Error: ' + e; }
-}
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-function formatDate(d){ return Utilities.formatDate(new Date(d),"GMT+2","dd/MM/yyyy"); }
-
-function createPdfBlob(h,n){
-  return Utilities.newBlob(h,"text/html",n+".html").getAs("application/pdf").setName(n+".pdf");
-}
-
-function getFooter(l, prefix) {
-  var h='<div style="font-size:10px;margin-top:20px;">';
-  for(var i=1;i<=10;i++) if(l[prefix+'_NOTE_'+i]) h+='('+i+') '+l[prefix+'_NOTE_'+i]+'<br>';
-  return h+'</div>';
-}
-
-function getCommonCSS(){
-  return '<style>' +
-    'body{font-family:Arial,sans-serif;direction:rtl;padding:20px;color:#333;line-height:1.4;}' +
-    '.page{padding:10px;}' +
-    '.disclaimer{background:#fff3cd;padding:10px;border:1px solid #ffeeba;border-radius:4px;font-size:11px;text-align:center;margin-bottom:20px;}' +
-    '.financial-card{border:1px solid #ddd;padding:15px;border-radius:8px;margin-bottom:20px;}' +
-    '.no-border-table,.no-border-table td{border:none!important;width:100%;}' +
-    'table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px;}' +
-    'th{background:#f8f9fa;border:1px solid #ddd;padding:8px;text-align:center;word-wrap:break-word;}' +
-    'td{border:1px solid #ddd;padding:8px;text-align:center;}' +
-    'td.contract-id{white-space:nowrap;font-size:9px;color:#666;width:130px;overflow:hidden;text-overflow:ellipsis;}' +
-    'th.contract-id-header{width:130px;}' +
-    'td.amount-col{width:65px;text-align:center;}' +
-    'th.amount-header{width:65px;}' +
-    '.page_break{page-break-before:always;}' +
-    '.transition-notice{text-align:center;padding:15px;font-size:13px;font-weight:bold;border-radius:8px;margin:20px 0;border:2px solid;}' +
-    '.notice-expense{color:#c0392b;background:#ffebee;border-color:#e74c3c;}' +
-    '.notice-balance{color:#8e44ad;background:#f3e5f5;border-color:#9b59b6;}' +
-    '</style>';
-}
+document.addEventListener('keydown', function(e) {
+  if (e.altKey && e.key === '1') { e.preventDefault(); setTab('Income'); }
+  if (e.altKey && e.key === '2') { e.preventDefault(); setTab('Expense'); }
+  if (e.altKey && e.key === '3') { e.preventDefault(); setTab('Report'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    var b = document.getElementById('btn-sub');
+    if (!b.disabled) doSubmit();
+  }
+});
+</script>
+</body>
+</html>

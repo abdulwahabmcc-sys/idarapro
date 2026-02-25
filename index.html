@@ -312,6 +312,146 @@
 
     .hide     { display: none !important; }
     .disabled { opacity: 0.35; pointer-events: none; }
+
+    /* ══════════════════════════════════════════════
+       DESKTOP LAYOUT  ≥ 769px
+       Mobile layout above is completely untouched
+    ══════════════════════════════════════════════ */
+    @media (min-width: 769px) {
+
+      html, body { height: 100%; overflow: hidden; }
+
+      body { flex-direction: column; background: #E8E7E2; }
+
+      /* TOP BAR */
+      #dt-topbar {
+        flex-shrink: 0; height: 56px;
+        background: var(--navy);
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        box-shadow: 0 2px 12px rgba(27,42,74,0.18);
+      }
+
+      .dt-bld { display: flex; flex-direction: column; }
+      .dt-bld-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; }
+      .dt-bld-sub  { font-size: 9px; color: rgba(255,255,255,0.4); }
+
+      .dt-topbrand { display: flex; align-items: center; gap: 8px; direction: ltr; }
+      .dt-brand-mark { display: flex; align-items: baseline; }
+      .dt-b-idara { font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff; }
+      .dt-b-sep { width: 1px; height: 9px; background: var(--gold); display: inline-block; margin: 0 4px 1px; opacity: 0.8; vertical-align: middle; }
+      .dt-b-pro { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--gold); letter-spacing: 0.8px; }
+      .dt-b-platform { font-size: 9px; color: rgba(255,255,255,0.35); }
+      .dt-b-platform span { font-family: var(--mono); font-size: 8px; color: rgba(255,255,255,0.45); }
+      .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.3); transition: all 0.3s; }
+      .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.3); }
+
+      /* MAIN AREA */
+      #dt-main {
+        flex: 1; min-height: 0;
+        display: flex !important;
+        overflow: hidden;
+      }
+
+      /* LEFT PANEL — dashboard */
+      #dt-sidebar {
+        width: 320px; flex-shrink: 0;
+        display: flex !important;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px 20px;
+        overflow-y: auto;
+        background: #E0DFD9;
+        border-left: 1px solid rgba(27,42,74,0.08);
+      }
+      #dt-sidebar::-webkit-scrollbar { display: none; }
+
+      .dt-sidebar-label {
+        font-size: 9px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase;
+        color: var(--muted); margin-bottom: -8px;
+      }
+
+      /* RIGHT PANEL — form */
+      #dt-content {
+        flex: 1; min-width: 0;
+        display: flex !important;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      /* Tab bar */
+      #dt-tabs {
+        flex-shrink: 0; height: 54px;
+        background: var(--surf);
+        border-bottom: 1px solid var(--bdr);
+        display: flex !important;
+        align-items: stretch;
+        padding: 0 28px;
+        gap: 4px;
+        box-shadow: 0 1px 4px rgba(27,42,74,0.05);
+      }
+
+      .dt-tab {
+        display: flex; align-items: center; gap: 8px;
+        padding: 0 22px; border: none; background: none;
+        font-family: var(--font); font-size: 13px; font-weight: 700;
+        color: var(--muted); cursor: pointer;
+        border-bottom: 2.5px solid transparent;
+        transition: all 0.18s;
+      }
+      .dt-tab:hover { color: var(--navy); background: rgba(27,42,74,0.025); }
+      .dt-tab.dt-inc { border-bottom-color: var(--forest); color: var(--forest); }
+      .dt-tab.dt-exp { border-bottom-color: var(--burg);   color: var(--burg);   }
+      .dt-tab.dt-rep { border-bottom-color: var(--navy);   color: var(--navy);   }
+      .dt-tab-ico { font-size: 16px; }
+
+      /* Form scroll */
+      #dt-form-scroll {
+        flex: 1; min-height: 0;
+        overflow-y: auto;
+        padding: 28px 36px;
+      }
+      #dt-form-scroll::-webkit-scrollbar { width: 4px; }
+      #dt-form-scroll::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 4px; }
+      #dt-form-scroll .card,
+      #dt-form-scroll .r-grid,
+      #dt-form-scroll #f-rep > .card { max-width: 520px; }
+
+      /* HIDE mobile, SHOW desktop */
+      #scroll { display: none !important; }
+      #nav    { display: none !important; }
+
+      /* desktop dash card */
+      .dash-card { margin-bottom: 0; border-radius: 16px; }
+
+      /* Toast repositioned */
+      #toast {
+        bottom: 28px; left: 50%; right: auto;
+        width: 360px;
+        transform: translateX(-50%) translateY(8px);
+      }
+      #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+      /* Modal centered */
+      #modal { align-items: center; justify-content: center; }
+      .m-sheet {
+        border-radius: 20px; max-width: 460px;
+        padding: 32px 28px;
+        animation: fadeUp 0.25s ease;
+      }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    }
+
+    /* Always hide desktop chrome on mobile */
+    #dt-topbar, #dt-main { display: none; }
+
   </style>
 </head>
 <body>
@@ -470,6 +610,83 @@
   </div>
 </div>
 
+
+<!-- ═══════════ DESKTOP CHROME (hidden on mobile) ═══════════ -->
+
+<!-- TOP BAR -->
+<div id="dt-topbar">
+  <div class="dt-bld">
+    <div class="dt-bld-name" id="dt-bldName">...</div>
+    <div class="dt-bld-sub">Building Management</div>
+  </div>
+  <div class="dt-topbrand">
+    <div>
+      <div class="dt-b-platform">a platform of <span>idara360</span></div>
+    </div>
+    <div class="dt-brand-mark">
+      <span class="dt-b-idara">idara</span>
+      <span class="dt-b-sep"></span>
+      <span class="dt-b-pro">BUILDING</span>
+    </div>
+    <div class="dt-dot" id="dt-dot"></div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div id="dt-main">
+
+  <!-- LEFT: Dashboard -->
+  <div id="dt-sidebar">
+    <div class="dt-sidebar-label">Overview</div>
+    <div class="dash-card" id="dt-dash">
+      <div class="d-top">
+        <div>
+          <div class="d-lbl-en">CASH ON HAND</div>
+          <div class="d-lbl-ar">النقد المتوفر</div>
+        </div>
+        <div class="d-heart" onclick="refreshDash()">
+          <span class="d-heart-ico" id="dt-heart">💚</span>
+          <span class="d-heart-pct" id="dt-hpct">—%</span>
+        </div>
+      </div>
+      <div class="d-amount" id="dt-cashAmt">Loading...</div>
+      <div class="d-line"></div>
+      <div class="d-foot">
+        <div class="d-time" id="dt-dashTime">—</div>
+        <button class="d-refresh" id="dt-rBtn" onclick="refreshDash()">↻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Form -->
+  <div id="dt-content">
+
+    <!-- Tab bar -->
+    <div id="dt-tabs">
+      <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
+        <span class="dt-tab-ico">💰</span> قبض / Income
+      </button>
+      <button class="dt-tab" id="dt-t-exp" onclick="setTab('Expense')">
+        <span class="dt-tab-ico">📉</span> مصروف / Expense
+      </button>
+      <button class="dt-tab" id="dt-t-rep" onclick="setTab('Report')">
+        <span class="dt-tab-ico">📄</span> تقارير / Reports
+      </button>
+    </div>
+
+    <!-- Form scroll area — reuses the same form elements -->
+    <div id="dt-form-scroll">
+      <div id="dt-lock-banner" style="display:none;padding:14px;background:rgba(155,35,53,0.07);border:1px solid rgba(155,35,53,0.22);border-radius:12px;font-size:13px;color:var(--burg);text-align:center;margin-bottom:16px;">
+        <strong>⚠️ Fiscal Year Mismatch</strong><br>
+        <span id="dt-lock-msg"></span>
+        <button class="lock-btn" onclick="openFiscal()">إغلاق السنة / Close Year</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ═══════════ END DESKTOP CHROME ═══════════ -->
+
 <script>
 var TAB    = 'Income';
 var REPORT = 'YTD';
@@ -518,8 +735,10 @@ function hideLo() {
 function initApp(d) {
   if (!d) { bootErr(); return; }
   window._cats = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
-  if (d.legal && d.legal['BUILDING_NAME'])
-    document.getElementById('bldName').textContent = d.legal['BUILDING_NAME'];
+  if (d.legal && d.legal['BUILDING_NAME']) {
+    document.getElementById('bldName').textContent    = d.legal['BUILDING_NAME'];
+    document.getElementById('dt-bldName').textContent = d.legal['BUILDING_NAME'];
+  }
 
   var sel  = document.getElementById('sel-owner');
   var frag = document.createDocumentFragment();
@@ -539,10 +758,28 @@ function initApp(d) {
   if (d.fiscal && d.fiscal.locked) {
     document.getElementById('lock-banner').style.display = 'block';
     document.getElementById('lock-msg').textContent = d.fiscal.msg || '';
+    document.getElementById('dt-lock-banner').style.display = 'block';
+    document.getElementById('dt-lock-msg').textContent = d.fiscal.msg || '';
     document.getElementById('form').classList.add('disabled');
   }
 
   setTab('Income');
+
+  // On desktop: move the shared form + lock banner into dt-form-scroll
+  // This is a DOM move - only runs once
+  var dtScroll = document.getElementById('dt-form-scroll');
+  var form     = document.getElementById('form');
+  var lockBnr  = document.getElementById('lock-banner');
+  if (dtScroll && form) {
+    dtScroll.appendChild(lockBnr);
+    dtScroll.appendChild(form);
+  }
+
+  // Sync desktop dot with mobile dot
+  var dtDot = document.getElementById('dt-dot');
+  window.addEventListener('online',  function() { if(dtDot) dtDot.classList.remove('off'); });
+  window.addEventListener('offline', function() { if(dtDot) dtDot.classList.add('off'); });
+
   hideLo();
 }
 
@@ -566,6 +803,11 @@ function setTab(type) {
     document.getElementById(id).className = 'nav-tab';
   });
 
+  // Sync desktop tabs
+  ['dt-t-inc','dt-t-exp','dt-t-rep'].forEach(function(id) {
+    document.getElementById(id).className = 'dt-tab';
+  });
+
   ['f-inc','f-exp','f-rep','f-amt'].forEach(function(id) {
     document.getElementById(id).classList.add('hide');
   });
@@ -576,6 +818,7 @@ function setTab(type) {
 
   if (type === 'Income') {
     document.getElementById('t-inc').classList.add('n-inc');
+    document.getElementById('dt-t-inc').classList.add('dt-inc');
     document.getElementById('f-inc').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('income');
@@ -584,6 +827,7 @@ function setTab(type) {
 
   } else if (type === 'Expense') {
     document.getElementById('t-exp').classList.add('n-exp');
+    document.getElementById('dt-t-exp').classList.add('dt-exp');
     document.getElementById('f-exp').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('expense');
@@ -592,6 +836,7 @@ function setTab(type) {
 
   } else {
     document.getElementById('t-rep').classList.add('n-rep');
+    document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
@@ -618,22 +863,33 @@ function pickReport(type) {
 function refreshDash() {
   var rb = document.getElementById('rBtn');
   rb.classList.add('spin');
+  var dtRb = document.getElementById('dt-rBtn');
+  if (dtRb) dtRb.classList.add('spin');
   gasGet('getDashboardStats')
     .then(function(v) {
-      document.getElementById('cashAmt').textContent = v || '$0.00';
+      var val = v || '$0.00';
       var n = new Date();
-      document.getElementById('dashTime').textContent =
-        pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+      var t = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+      document.getElementById('cashAmt').textContent    = val;
+      document.getElementById('dt-cashAmt').textContent = val;
+      document.getElementById('dashTime').textContent   = t;
+      document.getElementById('dt-dashTime').textContent = t;
       rb.classList.remove('spin');
+      document.getElementById('dt-rBtn').classList.remove('spin');
     })
-    .catch(function() { rb.classList.remove('spin'); });
+    .catch(function() {
+      rb.classList.remove('spin');
+      document.getElementById('dt-rBtn').classList.remove('spin');
+    });
 
   gasGet('getBuildingHealth')
     .then(function(r) {
       var pct = r && r.pct != null ? r.pct : 0;
-      document.getElementById('hpct').textContent = pct + '%';
-      document.getElementById('heart').textContent =
-        pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
+      var ico = pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
+      document.getElementById('hpct').textContent    = pct + '%';
+      document.getElementById('dt-hpct').textContent = pct + '%';
+      document.getElementById('heart').textContent    = ico;
+      document.getElementById('dt-heart').textContent = ico;
     })
     .catch(function() {});
 }

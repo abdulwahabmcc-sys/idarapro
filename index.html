@@ -1,483 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>idaraPRO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* ── TOKENS ─────────────────────────────────── */
     :root {
-      --navy:     #1B2A4A;
-      --burg:     #9B2335;
-      --forest:   #1A6B3C;
-      --gold:     #C9A84C;
-      --bg:       #F0EFEB;
-      --surface:  #FFFFFF;
-      --border:   rgba(27,42,74,0.10);
-      --muted:    rgba(27,42,74,0.45);
-      --font:     'Cairo', sans-serif;
-      --mono:     'DM Mono', monospace;
+      --navy:   #1B2A4A;
+      --burg:   #9B2335;
+      --forest: #1A6B3C;
+      --gold:   #C9A84C;
+      --bg:     #F0EFEB;
+      --surf:   #FFFFFF;
+      --bdr:    rgba(27,42,74,0.10);
+      --muted:  rgba(27,42,74,0.45);
+      --font:   'Cairo', sans-serif;
+      --mono:   'DM Mono', monospace;
+      --nav-h:  72px; /* tabs 52px + brand ~20px */
     }
 
-    /* ── RESET ──────────────────────────────────── */
     *, *::before, *::after {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
       margin: 0; padding: 0;
     }
 
-    /* ── BODY — simple centering, page scrolls naturally ── */
+    /* ── VIEWPORT SHELL ─────────────────────────── */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: var(--font);
       background: var(--bg);
       color: var(--navy);
       -webkit-font-smoothing: antialiased;
       direction: rtl;
-      width: 100%;
-      padding: 0;
-      margin: 0;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* ── APP CONTAINER — full width on mobile ── */
-    .wrap {
-      width: 100%;
-      padding: 14px 14px 32px;
+    /* ── SCROLL ZONE ────────────────────────────── */
+    #scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px 14px 16px;
     }
 
-    /* ── LOADING OVERLAY ────────────────────────── */
-    #loader {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
+    #scroll::-webkit-scrollbar { display: none; }
+    #scroll { scrollbar-width: none; }
+
+    /* ── FIXED BOTTOM NAV ───────────────────────── */
+    #nav {
+      flex-shrink: 0;
+      background: var(--surf);
+      border-top: 1px solid var(--bdr);
+      box-shadow: 0 -4px 16px rgba(27,42,74,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    /* tab row */
+    .nav-tabs {
+      display: flex;
+      align-items: stretch;
+      height: 52px;
+    }
+
+    .nav-tab {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      z-index: 9999;
+      gap: 1px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      transition: background 0.15s;
+      padding: 0;
+      position: relative;
+    }
+
+    .nav-tab:active { background: rgba(27,42,74,0.04); }
+
+    .nav-tab::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 20%; right: 20%;
+      height: 2.5px;
+      border-radius: 0 0 3px 3px;
+      background: transparent;
+      transition: background 0.2s;
+    }
+
+    .nav-tab.n-inc::before { background: var(--forest); }
+    .nav-tab.n-exp::before { background: var(--burg); }
+    .nav-tab.n-rep::before { background: var(--navy); }
+
+    .nav-ico { font-size: 20px; line-height: 1; }
+    .nav-ar  { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1; }
+    .nav-en  { font-size: 7px; font-weight: 500; color: var(--muted); opacity: 0.7; line-height: 1; }
+
+    .nav-tab.n-inc .nav-ar, .nav-tab.n-inc .nav-en { color: var(--forest); opacity: 1; }
+    .nav-tab.n-exp .nav-ar, .nav-tab.n-exp .nav-en { color: var(--burg);   opacity: 1; }
+    .nav-tab.n-rep .nav-ar, .nav-tab.n-rep .nav-en { color: var(--navy);   opacity: 1; }
+
+    /* brand row — sits below tabs */
+    .nav-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0px;
+      padding: 3px 0 calc(3px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--bdr);
+      background: rgba(27,42,74,0.02);
+    }
+
+    .nb-wrap {
+      display: flex;
+      align-items: baseline;
+      direction: ltr;
+      gap: 0;
+    }
+
+    .nb-idara {
+      font-family: var(--font);
+      font-size: 11px; font-weight: 700;
+      color: var(--navy);
+    }
+
+    .nb-sep {
+      width: 1px; height: 7px;
+      background: var(--gold);
+      display: inline-block;
+      margin: 0 3px 1px;
+      opacity: 0.8;
+      vertical-align: middle;
+    }
+
+    .nb-pro {
+      font-family: var(--mono);
+      font-size: 8px; font-weight: 500;
+      color: var(--burg);
+      letter-spacing: 1px;
+    }
+
+    .nb-tag {
+      font-size: 6.5px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      line-height: 1;
+    }
+
+    /* ── LOADER ─────────────────────────────────── */
+    #loader {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; z-index: 9999;
       transition: opacity 0.4s ease;
     }
 
     #loader.out { opacity: 0; pointer-events: none; }
 
-    .ldr-brand {
-      font-size: 30px;
-      font-weight: 700;
-      color: var(--navy);
-      direction: ltr;
-    }
-
-    .ldr-brand b {
-      font-family: var(--mono);
-      font-size: 24px;
-      font-weight: 500;
-      color: var(--burg);
-      letter-spacing: 1.5px;
-    }
-
-    .ldr-track {
-      width: 72px; height: 2px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .ldr-bar {
-      height: 100%; width: 40%;
-      background: linear-gradient(90deg, var(--burg), var(--gold));
-      border-radius: 2px;
-      animation: sweep 1s ease-in-out infinite;
-    }
-
-    @keyframes sweep {
-      0%   { transform: translateX(200%); }
-      100% { transform: translateX(-300%); }
-    }
-
+    .ldr-brand { font-size: 30px; font-weight: 700; color: var(--navy); direction: ltr; }
+    .ldr-brand b { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--burg); letter-spacing: 1.5px; }
+    .ldr-track { width: 72px; height: 2px; background: var(--bdr); border-radius: 2px; overflow: hidden; }
+    .ldr-bar { height: 100%; width: 40%; background: linear-gradient(90deg, var(--burg), var(--gold)); border-radius: 2px; animation: sweep 1s ease-in-out infinite; }
+    @keyframes sweep { 0% { transform: translateX(200%); } 100% { transform: translateX(-300%); } }
     .ldr-hint { font-size: 11px; color: var(--muted); }
-
-    /* ── TOP HEADER ─────────────────────────────── */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .bld-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--navy);
-      line-height: 1.2;
-    }
-
-    .bld-sub {
-      font-size: 9px;
-      color: var(--muted);
-      margin-top: 1px;
-    }
-
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--forest);
-      box-shadow: 0 0 0 3px rgba(26,107,60,0.15);
-      flex-shrink: 0;
-      transition: all 0.3s;
-    }
-
-    .dot.off {
-      background: var(--burg);
-      box-shadow: 0 0 0 3px rgba(155,35,53,0.15);
-    }
-
-    /* ── DASHBOARD CARD ─────────────────────────── */
-    .dash-card {
-      background: var(--navy);
-      border-radius: 20px;
-      padding: 22px 20px 18px;
-      margin-bottom: 16px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 10px 28px rgba(27,42,74,0.22);
-    }
-
-    .dash-card::before {
-      content: '';
-      position: absolute;
-      top: -45px; left: -45px;
-      width: 160px; height: 160px;
-      border-radius: 50%;
-      background: rgba(201,168,76,0.07);
-      pointer-events: none;
-    }
-
-    .dash-card::after {
-      content: '';
-      position: absolute;
-      bottom: -45px; right: -25px;
-      width: 150px; height: 150px;
-      border-radius: 50%;
-      background: rgba(155,35,53,0.09);
-      pointer-events: none;
-    }
-
-    .d-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      position: relative; z-index: 1;
-    }
-
-    .d-lbl-en {
-      font-size: 9px; font-weight: 600;
-      letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(255,255,255,0.4);
-    }
-
-    .d-lbl-ar {
-      font-size: 11px;
-      color: rgba(255,255,255,0.3);
-      margin-top: 2px;
-    }
-
-    .d-heart {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 2px;
-      cursor: pointer;
-      position: relative; z-index: 1;
-    }
-
-    .d-heart-ico {
-      font-size: 20px; line-height: 1;
-      animation: hb 2s ease-in-out infinite;
-    }
-
-    @keyframes hb {
-      0%,100% { transform: scale(1); }
-      15%     { transform: scale(1.22); }
-      30%     { transform: scale(1); }
-      45%     { transform: scale(1.12); }
-    }
-
-    .d-heart-pct {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: rgba(255,255,255,0.75);
-    }
-
-    .d-amount {
-      font-family: var(--mono);
-      font-size: clamp(30px, 9vw, 44px);
-      font-weight: 500;
-      color: #fff;
-      direction: ltr;
-      text-align: right;
-      letter-spacing: -1px;
-      line-height: 1;
-      margin: 10px 0 6px;
-      position: relative; z-index: 1;
-    }
-
-    .d-line {
-      height: 1px;
-      background: linear-gradient(90deg, var(--gold), transparent);
-      opacity: 0.45;
-      border-radius: 1px;
-      position: relative; z-index: 1;
-    }
-
-    .d-foot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 9px;
-      position: relative; z-index: 1;
-    }
-
-    .d-time {
-      font-family: var(--mono);
-      font-size: 9px;
-      color: rgba(255,255,255,0.28);
-    }
-
-    .d-refresh {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.5);
-      font-size: 13px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.2s;
-      flex-shrink: 0;
-    }
-
-    .d-refresh:active { opacity: 0.6; }
-    .d-refresh.spin { animation: spin 0.7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── TABS ───────────────────────────────────── */
-    .tab-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .tab-btn {
-      padding: 14px 8px 12px;
-      border-radius: 16px;
-      border: 2px solid var(--border);
-      background: var(--surface);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 4px rgba(27,42,74,0.06);
-    }
-
-    .tab-btn:active { transform: scale(0.96); }
-
-    .tab-btn.t-inc {
-      background: rgba(26,107,60,0.08);
-      border-color: var(--forest);
-      box-shadow: 0 4px 10px rgba(26,107,60,0.15);
-    }
-
-    .tab-btn.t-exp {
-      background: rgba(155,35,53,0.08);
-      border-color: var(--burg);
-      box-shadow: 0 4px 10px rgba(155,35,53,0.15);
-    }
-
-    .tab-btn.t-rep {
-      background: rgba(27,42,74,0.08);
-      border-color: var(--navy);
-      box-shadow: 0 4px 10px rgba(27,42,74,0.15);
-    }
-
-    .t-icon { font-size: 26px; line-height: 1; }
-
-    .t-ar {
-      font-size: 13px; font-weight: 700;
-      color: var(--muted);
-      transition: color 0.2s;
-    }
-
-    .t-en {
-      font-size: 9px; font-weight: 500;
-      color: var(--muted); opacity: 0.7;
-      transition: color 0.2s;
-    }
-
-    .tab-btn.t-inc .t-ar, .tab-btn.t-inc .t-en { color: var(--forest); opacity: 1; }
-    .tab-btn.t-exp .t-ar, .tab-btn.t-exp .t-en { color: var(--burg);   opacity: 1; }
-    .tab-btn.t-rep .t-ar, .tab-btn.t-rep .t-en { color: var(--navy);   opacity: 1; }
-
-    /* ── FORM CARD ──────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 4px rgba(27,42,74,0.05);
-    }
-
-    /* ── LABELS ─────────────────────────────────── */
-    .lbl {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 8px;
-    }
-
-    .l-ar { font-size: 13px; font-weight: 700; color: var(--navy); }
-    .l-en { font-size: 9px; color: var(--muted); direction: ltr; }
-
-    /* ── INPUTS — ALL 16px to prevent iOS zoom ─── */
-    .inp {
-      width: 100%;
-      height: 54px;
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      background: var(--bg);
-      font-family: var(--font);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--navy);
-      padding: 0 14px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      text-align: right;
-    }
-
-    .inp:focus {
-      border-color: var(--navy);
-      background: var(--surface);
-      box-shadow: 0 0 0 3px rgba(27,42,74,0.07);
-    }
-
-    .inp.err {
-      border-color: var(--burg);
-      animation: shake 0.3s ease;
-    }
-
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      25%     { transform: translateX(-5px); }
-      75%     { transform: translateX(5px); }
-    }
-
-    select.inp {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231B2A4A' opacity='.35'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: left 14px center;
-      padding-left: 36px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    .inp-amt {
-      font-family: var(--mono);
-      font-size: 28px;
-      font-weight: 400;
-      height: 62px;
-      text-align: center;
-      direction: ltr;
-      letter-spacing: -0.5px;
-    }
-
-    .inp-amt::placeholder { color: rgba(27,42,74,0.18); }
-
-    .inp-pin {
-      font-family: var(--mono);
-      font-size: 22px;
-      letter-spacing: 10px;
-      text-align: center;
-      direction: ltr;
-      height: 56px;
-    }
-
-    .inp-pin.vfy { border-color: var(--gold);   box-shadow: 0 0 0 3px rgba(201,168,76,0.13); }
-    .inp-pin.ok  { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.12); }
-    .inp-pin.bad { border-color: var(--burg);   box-shadow: 0 0 0 3px rgba(155,35,53,0.12); }
-
-    /* ── REPORT QUICK CARDS ─────────────────────── */
-    .r-grid {
-      display: grid;
-      grid-template-columns: repeat(3,1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .rcard {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 6px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.18s ease;
-      display: flex; flex-direction: column;
-      align-items: center; gap: 3px;
-    }
-
-    .rcard:active { transform: scale(0.95); }
-    .rcard.on { background: var(--navy); border-color: var(--navy); }
-    .rcard.on .r-icon, .rcard.on .r-title, .rcard.on .r-sub { color: #fff; }
-
-    .r-icon  { font-size: 18px; }
-    .r-title { font-size: 11px; font-weight: 700; color: var(--navy); }
-    .r-sub   { font-size: 8px; color: var(--muted); }
-
-    /* ── SUBMIT BUTTON ──────────────────────────── */
-    .btn-sub {
-      width: 100%;
-      height: 58px;
-      border: none;
-      border-radius: 12px;
-      font-family: var(--font);
-      font-size: 17px;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin-top: 12px;
-      -webkit-appearance: none;
-      transition: opacity 0.2s, transform 0.15s;
-    }
-
-    .btn-sub:active:not(:disabled) { opacity: 0.85; transform: scale(0.98); }
-    .btn-sub:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    .b-inc { background: var(--forest); box-shadow: 0 4px 14px rgba(26,107,60,0.28); }
-    .b-exp { background: var(--burg);   box-shadow: 0 4px 14px rgba(155,35,53,0.26); }
-    .b-rep { background: var(--navy);   box-shadow: 0 4px 14px rgba(27,42,74,0.24); }
 
     /* ── TOAST ──────────────────────────────────── */
     #toast {
       position: fixed;
-      bottom: 24px;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px);
       left: 16px; right: 16px;
-      max-width: 460px;
-      margin: 0 auto;
       padding: 13px 16px;
       border-radius: 12px;
       font-size: 14px; font-weight: 600;
       color: #fff; text-align: center;
       z-index: 8000;
-      opacity: 0; transform: translateY(16px);
+      opacity: 0; transform: translateY(8px);
       pointer-events: none;
-      transition: all 0.28s ease;
+      transition: all 0.25s ease;
       box-shadow: 0 6px 20px rgba(0,0,0,0.18);
     }
 
@@ -486,127 +201,93 @@
     #toast.fail { background: var(--burg); }
     #toast.info { background: var(--navy); }
 
+    /* ── HEADER ─────────────────────────────────── */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .bld-name { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+    .bld-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.15); flex-shrink: 0; transition: all 0.3s; }
+    .dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.15); }
+
+    /* ── DASHBOARD CARD ─────────────────────────── */
+    .dash-card { background: var(--navy); border-radius: 20px; padding: 22px 20px 18px; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 28px rgba(27,42,74,0.22); }
+    .dash-card::before { content: ''; position: absolute; top: -45px; left: -45px; width: 160px; height: 160px; border-radius: 50%; background: rgba(201,168,76,0.07); pointer-events: none; }
+    .dash-card::after  { content: ''; position: absolute; bottom: -45px; right: -25px; width: 150px; height: 150px; border-radius: 50%; background: rgba(155,35,53,0.09); pointer-events: none; }
+    .d-top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
+    .d-lbl-en { font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+    .d-lbl-ar { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+    .d-heart { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; position: relative; z-index: 1; }
+    .d-heart-ico { font-size: 20px; line-height: 1; animation: hb 2s ease-in-out infinite; }
+    @keyframes hb { 0%,100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(1); } 45% { transform: scale(1.12); } }
+    .d-heart-pct { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.75); }
+    .d-amount { font-family: var(--mono); font-size: clamp(30px, 9vw, 44px); font-weight: 500; color: #fff; direction: ltr; text-align: right; letter-spacing: -1px; line-height: 1; margin: 10px 0 6px; position: relative; z-index: 1; }
+    .d-line { height: 1px; background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.45; border-radius: 1px; position: relative; z-index: 1; }
+    .d-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; position: relative; z-index: 1; }
+    .d-time { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.28); }
+    .d-refresh { width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; flex-shrink: 0; }
+    .d-refresh:active { opacity: 0.6; }
+    .d-refresh.spin { animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CARD ───────────────────────────────────── */
+    .card { background: var(--surf); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--bdr); box-shadow: 0 1px 4px rgba(27,42,74,0.05); }
+
+    /* ── LABELS ─────────────────────────────────── */
+    .lbl { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .l-ar { font-size: 13px; font-weight: 700; color: var(--navy); }
+    .l-en { font-size: 9px; color: var(--muted); direction: ltr; }
+
+    /* ── INPUTS ─────────────────────────────────── */
+    .inp { width: 100%; height: 54px; border: 1.5px solid var(--bdr); border-radius: 12px; background: var(--bg); font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--navy); padding: 0 14px; outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, box-shadow 0.2s; text-align: right; }
+    .inp:focus { border-color: var(--navy); background: var(--surf); box-shadow: 0 0 0 3px rgba(27,42,74,0.07); }
+    .inp.err { border-color: var(--burg); animation: shake 0.3s ease; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    select.inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231B2A4A' opacity='.35'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 14px center; padding-left: 36px; cursor: pointer; font-size: 15px; }
+
+    .inp-amt { font-family: var(--mono); font-size: 28px; font-weight: 400; height: 62px; text-align: center; direction: ltr; letter-spacing: -0.5px; }
+    .inp-amt::placeholder { color: rgba(27,42,74,0.18); }
+    .inp-pin { font-family: var(--mono); font-size: 22px; letter-spacing: 10px; text-align: center; direction: ltr; height: 56px; }
+    .inp-pin.vfy { border-color: var(--gold);   box-shadow: 0 0 0 3px rgba(201,168,76,0.13); }
+    .inp-pin.ok  { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.12); }
+    .inp-pin.bad { border-color: var(--burg);   box-shadow: 0 0 0 3px rgba(155,35,53,0.12); }
+
+    /* ── REPORT QUICK CARDS ─────────────────────── */
+    .r-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+    .rcard { background: var(--surf); border: 1.5px solid var(--bdr); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.18s ease; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .rcard:active { transform: scale(0.95); }
+    .rcard.on { background: var(--navy); border-color: var(--navy); }
+    .rcard.on .r-icon, .rcard.on .r-title, .rcard.on .r-sub { color: #fff; }
+    .r-icon  { font-size: 18px; }
+    .r-title { font-size: 11px; font-weight: 700; color: var(--navy); }
+    .r-sub   { font-size: 8px; color: var(--muted); }
+
+    /* ── SUBMIT BUTTON ──────────────────────────── */
+    .btn-sub { width: 100%; height: 58px; border: none; border-radius: 12px; font-family: var(--font); font-size: 17px; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; -webkit-appearance: none; transition: opacity 0.2s, transform 0.15s; }
+    .btn-sub:active:not(:disabled) { opacity: 0.85; transform: scale(0.98); }
+    .btn-sub:disabled { opacity: 0.3; cursor: not-allowed; }
+    .b-inc { background: var(--forest); box-shadow: 0 4px 14px rgba(26,107,60,0.28); }
+    .b-exp { background: var(--burg);   box-shadow: 0 4px 14px rgba(155,35,53,0.26); }
+    .b-rep { background: var(--navy);   box-shadow: 0 4px 14px rgba(27,42,74,0.24); }
+
     /* ── LOCK BANNER ────────────────────────────── */
-    #lock-banner {
-      display: none;
-      padding: 14px;
-      background: rgba(155,35,53,0.07);
-      border: 1px solid rgba(155,35,53,0.22);
-      border-radius: 12px;
-      font-size: 13px; color: var(--burg);
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .lock-btn {
-      width: 100%; margin-top: 8px; padding: 10px;
-      background: var(--burg); color: #fff;
-      border: none; border-radius: 10px;
-      font-family: var(--font); font-size: 14px; font-weight: 700;
-      cursor: pointer;
-    }
-
-    /* ── BRAND FOOTER ───────────────────────────── */
-    .brand-foot {
-      text-align: center;
-      padding: 20px 0 8px;
-    }
-
-    .brand-wrap {
-      display: inline-flex;
-      align-items: baseline;
-      direction: ltr;
-    }
-
-    .b-idara {
-      font-family: var(--font);
-      font-size: 13px; font-weight: 700;
-      color: var(--navy);
-    }
-
-    .b-sep {
-      width: 1px; height: 9px;
-      background: var(--gold);
-      display: inline-block;
-      margin: 0 4px 1px;
-      opacity: 0.75;
-      vertical-align: middle;
-    }
-
-    .b-pro {
-      font-family: var(--mono);
-      font-size: 10px; font-weight: 500;
-      color: var(--burg);
-      letter-spacing: 1.5px;
-    }
-
-    .b-tag {
-      font-size: 8px; color: var(--muted);
-      margin-top: 2px; letter-spacing: 0.4px;
-    }
+    #lock-banner { display: none; padding: 14px; background: rgba(155,35,53,0.07); border: 1px solid rgba(155,35,53,0.22); border-radius: 12px; font-size: 13px; color: var(--burg); text-align: center; margin-bottom: 12px; }
+    .lock-btn { width: 100%; margin-top: 8px; padding: 10px; background: var(--burg); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer; }
 
     /* ── MODAL ──────────────────────────────────── */
-    #modal {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(27,42,74,0.45);
-      z-index: 7000;
-      align-items: flex-end;
-      backdrop-filter: blur(3px);
-    }
-
+    #modal { display: none; position: fixed; inset: 0; background: rgba(27,42,74,0.45); z-index: 7000; align-items: flex-end; backdrop-filter: blur(3px); }
     #modal.open { display: flex; }
-
-    .m-sheet {
-      background: var(--surface);
-      border-radius: 24px 24px 0 0;
-      padding: 24px 20px 36px;
-      width: 100%;
-      animation: shup 0.3s ease;
-    }
-
-    @keyframes shup {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
-    }
-
+    .m-sheet { background: var(--surf); border-radius: 24px 24px 0 0; padding: 24px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; animation: shup 0.3s ease; }
+    @keyframes shup { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .m-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 16px; }
-
-    .m-row {
-      display: flex; justify-content: space-between;
-      padding: 10px 0; border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-
+    .m-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--bdr); font-size: 13px; }
     .m-row:last-of-type { border: none; }
     .m-val { font-family: var(--mono); font-weight: 500; color: var(--forest); }
-
-    .m-confirm {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--bg); border-radius: 10px;
-      padding: 12px; margin: 12px 0;
-      cursor: pointer; font-size: 13px;
-    }
-
+    .m-confirm { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 12px; margin: 12px 0; cursor: pointer; font-size: 13px; }
     .m-confirm input { transform: scale(1.2); accent-color: var(--navy); }
+    .m-ok { width: 100%; height: 50px; background: var(--forest); color: #fff; border: none; border-radius: 12px; font-family: var(--font); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
+    .m-cancel { width: 100%; height: 44px; background: var(--bg); color: var(--muted); border: none; border-radius: 12px; font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; }
 
-    .m-ok {
-      width: 100%; height: 50px;
-      background: var(--forest); color: #fff;
-      border: none; border-radius: 12px;
-      font-family: var(--font); font-size: 15px; font-weight: 700;
-      cursor: pointer; margin-bottom: 10px;
-    }
-
-    .m-cancel {
-      width: 100%; height: 44px;
-      background: var(--bg); color: var(--muted);
-      border: none; border-radius: 12px;
-      font-family: var(--font); font-size: 13px; font-weight: 600;
-      cursor: pointer;
-    }
-
-    .hide { display: none !important; }
+    .hide     { display: none !important; }
     .disabled { opacity: 0.35; pointer-events: none; }
   </style>
 </head>
@@ -622,10 +303,9 @@
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- APP WRAP -->
-<div class="wrap">
+<!-- SCROLL ZONE -->
+<div id="scroll">
 
-  <!-- HEADER -->
   <div class="header">
     <div>
       <div class="bld-name" id="bldName">...</div>
@@ -634,7 +314,6 @@
     <div class="dot" id="dot"></div>
   </div>
 
-  <!-- DASHBOARD -->
   <div class="dash-card">
     <div class="d-top">
       <div>
@@ -654,89 +333,41 @@
     </div>
   </div>
 
-  <!-- TABS -->
-  <div class="tab-row">
-    <div class="tab-btn t-inc" id="t-inc" onclick="setTab('Income')">
-      <span class="t-icon">💰</span>
-      <span class="t-ar">قبض</span>
-      <span class="t-en">Income</span>
-    </div>
-    <div class="tab-btn" id="t-exp" onclick="setTab('Expense')">
-      <span class="t-icon">📉</span>
-      <span class="t-ar">مصروف</span>
-      <span class="t-en">Expense</span>
-    </div>
-    <div class="tab-btn" id="t-rep" onclick="setTab('Report')">
-      <span class="t-icon">📄</span>
-      <span class="t-ar">تقارير</span>
-      <span class="t-en">Reports</span>
-    </div>
-  </div>
-
-  <!-- LOCK BANNER -->
   <div id="lock-banner">
     <strong>⚠️ Fiscal Year Mismatch</strong><br>
     <span id="lock-msg"></span>
     <button class="lock-btn" onclick="openFiscal()">إغلاق السنة / Close Year</button>
   </div>
 
-  <!-- FORM -->
   <form id="form" onsubmit="event.preventDefault(); doSubmit();">
     <input type="hidden" id="eType" value="Income">
 
-    <!-- INCOME -->
     <div class="card" id="f-inc">
-      <div class="lbl">
-        <span class="l-ar">شاغل القسم</span>
-        <span class="l-en">Occupant of Unit</span>
-      </div>
-      <select class="inp" id="sel-owner">
-        <option value="" disabled selected>اختر / Select...</option>
-      </select>
-      <div class="lbl" style="margin-top:12px;">
-        <span class="l-ar">الفئة</span>
-        <span class="l-en">Category</span>
-      </div>
-      <select class="inp" id="sel-icat">
-        <option value="" disabled selected>اختر / Select...</option>
-      </select>
+      <div class="lbl"><span class="l-ar">شاغل القسم</span><span class="l-en">Occupant of Unit</span></div>
+      <select class="inp" id="sel-owner"><option value="" disabled selected>اختر / Select...</option></select>
+      <div class="lbl" style="margin-top:12px;"><span class="l-ar">الفئة</span><span class="l-en">Category</span></div>
+      <select class="inp" id="sel-icat"><option value="" disabled selected>اختر / Select...</option></select>
     </div>
 
-    <!-- EXPENSE -->
     <div class="card hide" id="f-exp">
-      <div class="lbl">
-        <span class="l-ar">فئة المصروف</span>
-        <span class="l-en">Expense Category</span>
-      </div>
-      <select class="inp" id="sel-ecat">
-        <option value="" disabled selected>اختر / Select...</option>
-      </select>
+      <div class="lbl"><span class="l-ar">فئة المصروف</span><span class="l-en">Expense Category</span></div>
+      <select class="inp" id="sel-ecat"><option value="" disabled selected>اختر / Select...</option></select>
     </div>
 
-    <!-- REPORT -->
     <div class="hide" id="f-rep">
       <div class="r-grid">
-        <div class="rcard on" id="rc-ytd"     onclick="pickReport('YTD')">
-          <span class="r-icon">📊</span>
-          <span class="r-title">YTD</span>
-          <span class="r-sub">تراكمي</span>
+        <div class="rcard on" id="rc-ytd" onclick="pickReport('YTD')">
+          <span class="r-icon">📊</span><span class="r-title">YTD</span><span class="r-sub">تراكمي</span>
         </div>
-        <div class="rcard" id="rc-month"   onclick="pickReport('CurrentMonth')">
-          <span class="r-icon">📅</span>
-          <span class="r-title">هذا الشهر</span>
-          <span class="r-sub">This Month</span>
+        <div class="rcard" id="rc-month" onclick="pickReport('CurrentMonth')">
+          <span class="r-icon">📅</span><span class="r-title">هذا الشهر</span><span class="r-sub">This Month</span>
         </div>
         <div class="rcard" id="rc-journal" onclick="pickReport('Journal')">
-          <span class="r-icon">📖</span>
-          <span class="r-title">اليومية</span>
-          <span class="r-sub">Journal</span>
+          <span class="r-icon">📖</span><span class="r-title">اليومية</span><span class="r-sub">Journal</span>
         </div>
       </div>
       <div class="card">
-        <div class="lbl">
-          <span class="l-ar">نوع التقرير</span>
-          <span class="l-en">Report Type</span>
-        </div>
+        <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
         <select class="inp" id="sel-rep" onchange="pickReport(this.value)">
           <option value="YTD">YTD — تراكمي سنوي</option>
           <option value="CurrentMonth">هذا الشهر / This Month</option>
@@ -746,27 +377,14 @@
       </div>
     </div>
 
-    <!-- AMOUNT -->
     <div class="card" id="f-amt">
-      <div class="lbl">
-        <span class="l-ar">المبلغ</span>
-        <span class="l-en">Amount $</span>
-      </div>
-      <input type="number" step="0.01" min="0"
-             class="inp inp-amt" id="inp-amt"
-             placeholder="0.00" inputmode="decimal">
+      <div class="lbl"><span class="l-ar">المبلغ</span><span class="l-en">Amount $</span></div>
+      <input type="number" step="0.01" min="0" class="inp inp-amt" id="inp-amt" placeholder="0.00" inputmode="decimal">
     </div>
 
-    <!-- PIN + SUBMIT -->
     <div class="card">
-      <div class="lbl">
-        <span class="l-ar">رمز الدخول</span>
-        <span class="l-en">PIN</span>
-      </div>
-      <input type="password" class="inp inp-pin" id="inp-pin"
-             pattern="[0-9]{4}" inputmode="numeric"
-             maxlength="4" placeholder="••••" autocomplete="off">
-
+      <div class="lbl"><span class="l-ar">رمز الدخول</span><span class="l-en">PIN</span></div>
+      <input type="password" class="inp inp-pin" id="inp-pin" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
         <span id="btn-ico">💰</span>
         <span id="btn-txt">تسجيل الدفعة / Record Payment</span>
@@ -775,17 +393,41 @@
 
   </form>
 
-  <!-- BRAND FOOTER -->
-  <div class="brand-foot">
-    <div class="brand-wrap">
-      <span class="b-idara">idara</span>
-      <span class="b-sep"></span>
-      <span class="b-pro">PRO</span>
-    </div>
-    <div class="b-tag">Building Management Platform</div>
+</div><!-- /scroll -->
+
+<!-- FIXED BOTTOM NAV -->
+<nav id="nav">
+
+  <!-- TAB ROW -->
+  <div class="nav-tabs">
+    <button class="nav-tab" id="t-rep" onclick="setTab('Report')">
+      <span class="nav-ico">📄</span>
+      <span class="nav-ar">تقارير</span>
+      <span class="nav-en">Reports</span>
+    </button>
+    <button class="nav-tab" id="t-exp" onclick="setTab('Expense')">
+      <span class="nav-ico">📉</span>
+      <span class="nav-ar">مصروف</span>
+      <span class="nav-en">Expense</span>
+    </button>
+    <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
+      <span class="nav-ico">💰</span>
+      <span class="nav-ar">قبض</span>
+      <span class="nav-en">Income</span>
+    </button>
   </div>
 
-</div><!-- /wrap -->
+  <!-- BRAND ROW -->
+  <div class="nav-brand">
+    <div class="nb-wrap">
+      <span class="nb-idara">idara</span>
+      <span class="nb-sep"></span>
+      <span class="nb-pro">PRO</span>
+    </div>
+    <div class="nb-tag">Building Management Platform</div>
+  </div>
+
+</nav>
 
 <!-- FISCAL MODAL -->
 <div id="modal">
@@ -799,7 +441,7 @@
       <input type="checkbox" id="conf-chk">
       I verify these balances are correct
     </label>
-    <button class="m-ok"     onclick="execClose()">Execute & Close</button>
+    <button class="m-ok" onclick="execClose()">Execute & Close</button>
     <button class="m-cancel" onclick="closeModal()">Cancel / إلغاء</button>
   </div>
 </div>
@@ -810,9 +452,8 @@ var REPORT = 'YTD';
 var _fiscal = null;
 var _rtimer = null;
 var _ttimer = null;
-var GAS    = 'https://script.google.com/macros/s/AKfycbxAXi3phO9lrfi9cWmbIVID-kwnbWSogVB7wM3PwvNi40y8uOgmmrHdU-EqIHz_rkXv/exec';
+var GAS = 'https://script.google.com/macros/s/AKfycbxAXi3phO9lrfi9cWmbIVID-kwnbWSogVB7wM3PwvNi40y8uOgmmrHdU-EqIHz_rkXv/exec';
 
-// ── API HELPERS ──────────────────────────────────
 function gasGet(action) {
   return fetch(GAS + '?action=' + action)
     .then(function(r) { return r.json(); })
@@ -829,12 +470,10 @@ function gasPost(body) {
     .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
 }
 
-// ── BOOT ────────────────────────────────────────
 window.onload = function() {
   gasGet('getAppData')
     .then(function(d) { initApp(d); })
     .catch(bootErr);
-
   refreshDash();
   watchNet();
   _rtimer = setInterval(refreshDash, 30000);
@@ -852,17 +491,12 @@ function hideLo() {
   setTimeout(function() { lo.style.display = 'none'; }, 500);
 }
 
-// ── INIT ─────────────────────────────────────────
 function initApp(d) {
   if (!d) { bootErr(); return; }
-
   window._cats = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
-
-  if (d.legal && d.legal['BUILDING_NAME']) {
+  if (d.legal && d.legal['BUILDING_NAME'])
     document.getElementById('bldName').textContent = d.legal['BUILDING_NAME'];
-  }
 
-  // Owners
   var sel  = document.getElementById('sel-owner');
   var frag = document.createDocumentFragment();
   var ph   = new Option('اختر / Select...', '');
@@ -888,7 +522,6 @@ function initApp(d) {
   hideLo();
 }
 
-// ── CATEGORIES ──────────────────────────────────
 function fillCats(type) {
   var cats  = (window._cats && window._cats[type]) ? window._cats[type] : [];
   var selId = type === 'income' ? 'sel-icat' : 'sel-ecat';
@@ -901,13 +534,12 @@ function fillCats(type) {
   sel.innerHTML = ''; sel.appendChild(frag);
 }
 
-// ── TABS ─────────────────────────────────────────
 function setTab(type) {
   TAB = type;
   document.getElementById('eType').value = type;
 
   ['t-inc','t-exp','t-rep'].forEach(function(id) {
-    document.getElementById(id).className = 'tab-btn';
+    document.getElementById(id).className = 'nav-tab';
   });
 
   ['f-inc','f-exp','f-rep','f-amt'].forEach(function(id) {
@@ -919,38 +551,35 @@ function setTab(type) {
   var txt = document.getElementById('btn-txt');
 
   if (type === 'Income') {
-    document.getElementById('t-inc').classList.add('t-inc');
+    document.getElementById('t-inc').classList.add('n-inc');
     document.getElementById('f-inc').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('income');
     btn.className = 'btn-sub b-inc';
-    ico.textContent = '💰';
-    txt.textContent = 'تسجيل الدفعة / Record Payment';
+    ico.textContent = '💰'; txt.textContent = 'تسجيل الدفعة / Record Payment';
 
   } else if (type === 'Expense') {
-    document.getElementById('t-exp').classList.add('t-exp');
+    document.getElementById('t-exp').classList.add('n-exp');
     document.getElementById('f-exp').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('expense');
     btn.className = 'btn-sub b-exp';
-    ico.textContent = '📉';
-    txt.textContent = 'تسجيل مصروف / Record Expense';
+    ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
 
   } else {
-    document.getElementById('t-rep').classList.add('t-rep');
+    document.getElementById('t-rep').classList.add('n-rep');
     document.getElementById('f-rep').classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
-    ico.textContent = '📧';
-    txt.textContent = 'إرسال التقرير / Send Report';
+    ico.textContent = '📧'; txt.textContent = 'إرسال التقرير / Send Report';
   }
 
   document.getElementById('inp-amt').value = '';
   document.getElementById('inp-pin').value = '';
   resetPin();
+  document.getElementById('scroll').scrollTop = 0;
 }
 
-// ── REPORT CARDS ─────────────────────────────────
 function pickReport(type) {
   REPORT = type;
   var sel = document.getElementById('sel-rep');
@@ -962,11 +591,9 @@ function pickReport(type) {
   if (map[type]) document.getElementById(map[type]).classList.add('on');
 }
 
-// ── DASHBOARD ────────────────────────────────────
 function refreshDash() {
   var rb = document.getElementById('rBtn');
   rb.classList.add('spin');
-
   gasGet('getDashboardStats')
     .then(function(v) {
       document.getElementById('cashAmt').textContent = v || '$0.00';
@@ -989,44 +616,30 @@ function refreshDash() {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
-// ── SUBMIT ───────────────────────────────────────
 function doSubmit() {
   var type  = TAB;
   var pinEl = document.getElementById('inp-pin');
   var pin   = pinEl.value;
 
-  if (!pin || pin.length !== 4) {
-    toast('❌ PIN must be 4 digits', 'fail');
-    markErr(pinEl); return;
-  }
+  if (!pin || pin.length !== 4) { toast('❌ PIN must be 4 digits', 'fail'); markErr(pinEl); return; }
 
   if (type !== 'Report') {
     var amt = parseFloat(document.getElementById('inp-amt').value);
-    if (!amt || amt <= 0) {
-      toast('❌ Enter a valid amount', 'fail');
-      markErr(document.getElementById('inp-amt')); return;
-    }
-    if (type === 'Income' && !document.getElementById('sel-owner').value) {
-      toast('❌ Select an occupant', 'fail');
-      markErr(document.getElementById('sel-owner')); return;
-    }
+    if (!amt || amt <= 0) { toast('❌ Enter a valid amount', 'fail'); markErr(document.getElementById('inp-amt')); return; }
+    if (type === 'Income' && !document.getElementById('sel-owner').value) { toast('❌ Select an occupant', 'fail'); markErr(document.getElementById('sel-owner')); return; }
   }
 
   var cat = '';
   if (type === 'Income')  cat = document.getElementById('sel-icat').value;
   if (type === 'Expense') cat = document.getElementById('sel-ecat').value;
-  if (type !== 'Report' && !cat) {
-    toast('❌ Select a category', 'fail'); return;
-  }
+  if (type !== 'Report' && !cat) { toast('❌ Select a category', 'fail'); return; }
 
   var btn = document.getElementById('btn-sub');
   btn.disabled = true;
   pinEl.classList.add('vfy');
   toast('🔐 Verifying...', 'info');
 
-  var tmout = setTimeout(function() {
-    onFail({ message: 'Timed out. Try again.' });
-  }, 30000);
+  var tmout = setTimeout(function() { onFail({ message: 'Timed out. Try again.' }); }, 30000);
 
   if (type === 'Report') {
     gasPost({ action: 'processReportRequest', reportType: document.getElementById('sel-rep').value, pin: pin })
@@ -1067,8 +680,7 @@ function onOk(msg) {
   if (ok && TAB !== 'Report') {
     document.getElementById('inp-amt').value = '';
     document.getElementById('inp-pin').value = '';
-    resetPin();
-    refreshDash();
+    resetPin(); refreshDash();
   } else {
     document.getElementById('inp-pin').value = '';
     resetPin();
@@ -1091,16 +703,13 @@ function pinFail(e) {
   setTimeout(resetPin, 3000);
 }
 
-// ── HELPERS ──────────────────────────────────────
 function toast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className   = type || 'info';
   t.classList.add('show');
   if (_ttimer) clearTimeout(_ttimer);
-  _ttimer = setTimeout(function() {
-    t.classList.remove('show');
-  }, type === 'fail' ? 5000 : 3000);
+  _ttimer = setTimeout(function() { t.classList.remove('show'); }, type === 'fail' ? 5000 : 3000);
 }
 
 function markErr(el) {
@@ -1122,7 +731,6 @@ function watchNet() {
   window.addEventListener('offline', function() { dot.classList.add('off');    toast('⚠️ No internet', 'fail'); });
 }
 
-// ── FISCAL ───────────────────────────────────────
 function openFiscal() {
   gasGet('previewFiscalClose')
     .then(function(d) {
@@ -1137,21 +745,13 @@ function openFiscal() {
 }
 
 function execClose() {
-  if (!document.getElementById('conf-chk').checked) {
-    toast('Please confirm first', 'fail'); return;
-  }
+  if (!document.getElementById('conf-chk').checked) { toast('Please confirm first', 'fail'); return; }
   gasPost({ action: 'commitFiscalClose', payload: _fiscal })
-    .then(function(msg) {
-      toast(msg, 'ok');
-      closeModal();
-      setTimeout(function() { location.reload(); }, 2000);
-    })
+    .then(function(msg) { toast(msg, 'ok'); closeModal(); setTimeout(function() { location.reload(); }, 2000); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('open');
-}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
 document.addEventListener('keydown', function(e) {
   if (e.altKey && e.key === '1') { e.preventDefault(); setTab('Income'); }

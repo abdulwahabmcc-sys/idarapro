@@ -187,6 +187,22 @@
     @keyframes sweep { 0% { transform: translateX(200%); } 100% { transform: translateX(-300%); } }
     .ldr-hint { font-size: 11px; color: var(--muted); }
 
+    .ldr-platform {
+      font-size: 10px;
+      color: var(--muted);
+      direction: ltr;
+      margin-top: -12px;
+      letter-spacing: 0.2px;
+    }
+
+    .ldr-platform span {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--navy);
+      opacity: 0.6;
+    }
+
     /* ── TOAST ──────────────────────────────────── */
     #toast {
       position: fixed;
@@ -303,6 +319,7 @@
 <!-- LOADER -->
 <div id="loader">
   <div class="ldr-brand">idara<b>BUILDING</b></div>
+  <div class="ldr-platform">a platform of <span>idara360</span></div>
   <div class="ldr-track"><div class="ldr-bar"></div></div>
   <div class="ldr-hint">جاري التحميل / Loading...</div>
 </div>

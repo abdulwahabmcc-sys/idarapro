@@ -421,9 +421,31 @@
       #dt-form-scroll .r-grid,
       #dt-form-scroll #f-rep > .card { max-width: 520px; }
 
-      /* HIDE mobile, SHOW desktop */
-      #scroll { display: none !important; }
+      /* HIDE mobile nav, restructure scroll for desktop */
       #nav    { display: none !important; }
+
+      /* On desktop, #scroll becomes the form panel inside dt-content */
+      #scroll {
+        display: block !important;
+        overflow-y: auto;
+        padding: 28px 36px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* Hide mobile-only elements inside scroll on desktop */
+      #scroll .header  { display: none; }
+      #scroll .dash-card { display: none; }
+      #scroll #lock-banner { max-width: 520px; }
+      #scroll .card    { max-width: 520px; }
+      #scroll .r-grid  { max-width: 520px; }
+      #scroll #f-rep > .card { max-width: 520px; }
+
+      /* dt-content wraps dt-tabs + scroll */
+      #dt-content { flex-direction: column; }
+
+      /* dt-form-scroll not needed — scroll takes its place */
+      #dt-form-scroll { display: none; }
 
       /* desktop dash card */
       .dash-card { margin-bottom: 0; border-radius: 16px; }
@@ -674,17 +696,8 @@
       </button>
     </div>
 
-    <!-- Form scroll area — reuses the same form elements -->
-    <div id="dt-form-scroll">
-      <div id="dt-lock-banner" style="display:none;padding:14px;background:rgba(155,35,53,0.07);border:1px solid rgba(155,35,53,0.22);border-radius:12px;font-size:13px;color:var(--burg);text-align:center;margin-bottom:16px;">
-        <strong>⚠️ Fiscal Year Mismatch</strong><br>
-        <span id="dt-lock-msg"></span>
-        <button class="lock-btn" onclick="openFiscal()">إغلاق السنة / Close Year</button>
-      </div>
-    </div>
-
-  </div>
-</div>
+    </div><!-- /dt-content -->
+</div><!-- /dt-main -->
 <!-- ═══════════ END DESKTOP CHROME ═══════════ -->
 
 <script>
@@ -765,20 +778,21 @@ function initApp(d) {
 
   setTab('Income');
 
-  // On desktop: move the shared form + lock banner into dt-form-scroll
-  // This is a DOM move - only runs once
-  var dtScroll = document.getElementById('dt-form-scroll');
-  var form     = document.getElementById('form');
-  var lockBnr  = document.getElementById('lock-banner');
-  if (dtScroll && form) {
-    dtScroll.appendChild(lockBnr);
-    dtScroll.appendChild(form);
-  }
-
   // Sync desktop dot with mobile dot
   var dtDot = document.getElementById('dt-dot');
   window.addEventListener('online',  function() { if(dtDot) dtDot.classList.remove('off'); });
   window.addEventListener('offline', function() { if(dtDot) dtDot.classList.add('off'); });
+
+  // On desktop: physically move #scroll into #dt-content so CSS layout works
+  if (window.innerWidth >= 769) {
+    var dtContent = document.getElementById('dt-content');
+    var scroll    = document.getElementById('scroll');
+    if (dtContent && scroll) {
+      dtContent.appendChild(scroll);
+    }
+  }
+
+
 
   hideLo();
 }

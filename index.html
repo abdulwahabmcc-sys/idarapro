@@ -138,20 +138,12 @@
       color: var(--navy);
     }
 
-    .nb-sep {
-      width: 1px; height: 7px;
-      background: var(--gold);
-      display: inline-block;
-      margin: 0 3px 1px;
-      opacity: 0.8;
-      vertical-align: middle;
-    }
+    .nb-sep { display: none; }
 
     .nb-pro {
-      font-family: var(--mono);
-      font-size: 7px; font-weight: 500;
+      font-family: var(--font);
+      font-size: 11px; font-weight: 700;
       color: var(--burg);
-      letter-spacing: 0.5px;
     }
 
     .nb-tag b {
@@ -181,7 +173,7 @@
     #loader.out { opacity: 0; pointer-events: none; }
 
     .ldr-brand { font-size: 30px; font-weight: 700; color: var(--navy); direction: ltr; }
-    .ldr-brand b { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--burg); letter-spacing: 1.5px; }
+    .ldr-brand b { font-family: var(--font); font-size: 30px; font-weight: 700; color: var(--burg); }
     .ldr-track { width: 72px; height: 2px; background: var(--bdr); border-radius: 2px; overflow: hidden; }
     .ldr-bar { height: 100%; width: 40%; background: linear-gradient(90deg, var(--burg), var(--gold)); border-radius: 2px; animation: sweep 1s ease-in-out infinite; }
     @keyframes sweep { 0% { transform: translateX(200%); } 100% { transform: translateX(-300%); } }
@@ -341,8 +333,7 @@
       .dt-topbrand { display: flex; align-items: center; gap: 8px; direction: ltr; }
       .dt-brand-mark { display: flex; align-items: baseline; }
       .dt-b-idara { font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff; }
-      .dt-b-sep { width: 1px; height: 9px; background: var(--gold); display: inline-block; margin: 0 4px 1px; opacity: 0.8; vertical-align: middle; }
-      .dt-b-pro { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--gold); letter-spacing: 0.8px; }
+      .dt-b-pro  { font-family: var(--font); font-size: 14px; font-weight: 700; color: #E8758A; }
       .dt-b-platform { font-size: 9px; color: rgba(255,255,255,0.35); }
       .dt-b-platform span { font-family: var(--mono); font-size: 8px; color: rgba(255,255,255,0.45); }
       .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.3); transition: all 0.3s; }
@@ -646,9 +637,7 @@
       <div class="dt-b-platform">a platform of <span>idara360</span></div>
     </div>
     <div class="dt-brand-mark">
-      <span class="dt-b-idara">idara</span>
-      <span class="dt-b-sep"></span>
-      <span class="dt-b-pro">BUILDING</span>
+      <span class="dt-b-idara">idara</span><span class="dt-b-pro">BUILDING</span>
     </div>
     <div class="dt-dot" id="dt-dot"></div>
   </div>

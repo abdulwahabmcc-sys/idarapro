@@ -315,29 +315,35 @@
 
       body { flex-direction: column; background: #E8E7E2; }
 
-      /* TOP BAR */
+      /* TOP BAR — Minimal Corporate */
       #dt-topbar {
-        flex-shrink: 0; height: 56px;
-        background: #2E4170;
+        flex-shrink: 0; height: 64px;
+        background: #ffffff;
         display: flex !important;
         align-items: center;
         justify-content: space-between;
-        padding: 0 32px;
-        box-shadow: 0 2px 12px rgba(27,42,74,0.18);
+        padding: 0 36px;
+        border-bottom: 3px solid var(--gold);
+        box-shadow: 0 1px 8px rgba(27,42,74,0.07);
       }
 
-      .dt-bld { display: flex; flex-direction: column; }
-      .dt-bld-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; }
-      .dt-bld-sub  { font-size: 9px; color: rgba(255,255,255,0.4); }
+      /* LEFT: brand */
+      .dt-topbrand { display: flex; align-items: center; gap: 12px; direction: ltr; }
+      .dt-brand-mark { display: flex; align-items: baseline; gap: 0; }
+      .dt-b-idara { font-family: var(--font); font-size: 18px; font-weight: 700; color: var(--navy); letter-spacing: -0.3px; }
+      .dt-b-pro   { font-family: var(--font); font-size: 18px; font-weight: 700; color: var(--burg); letter-spacing: -0.3px; }
+      .dt-b-divider { width: 1px; height: 22px; background: #D0CEC8; margin: 0 12px; }
+      .dt-b-platform { font-size: 9px; color: #aaa; letter-spacing: 0.3px; direction: ltr; line-height: 1.4; }
+      .dt-b-platform span { font-weight: 600; color: #888; }
 
-      .dt-topbrand { display: flex; align-items: center; gap: 8px; direction: ltr; }
-      .dt-brand-mark { display: flex; align-items: baseline; }
-      .dt-b-idara { font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff; }
-      .dt-b-pro  { font-family: var(--font); font-size: 14px; font-weight: 700; color: #C0394F; }
-      .dt-b-platform { font-size: 9px; color: rgba(255,255,255,0.35); }
-      .dt-b-platform span { font-family: var(--mono); font-size: 8px; color: rgba(255,255,255,0.45); }
-      .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.3); transition: all 0.3s; }
-      .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.3); }
+      /* RIGHT: building identity */
+      .dt-bld { display: flex; flex-direction: column; align-items: flex-end; }
+      .dt-bld-name { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.2; direction: rtl; }
+      .dt-bld-sub  { font-size: 9px; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; }
+
+      /* Status dot */
+      .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.2); transition: all 0.3s; }
+      .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.2); }
 
       /* MAIN AREA */
       #dt-main {
@@ -628,18 +634,19 @@
 
 <!-- TOP BAR -->
 <div id="dt-topbar">
-  <div class="dt-bld">
-    <div class="dt-bld-name" id="dt-bldName">...</div>
-    <div class="dt-bld-sub">Building Management</div>
-  </div>
+  <!-- LEFT: Brand -->
   <div class="dt-topbrand">
-    <div>
-      <div class="dt-b-platform">a platform of <span>idara360</span></div>
-    </div>
     <div class="dt-brand-mark">
       <span class="dt-b-idara">idara</span><span class="dt-b-pro">BUILDING</span>
     </div>
+    <div class="dt-b-divider"></div>
+    <div class="dt-b-platform">a platform of <span>idara360</span></div>
     <div class="dt-dot" id="dt-dot"></div>
+  </div>
+  <!-- RIGHT: Building identity -->
+  <div class="dt-bld">
+    <div class="dt-bld-name" id="dt-bldName">...</div>
+    <div class="dt-bld-sub">Building Management</div>
   </div>
 </div>
 

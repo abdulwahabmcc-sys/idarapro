@@ -18,7 +18,7 @@
       --muted:  rgba(27,42,74,0.45);
       --font:   'Cairo', sans-serif;
       --mono:   'DM Mono', monospace;
-      --nav-h:  72px; /* tabs 52px + brand ~20px */
+      --nav-h:  72px;
     }
 
     *, *::before, *::after {
@@ -27,7 +27,6 @@
       margin: 0; padding: 0;
     }
 
-    /* ── VIEWPORT SHELL ─────────────────────────── */
     html, body {
       height: 100%;
       overflow: hidden;
@@ -43,7 +42,336 @@
       flex-direction: column;
     }
 
-    /* ── SCROLL ZONE ────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       LOGIN SCREEN
+    ══════════════════════════════════════════════ */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+      gap: 0;
+    }
+
+    #login-screen.out {
+      animation: loginOut 0.4s ease forwards;
+    }
+
+    @keyframes loginOut {
+      to { opacity: 0; transform: scale(1.03); pointer-events: none; }
+    }
+
+    /* Brand */
+    .lgn-brand {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .lgn-brand-mark {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      direction: ltr;
+    }
+
+    .lgn-b-idara {
+      font-family: var(--font);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: -0.5px;
+    }
+
+    .lgn-b-building {
+      font-family: var(--font);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--burg);
+      letter-spacing: -0.5px;
+    }
+
+    .lgn-b-tag {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      margin-top: 3px;
+      direction: ltr;
+    }
+
+    /* Building name */
+    .lgn-bld {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      text-align: center;
+      direction: rtl;
+      margin-bottom: 32px;
+      min-height: 20px;
+    }
+
+    /* Gold divider */
+    .lgn-divider {
+      width: 48px;
+      height: 2px;
+      background: var(--gold);
+      border-radius: 2px;
+      margin: 10px auto 28px;
+    }
+
+    /* Prompt */
+    .lgn-prompt {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 20px;
+      direction: rtl;
+    }
+
+    /* PIN dots */
+    .lgn-dots {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .lgn-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--bdr);
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .lgn-dot.filled {
+      background: var(--navy);
+      border-color: var(--navy);
+      transform: scale(1.1);
+    }
+
+    .lgn-dot.error {
+      background: var(--burg);
+      border-color: var(--burg);
+    }
+
+    .lgn-dot.success {
+      background: var(--forest);
+      border-color: var(--forest);
+    }
+
+    /* Dots shake on error */
+    .lgn-dots.shake {
+      animation: dotShake 0.4s ease;
+    }
+
+    @keyframes dotShake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-8px); }
+      40%     { transform: translateX(8px); }
+      60%     { transform: translateX(-5px); }
+      80%     { transform: translateX(5px); }
+    }
+
+    /* Hidden real input — captures keyboard on desktop */
+    #pin-input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    /* Numpad */
+    .lgn-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 20px;
+    }
+
+    .pad-btn {
+      height: 64px;
+      border-radius: 16px;
+      border: 1.5px solid var(--bdr);
+      background: var(--surf);
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      transition: all 0.12s ease;
+      box-shadow: 0 1px 4px rgba(27,42,74,0.06);
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .pad-btn:active {
+      transform: scale(0.92);
+      background: var(--bg);
+      box-shadow: none;
+    }
+
+    .pad-btn .pad-letters {
+      font-family: var(--font);
+      font-size: 7px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .pad-btn.pad-zero {
+      grid-column: 2;
+    }
+
+    .pad-btn.pad-back {
+      grid-column: 3;
+      font-size: 20px;
+      color: var(--muted);
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .pad-btn.pad-back:active {
+      background: var(--bg);
+    }
+
+    /* Status messages */
+    .lgn-status {
+      min-height: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--burg);
+      direction: rtl;
+    }
+
+    /* Attempt counter */
+    .lgn-attempts {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+
+    /* Lockout overlay (inside login screen) */
+    #lockout-banner {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px;
+      background: rgba(155,35,53,0.07);
+      border: 1px solid rgba(155,35,53,0.22);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 300px;
+      text-align: center;
+    }
+
+    #lockout-banner.show { display: flex; }
+
+    .lo-icon { font-size: 28px; }
+
+    .lo-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--burg);
+    }
+
+    .lo-msg {
+      font-size: 12px;
+      color: var(--muted);
+      direction: rtl;
+    }
+
+    .lo-timer {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--burg);
+    }
+
+    /* Welcome toast inside login (success) */
+    .lgn-welcome {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .lgn-welcome.show { display: flex; }
+
+    .lgn-welcome-icon { font-size: 36px; }
+    .lgn-welcome-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .lgn-welcome-role {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* Session info bar — shown in main app */
+    #session-bar {
+      display: none;
+      flex-shrink: 0;
+      background: var(--navy);
+      padding: 6px 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #session-bar.show { display: flex; }
+
+    .sb-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .sb-role {
+      font-family: var(--mono);
+      font-size: 8px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .sb-logout {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+      cursor: pointer;
+      padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      direction: ltr;
+      transition: all 0.15s;
+    }
+
+    .sb-logout:active { color: rgba(255,255,255,0.8); }
+
+    /* ══════════════════════════════════════════════
+       SCROLL ZONE
+    ══════════════════════════════════════════════ */
     #scroll {
       flex: 1;
       min-height: 0;
@@ -55,7 +383,9 @@
     #scroll::-webkit-scrollbar { display: none; }
     #scroll { scrollbar-width: none; }
 
-    /* ── FIXED BOTTOM NAV ───────────────────────── */
+    /* ══════════════════════════════════════════════
+       FIXED BOTTOM NAV
+    ══════════════════════════════════════════════ */
     #nav {
       flex-shrink: 0;
       background: var(--surf);
@@ -66,7 +396,6 @@
       align-items: stretch;
     }
 
-    /* tab row */
     .nav-tabs {
       display: flex;
       align-items: stretch;
@@ -113,7 +442,6 @@
     .nav-tab.n-exp .nav-ar, .nav-tab.n-exp .nav-en { color: var(--burg);   opacity: 1; }
     .nav-tab.n-rep .nav-ar, .nav-tab.n-rep .nav-en { color: var(--navy);   opacity: 1; }
 
-    /* brand row — sits below tabs */
     .nav-brand {
       display: flex;
       flex-direction: column;
@@ -125,42 +453,16 @@
       background: rgba(27,42,74,0.02);
     }
 
-    .nb-wrap {
-      display: flex;
-      align-items: baseline;
-      direction: ltr;
-      gap: 0;
-    }
-
-    .nb-idara {
-      font-family: var(--font);
-      font-size: 11px; font-weight: 700;
-      color: var(--navy);
-    }
-
+    .nb-wrap { display: flex; align-items: baseline; direction: ltr; gap: 0; }
+    .nb-idara { font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--navy); }
     .nb-sep { display: none; }
+    .nb-pro { font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--burg); }
+    .nb-tag { font-size: 6.5px; color: var(--muted); letter-spacing: 0.3px; line-height: 1; }
+    .nb-tag b { font-family: var(--mono); font-weight: 500; color: var(--navy); opacity: 0.7; }
 
-    .nb-pro {
-      font-family: var(--font);
-      font-size: 11px; font-weight: 700;
-      color: var(--burg);
-    }
-
-    .nb-tag b {
-      font-family: var(--mono);
-      font-weight: 500;
-      color: var(--navy);
-      opacity: 0.7;
-    }
-
-    .nb-tag {
-      font-size: 6.5px;
-      color: var(--muted);
-      letter-spacing: 0.3px;
-      line-height: 1;
-    }
-
-    /* ── LOADER ─────────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       LOADER
+    ══════════════════════════════════════════════ */
     #loader {
       position: fixed; inset: 0;
       background: var(--bg);
@@ -178,24 +480,12 @@
     .ldr-bar { height: 100%; width: 40%; background: linear-gradient(90deg, var(--burg), var(--gold)); border-radius: 2px; animation: sweep 1s ease-in-out infinite; }
     @keyframes sweep { 0% { transform: translateX(200%); } 100% { transform: translateX(-300%); } }
     .ldr-hint { font-size: 11px; color: var(--muted); }
+    .ldr-platform { font-size: 10px; color: var(--muted); direction: ltr; margin-top: -12px; letter-spacing: 0.2px; }
+    .ldr-platform span { font-family: var(--mono); font-size: 9px; font-weight: 500; color: var(--navy); opacity: 0.6; }
 
-    .ldr-platform {
-      font-size: 10px;
-      color: var(--muted);
-      direction: ltr;
-      margin-top: -12px;
-      letter-spacing: 0.2px;
-    }
-
-    .ldr-platform span {
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 500;
-      color: var(--navy);
-      opacity: 0.6;
-    }
-
-    /* ── TOAST ──────────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       TOAST
+    ══════════════════════════════════════════════ */
     #toast {
       position: fixed;
       bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px);
@@ -216,14 +506,18 @@
     #toast.fail { background: var(--burg); }
     #toast.info { background: var(--navy); }
 
-    /* ── HEADER ─────────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       HEADER
+    ══════════════════════════════════════════════ */
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .bld-name { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.2; }
     .bld-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.15); flex-shrink: 0; transition: all 0.3s; }
     .dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.15); }
 
-    /* ── DASHBOARD CARD ─────────────────────────── */
+    /* ══════════════════════════════════════════════
+       DASHBOARD CARD
+    ══════════════════════════════════════════════ */
     .dash-card { background: var(--navy); border-radius: 20px; padding: 22px 20px 18px; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 28px rgba(27,42,74,0.22); }
     .dash-card::before { content: ''; position: absolute; top: -45px; left: -45px; width: 160px; height: 160px; border-radius: 50%; background: rgba(201,168,76,0.07); pointer-events: none; }
     .dash-card::after  { content: ''; position: absolute; bottom: -45px; right: -25px; width: 150px; height: 150px; border-radius: 50%; background: rgba(155,35,53,0.09); pointer-events: none; }
@@ -243,30 +537,24 @@
     .d-refresh.spin { animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── CARD ───────────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       CARD, LABELS, INPUTS
+    ══════════════════════════════════════════════ */
     .card { background: var(--surf); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--bdr); box-shadow: 0 1px 4px rgba(27,42,74,0.05); }
-
-    /* ── LABELS ─────────────────────────────────── */
     .lbl { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
     .l-ar { font-size: 13px; font-weight: 700; color: var(--navy); }
     .l-en { font-size: 9px; color: var(--muted); direction: ltr; }
-
-    /* ── INPUTS ─────────────────────────────────── */
     .inp { width: 100%; height: 54px; border: 1.5px solid var(--bdr); border-radius: 12px; background: var(--bg); font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--navy); padding: 0 14px; outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, box-shadow 0.2s; text-align: right; }
     .inp:focus { border-color: var(--navy); background: var(--surf); box-shadow: 0 0 0 3px rgba(27,42,74,0.07); }
     .inp.err { border-color: var(--burg); animation: shake 0.3s ease; }
     @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-
     select.inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231B2A4A' opacity='.35'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 14px center; padding-left: 36px; cursor: pointer; font-size: 15px; }
-
     .inp-amt { font-family: var(--mono); font-size: 28px; font-weight: 400; height: 62px; text-align: center; direction: ltr; letter-spacing: -0.5px; }
     .inp-amt::placeholder { color: rgba(27,42,74,0.18); }
-    .inp-pin { font-family: var(--mono); font-size: 22px; letter-spacing: 10px; text-align: center; direction: ltr; height: 56px; }
-    .inp-pin.vfy { border-color: var(--gold);   box-shadow: 0 0 0 3px rgba(201,168,76,0.13); }
-    .inp-pin.ok  { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.12); }
-    .inp-pin.bad { border-color: var(--burg);   box-shadow: 0 0 0 3px rgba(155,35,53,0.12); }
 
-    /* ── REPORT QUICK CARDS ─────────────────────── */
+    /* ══════════════════════════════════════════════
+       REPORT CARDS
+    ══════════════════════════════════════════════ */
     .r-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
     .rcard { background: var(--surf); border: 1.5px solid var(--bdr); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.18s ease; display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .rcard:active { transform: scale(0.95); }
@@ -276,7 +564,9 @@
     .r-title { font-size: 11px; font-weight: 700; color: var(--navy); }
     .r-sub   { font-size: 8px; color: var(--muted); }
 
-    /* ── SUBMIT BUTTON ──────────────────────────── */
+    /* ══════════════════════════════════════════════
+       SUBMIT BUTTON
+    ══════════════════════════════════════════════ */
     .btn-sub { width: 100%; height: 58px; border: none; border-radius: 12px; font-family: var(--font); font-size: 17px; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; -webkit-appearance: none; transition: opacity 0.2s, transform 0.15s; }
     .btn-sub:active:not(:disabled) { opacity: 0.85; transform: scale(0.98); }
     .btn-sub:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -284,11 +574,15 @@
     .b-exp { background: var(--burg);   box-shadow: 0 4px 14px rgba(155,35,53,0.26); }
     .b-rep { background: var(--navy);   box-shadow: 0 4px 14px rgba(27,42,74,0.24); }
 
-    /* ── LOCK BANNER ────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       LOCK BANNER
+    ══════════════════════════════════════════════ */
     #lock-banner { display: none; padding: 14px; background: rgba(155,35,53,0.07); border: 1px solid rgba(155,35,53,0.22); border-radius: 12px; font-size: 13px; color: var(--burg); text-align: center; margin-bottom: 12px; }
     .lock-btn { width: 100%; margin-top: 8px; padding: 10px; background: var(--burg); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer; }
 
-    /* ── MODAL ──────────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       MODAL
+    ══════════════════════════════════════════════ */
     #modal { display: none; position: fixed; inset: 0; background: rgba(27,42,74,0.45); z-index: 7000; align-items: flex-end; backdrop-filter: blur(3px); }
     #modal.open { display: flex; }
     .m-sheet { background: var(--surf); border-radius: 24px 24px 0 0; padding: 24px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; animation: shup 0.3s ease; }
@@ -307,15 +601,12 @@
 
     /* ══════════════════════════════════════════════
        DESKTOP LAYOUT  ≥ 769px
-       Mobile layout above is completely untouched
     ══════════════════════════════════════════════ */
     @media (min-width: 769px) {
 
       html, body { height: 100%; overflow: hidden; }
-
       body { flex-direction: column; background: #E8E7E2; }
 
-      /* TOP BAR — Minimal Corporate */
       #dt-topbar {
         flex-shrink: 0; height: 64px;
         background: #ffffff;
@@ -327,7 +618,6 @@
         box-shadow: 0 1px 8px rgba(27,42,74,0.07);
       }
 
-      /* LEFT: brand */
       .dt-topbrand { display: flex; align-items: center; gap: 12px; direction: ltr; }
       .dt-brand-mark { display: flex; align-items: baseline; gap: 0; }
       .dt-b-idara { font-family: var(--font); font-size: 18px; font-weight: 700; color: var(--navy); letter-spacing: -0.3px; }
@@ -336,23 +626,57 @@
       .dt-b-platform { font-size: 9px; color: #aaa; letter-spacing: 0.3px; direction: ltr; line-height: 1.4; }
       .dt-b-platform span { font-weight: 600; color: #888; }
 
-      /* RIGHT: building identity */
       .dt-bld { display: flex; flex-direction: column; align-items: flex-end; }
       .dt-bld-name { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.2; direction: rtl; }
       .dt-bld-sub  { font-size: 9px; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; }
 
-      /* Status dot */
+      /* Session info in topbar */
+      .dt-session {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        direction: ltr;
+      }
+
+      .dt-session-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--navy);
+      }
+
+      .dt-session-role {
+        font-family: var(--mono);
+        font-size: 8px;
+        color: var(--muted);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border: 1px solid var(--bdr);
+        border-radius: 4px;
+      }
+
+      .dt-logout {
+        font-size: 10px;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px 10px;
+        border: 1px solid var(--bdr);
+        border-radius: 6px;
+        transition: all 0.15s;
+        font-family: var(--font);
+      }
+
+      .dt-logout:hover { color: var(--burg); border-color: var(--burg); }
+
       .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.2); transition: all 0.3s; }
       .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.2); }
 
-      /* MAIN AREA */
       #dt-main {
         flex: 1; min-height: 0;
         display: flex !important;
         overflow: hidden;
       }
 
-      /* LEFT PANEL — dashboard */
       #dt-sidebar {
         width: 320px; flex-shrink: 0;
         display: flex !important;
@@ -365,13 +689,8 @@
       }
       #dt-sidebar::-webkit-scrollbar { display: none; }
 
-      .dt-sidebar-label {
-        font-size: 9px; font-weight: 700;
-        letter-spacing: 2px; text-transform: uppercase;
-        color: var(--muted); margin-bottom: -8px;
-      }
+      .dt-sidebar-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: -8px; }
 
-      /* RIGHT PANEL — form */
       #dt-content {
         flex: 1; min-width: 0;
         display: flex !important;
@@ -380,7 +699,6 @@
         background: var(--bg);
       }
 
-      /* Tab bar */
       #dt-tabs {
         flex-shrink: 0; height: 54px;
         background: var(--surf);
@@ -392,36 +710,17 @@
         box-shadow: 0 1px 4px rgba(27,42,74,0.05);
       }
 
-      .dt-tab {
-        display: flex; align-items: center; gap: 8px;
-        padding: 0 22px; border: none; background: none;
-        font-family: var(--font); font-size: 13px; font-weight: 700;
-        color: var(--muted); cursor: pointer;
-        border-bottom: 2.5px solid transparent;
-        transition: all 0.18s;
-      }
+      .dt-tab { display: flex; align-items: center; gap: 8px; padding: 0 22px; border: none; background: none; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; transition: all 0.18s; }
       .dt-tab:hover { color: var(--navy); background: rgba(27,42,74,0.025); }
       .dt-tab.dt-inc { border-bottom-color: var(--forest); color: var(--forest); }
       .dt-tab.dt-exp { border-bottom-color: var(--burg);   color: var(--burg);   }
       .dt-tab.dt-rep { border-bottom-color: var(--navy);   color: var(--navy);   }
       .dt-tab-ico { font-size: 16px; }
 
-      /* Form scroll */
-      #dt-form-scroll {
-        flex: 1; min-height: 0;
-        overflow-y: auto;
-        padding: 28px 36px;
-      }
-      #dt-form-scroll::-webkit-scrollbar { width: 4px; }
-      #dt-form-scroll::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 4px; }
-      #dt-form-scroll .card,
-      #dt-form-scroll .r-grid,
-      #dt-form-scroll #f-rep > .card { max-width: 520px; }
+      #dt-form-scroll { display: none; }
 
-      /* HIDE mobile nav, restructure scroll for desktop */
       #nav    { display: none !important; }
 
-      /* On desktop, #scroll becomes the form panel inside dt-content */
       #scroll {
         display: block !important;
         overflow-y: auto;
@@ -430,24 +729,17 @@
         min-height: 0;
       }
 
-      /* Hide mobile-only elements inside scroll on desktop */
-      #scroll .header  { display: none; }
-      #scroll .dash-card { display: none; }
+      #scroll .header     { display: none; }
+      #scroll .dash-card  { display: none; }
       #scroll #lock-banner { max-width: 520px; }
       #scroll .card    { max-width: 520px; }
       #scroll .r-grid  { max-width: 520px; }
       #scroll #f-rep > .card { max-width: 520px; }
 
-      /* dt-content wraps dt-tabs + scroll */
-      #dt-content { flex-direction: column; }
-
-      /* dt-form-scroll not needed — scroll takes its place */
-      #dt-form-scroll { display: none; }
-
-      /* desktop dash card */
       .dash-card { margin-bottom: 0; border-radius: 16px; }
 
-      /* Toast repositioned */
+      #session-bar { display: none !important; } /* desktop uses topbar instead */
+
       #toast {
         bottom: 28px; left: 50%; right: auto;
         width: 360px;
@@ -455,7 +747,6 @@
       }
       #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-      /* Modal centered */
       #modal { align-items: center; justify-content: center; }
       .m-sheet {
         border-radius: 20px; max-width: 460px;
@@ -466,16 +757,25 @@
         from { opacity: 0; transform: translateY(16px); }
         to   { opacity: 1; transform: translateY(0); }
       }
+
+      /* Login screen — larger on desktop */
+      #login-screen {
+        padding: 40px;
+      }
+
+      .lgn-pad {
+        max-width: 280px;
+      }
     }
 
-    /* Always hide desktop chrome on mobile */
     #dt-topbar, #dt-main { display: none; }
-
   </style>
 </head>
 <body>
 
-<!-- LOADER -->
+<!-- ══════════════════════════════════════════════
+     LOADER
+══════════════════════════════════════════════ -->
 <div id="loader">
   <div class="ldr-brand">idara<b>BUILDING</b></div>
   <div class="ldr-platform">a platform of <span>idara360</span></div>
@@ -483,10 +783,99 @@
   <div class="ldr-hint">جاري التحميل / Loading...</div>
 </div>
 
-<!-- TOAST -->
+<!-- ══════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════ -->
+<div id="login-screen">
+
+  <!-- Brand -->
+  <div class="lgn-brand">
+    <div class="lgn-brand-mark">
+      <span class="lgn-b-idara">idara</span><span class="lgn-b-building">BUILDING</span>
+    </div>
+    <div class="lgn-b-tag">a platform of idara360</div>
+  </div>
+
+  <div class="lgn-divider"></div>
+
+  <!-- Building name (filled after GAS call) -->
+  <div class="lgn-bld" id="lgn-bld-name"></div>
+
+  <!-- Welcome state (shown briefly after correct PIN) -->
+  <div class="lgn-welcome" id="lgn-welcome">
+    <div class="lgn-welcome-icon">✅</div>
+    <div class="lgn-welcome-name" id="lgn-welcome-name"></div>
+    <div class="lgn-welcome-role" id="lgn-welcome-role"></div>
+  </div>
+
+  <!-- Normal login state -->
+  <div id="lgn-main">
+    <div class="lgn-prompt">أدخل رمز الدخول / Enter PIN</div>
+
+    <!-- PIN dots -->
+    <div class="lgn-dots" id="lgn-dots">
+      <div class="lgn-dot" id="d0"></div>
+      <div class="lgn-dot" id="d1"></div>
+      <div class="lgn-dot" id="d2"></div>
+      <div class="lgn-dot" id="d3"></div>
+    </div>
+
+    <!-- Hidden input for desktop keyboard -->
+    <input type="password" id="pin-input" inputmode="numeric"
+           maxlength="4" autocomplete="off" pattern="[0-9]*">
+
+    <!-- Numpad -->
+    <div class="lgn-pad" id="lgn-pad">
+      <button class="pad-btn" onclick="padPress('1')">1<span class="pad-letters"></span></button>
+      <button class="pad-btn" onclick="padPress('2')">2<span class="pad-letters">ABC</span></button>
+      <button class="pad-btn" onclick="padPress('3')">3<span class="pad-letters">DEF</span></button>
+      <button class="pad-btn" onclick="padPress('4')">4<span class="pad-letters">GHI</span></button>
+      <button class="pad-btn" onclick="padPress('5')">5<span class="pad-letters">JKL</span></button>
+      <button class="pad-btn" onclick="padPress('6')">6<span class="pad-letters">MNO</span></button>
+      <button class="pad-btn" onclick="padPress('7')">7<span class="pad-letters">PQRS</span></button>
+      <button class="pad-btn" onclick="padPress('8')">8<span class="pad-letters">TUV</span></button>
+      <button class="pad-btn" onclick="padPress('9')">9<span class="pad-letters">WXYZ</span></button>
+      <div></div><!-- empty cell -->
+      <button class="pad-btn pad-zero" onclick="padPress('0')">0</button>
+      <button class="pad-btn pad-back" onclick="padBack()">⌫</button>
+    </div>
+
+    <!-- Status + attempts -->
+    <div class="lgn-status" id="lgn-status"></div>
+    <div class="lgn-attempts" id="lgn-attempts"></div>
+  </div>
+
+  <!-- Lockout banner -->
+  <div id="lockout-banner">
+    <div class="lo-icon">🔒</div>
+    <div class="lo-title">تم تجميد الحساب / Account Locked</div>
+    <div class="lo-msg">محاولات خاطئة متعددة<br>Too many failed attempts</div>
+    <div class="lo-timer" id="lo-timer">30:00</div>
+    <div class="lo-msg" style="font-size:10px;">يُرجى الانتظار / Please wait</div>
+  </div>
+
+</div>
+<!-- /login-screen -->
+
+<!-- ══════════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<!-- SCROLL ZONE -->
+<!-- ══════════════════════════════════════════════
+     SESSION BAR (mobile — shown below session start)
+══════════════════════════════════════════════ -->
+<div id="session-bar">
+  <div>
+    <div class="sb-name" id="sb-name"></div>
+    <div class="sb-role" id="sb-role"></div>
+  </div>
+  <div class="sb-logout" onclick="doLogout()">خروج / Logout</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCROLL ZONE
+══════════════════════════════════════════════ -->
 <div id="scroll">
 
   <div class="header">
@@ -565,9 +954,8 @@
       <input type="number" step="0.01" min="0" class="inp inp-amt" id="inp-amt" placeholder="0.00" inputmode="decimal">
     </div>
 
+    <!-- Submit button — no more PIN field -->
     <div class="card">
-      <div class="lbl"><span class="l-ar">رمز الدخول</span><span class="l-en">PIN</span></div>
-      <input type="password" class="inp inp-pin" id="inp-pin" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
         <span id="btn-ico">💰</span>
         <span id="btn-txt">تسجيل الدفعة / Record Payment</span>
@@ -578,10 +966,10 @@
 
 </div><!-- /scroll -->
 
-<!-- FIXED BOTTOM NAV -->
+<!-- ══════════════════════════════════════════════
+     FIXED BOTTOM NAV
+══════════════════════════════════════════════ -->
 <nav id="nav">
-
-  <!-- TAB ROW -->
   <div class="nav-tabs">
     <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
       <span class="nav-ico">💰</span>
@@ -599,8 +987,6 @@
       <span class="nav-en">Reports</span>
     </button>
   </div>
-
-  <!-- BRAND ROW -->
   <div class="nav-brand">
     <div class="nb-wrap">
       <span class="nb-idara">idara</span>
@@ -609,10 +995,11 @@
     </div>
     <div class="nb-tag">a platform of <b>idara360</b></div>
   </div>
-
 </nav>
 
-<!-- FISCAL MODAL -->
+<!-- ══════════════════════════════════════════════
+     FISCAL MODAL
+══════════════════════════════════════════════ -->
 <div id="modal">
   <div class="m-sheet">
     <div class="m-title">إغلاق السنة المالية / Year-End Closing</div>
@@ -624,17 +1011,15 @@
       <input type="checkbox" id="conf-chk">
       I verify these balances are correct
     </label>
-    <button class="m-ok" onclick="execClose()">Execute & Close</button>
+    <button class="m-ok" onclick="execClose()">Execute &amp; Close</button>
     <button class="m-cancel" onclick="closeModal()">Cancel / إلغاء</button>
   </div>
 </div>
 
-
-<!-- ═══════════ DESKTOP CHROME (hidden on mobile) ═══════════ -->
-
-<!-- TOP BAR -->
+<!-- ══════════════════════════════════════════════
+     DESKTOP CHROME
+══════════════════════════════════════════════ -->
 <div id="dt-topbar">
-  <!-- LEFT: Brand -->
   <div class="dt-topbrand">
     <div class="dt-brand-mark">
       <span class="dt-b-idara">idara</span><span class="dt-b-pro">BUILDING</span>
@@ -643,17 +1028,21 @@
     <div class="dt-b-platform">a platform of <span>idara360</span></div>
     <div class="dt-dot" id="dt-dot"></div>
   </div>
-  <!-- RIGHT: Building identity -->
+  <!-- Session info (shown after login) -->
+  <div class="dt-session" id="dt-session" style="display:none;">
+    <div>
+      <div class="dt-session-name" id="dt-session-name"></div>
+      <div class="dt-session-role" id="dt-session-role"></div>
+    </div>
+    <div class="dt-logout" onclick="doLogout()">خروج / Logout</div>
+  </div>
   <div class="dt-bld">
     <div class="dt-bld-name" id="dt-bldName">...</div>
     <div class="dt-bld-sub">Building Management</div>
   </div>
 </div>
 
-<!-- MAIN AREA -->
 <div id="dt-main">
-
-  <!-- LEFT: Dashboard -->
   <div id="dt-sidebar">
     <div class="dt-sidebar-label">Overview</div>
     <div class="dash-card" id="dt-dash">
@@ -676,10 +1065,7 @@
     </div>
   </div>
 
-  <!-- RIGHT: Form -->
   <div id="dt-content">
-
-    <!-- Tab bar -->
     <div id="dt-tabs">
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
         <span class="dt-tab-ico">💰</span> قبض / Income
@@ -691,19 +1077,39 @@
         <span class="dt-tab-ico">📄</span> تقارير / Reports
       </button>
     </div>
+  </div>
+</div>
 
-    </div><!-- /dt-content -->
-</div><!-- /dt-main -->
-<!-- ═══════════ END DESKTOP CHROME ═══════════ -->
-
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
 <script>
-var TAB    = 'Income';
-var REPORT = 'YTD';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+var GAS = 'https://script.google.com/macros/s/AKfycbxAXi3phO9lrfi9cWmbIVID-kwnbWSogVB7wM3PwvNi40y8uOgmmrHdU-EqIHz_rkXv/exec';
+var SESSION_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 hours
+var MAX_ATTEMPTS        = 5;
+var LOCKOUT_DURATION_MS = 30 * 60 * 1000;       // 30 minutes
+
+// ── State ────────────────────────────────────────────────────────────────────
+var TAB     = 'Income';
+var REPORT  = 'YTD';
 var _fiscal = null;
 var _rtimer = null;
 var _ttimer = null;
-var GAS = 'https://script.google.com/macros/s/AKfycbxAXi3phO9lrfi9cWmbIVID-kwnbWSogVB7wM3PwvNi40y8uOgmmrHdU-EqIHz_rkXv/exec';
+var _sessionTimer = null;
 
+// Login state
+var _pinBuffer    = '';
+var _attempts     = 0;
+var _lockedUntil  = 0;
+var _lockTimer    = null;
+
+// Session (in-memory only)
+// { token, name, role, permissions, expires }
+var _session = null;
+
+// ── GAS helpers ──────────────────────────────────────────────────────────────
 function gasGet(action) {
   return fetch(GAS + '?action=' + action)
     .then(function(r) { return r.json(); })
@@ -720,19 +1126,25 @@ function gasPost(body) {
     .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════════════════
 window.onload = function() {
-  gasGet('getAppData')
-    .then(function(d) { initApp(d); })
-    .catch(bootErr);
-  refreshDash();
-  watchNet();
-  _rtimer = setInterval(refreshDash, 30000);
-};
+  // Fetch building name for login screen (lightweight getAppData call)
+  gasGet('getBuildingName')
+    .then(function(name) {
+      if (name) {
+        document.getElementById('lgn-bld-name').textContent = name;
+        document.getElementById('dt-bldName').textContent   = name;
+      }
+    })
+    .catch(function() {});
 
-function bootErr() {
+  // Show login screen, focus hidden input for desktop keyboard
+  showLoginScreen();
   hideLo();
-  toast('⚠️ Connection failed. Please reload.', 'fail');
-}
+  watchNet();
+};
 
 function hideLo() {
   var lo = document.getElementById('loader');
@@ -741,12 +1153,346 @@ function hideLo() {
   setTimeout(function() { lo.style.display = 'none'; }, 500);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// LOGIN SCREEN
+// ══════════════════════════════════════════════════════════════════════════════
+
+function showLoginScreen() {
+  var ls = document.getElementById('login-screen');
+  ls.style.display = 'flex';
+  ls.classList.remove('out');
+  _pinBuffer = '';
+  _attempts  = 0;
+  updateDots();
+  setLoginStatus('');
+
+  // Focus hidden input so desktop keyboard works
+  setTimeout(function() {
+    document.getElementById('pin-input').focus();
+  }, 100);
+
+  // Check if still locked out
+  if (_lockedUntil > Date.now()) {
+    showLockout();
+  }
+}
+
+function hideLoginScreen() {
+  var ls = document.getElementById('login-screen');
+  ls.classList.add('out');
+  setTimeout(function() { ls.style.display = 'none'; }, 420);
+}
+
+// ── PIN buffer management ────────────────────────────────────────────────────
+function padPress(digit) {
+  if (_lockedUntil > Date.now()) return;
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += digit;
+  updateDots();
+  // Sync hidden input (for consistency)
+  document.getElementById('pin-input').value = _pinBuffer;
+  if (_pinBuffer.length === 4) {
+    setTimeout(submitPin, 120); // tiny delay so last dot fills visually
+  }
+}
+
+function padBack() {
+  if (_lockedUntil > Date.now()) return;
+  if (_pinBuffer.length === 0) return;
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  updateDots();
+  document.getElementById('pin-input').value = _pinBuffer;
+}
+
+function updateDots() {
+  for (var i = 0; i < 4; i++) {
+    var dot = document.getElementById('d' + i);
+    dot.classList.remove('filled', 'error', 'success');
+    if (i < _pinBuffer.length) dot.classList.add('filled');
+  }
+}
+
+function setDotsError() {
+  for (var i = 0; i < 4; i++)
+    document.getElementById('d' + i).classList.add('error');
+  document.getElementById('lgn-dots').classList.add('shake');
+  setTimeout(function() {
+    document.getElementById('lgn-dots').classList.remove('shake');
+  }, 500);
+}
+
+function setDotsSuccess() {
+  for (var i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.remove('filled');
+    document.getElementById('d' + i).classList.add('success');
+  }
+}
+
+function setLoginStatus(msg) {
+  document.getElementById('lgn-status').textContent = msg;
+}
+
+function setAttemptsMsg(msg) {
+  document.getElementById('lgn-attempts').textContent = msg;
+}
+
+// ── PIN submission ───────────────────────────────────────────────────────────
+function submitPin() {
+  if (_lockedUntil > Date.now()) return;
+
+  var pin = _pinBuffer;
+  _pinBuffer = '';
+  updateDots();
+
+  // Disable pad while verifying
+  disablePad(true);
+  setLoginStatus('جاري التحقق... / Verifying...');
+
+  gasPost({ action: 'login', pin: pin })
+    .then(function(auth) {
+      disablePad(false);
+      if (!auth) {
+        onWrongPin();
+        return;
+      }
+      onLoginSuccess(auth);
+    })
+    .catch(function(e) {
+      disablePad(false);
+      setLoginStatus('⚠️ Connection error. Try again.');
+      setTimeout(function() { setLoginStatus(''); }, 3000);
+    });
+}
+
+function disablePad(state) {
+  var btns = document.querySelectorAll('.pad-btn');
+  btns.forEach(function(b) { b.disabled = state; });
+}
+
+// ── Wrong PIN ────────────────────────────────────────────────────────────────
+function onWrongPin() {
+  _attempts++;
+  setDotsError();
+
+  var remaining = MAX_ATTEMPTS - _attempts;
+
+  if (remaining <= 0) {
+    // Lockout
+    _lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+    _attempts = 0;
+    setTimeout(showLockout, 600);
+    return;
+  }
+
+  var msg = 'رمز خاطئ / Wrong PIN';
+  if (remaining <= 2) {
+    msg += ' — ' + remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining';
+  }
+  setLoginStatus(msg);
+  setAttemptsMsg('');
+
+  // Clear dots after shake
+  setTimeout(function() {
+    for (var i = 0; i < 4; i++)
+      document.getElementById('d' + i).classList.remove('error', 'filled');
+    setLoginStatus('');
+  }, 1200);
+}
+
+// ── Lockout ──────────────────────────────────────────────────────────────────
+function showLockout() {
+  document.getElementById('lgn-main').style.display  = 'none';
+  document.getElementById('lockout-banner').classList.add('show');
+  startLockoutCountdown();
+}
+
+function startLockoutCountdown() {
+  if (_lockTimer) clearInterval(_lockTimer);
+  _lockTimer = setInterval(function() {
+    var remaining = Math.max(0, _lockedUntil - Date.now());
+    var mins = Math.floor(remaining / 60000);
+    var secs = Math.floor((remaining % 60000) / 1000);
+    document.getElementById('lo-timer').textContent =
+      pad(mins) + ':' + pad(secs);
+
+    if (remaining <= 0) {
+      clearInterval(_lockTimer);
+      _lockTimer = null;
+      _lockedUntil = 0;
+      hideLockout();
+    }
+  }, 1000);
+}
+
+function hideLockout() {
+  document.getElementById('lgn-main').style.display  = '';
+  document.getElementById('lockout-banner').classList.remove('show');
+  setLoginStatus('');
+  setAttemptsMsg('');
+  updateDots();
+}
+
+// ── Login success ────────────────────────────────────────────────────────────
+function onLoginSuccess(auth) {
+  setDotsSuccess();
+  _attempts = 0;
+
+  // Brief welcome message
+  document.getElementById('lgn-main').style.display = 'none';
+  var welcome = document.getElementById('lgn-welcome');
+  welcome.classList.add('show');
+  document.getElementById('lgn-welcome-name').textContent =
+    'أهلاً، ' + auth.name + ' / Welcome';
+  document.getElementById('lgn-welcome-role').textContent =
+    auth.role.toUpperCase();
+
+  // Start session
+  startSession(auth);
+
+  // Transition to main app after welcome flash
+  setTimeout(function() {
+    hideLoginScreen();
+    launchApp(auth);
+  }, 900);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SESSION MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function startSession(auth) {
+  var now = Date.now();
+  _session = {
+    token:       auth.name + '_' + now,
+    name:        auth.name,
+    role:        auth.role,
+    permissions: auth.permissions,
+    expires:     now + SESSION_DURATION_MS
+  };
+
+  // Auto-expire
+  if (_sessionTimer) clearTimeout(_sessionTimer);
+  _sessionTimer = setTimeout(function() {
+    toast('⏱ Session expired. Please log in again.', 'info');
+    setTimeout(doLogout, 2500);
+  }, SESSION_DURATION_MS);
+}
+
+function sessionValid() {
+  return _session && Date.now() < _session.expires;
+}
+
+function doLogout() {
+  _session = null;
+  if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
+  if (_rtimer)       { clearInterval(_rtimer);       _rtimer = null; }
+
+  // Hide session bar + desktop session info
+  document.getElementById('session-bar').classList.remove('show');
+  var dtSess = document.getElementById('dt-session');
+  if (dtSess) dtSess.style.display = 'none';
+
+  // Reset welcome state for next login
+  document.getElementById('lgn-welcome').classList.remove('show');
+  document.getElementById('lgn-main').style.display = '';
+  for (var i = 0; i < 4; i++)
+    document.getElementById('d' + i).classList.remove('filled','error','success');
+
+  showLoginScreen();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// APP LAUNCH (called after successful login)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function launchApp(auth) {
+  // Show session bar on mobile
+  document.getElementById('sb-name').textContent = auth.name;
+  document.getElementById('sb-role').textContent = auth.role;
+  document.getElementById('session-bar').classList.add('show');
+
+  // Show desktop session info
+  var dtSess = document.getElementById('dt-session');
+  if (dtSess) {
+    document.getElementById('dt-session-name').textContent = auth.name;
+    document.getElementById('dt-session-role').textContent = auth.role;
+    dtSess.style.display = 'flex';
+  }
+
+  // Apply tab visibility based on permissions
+  applyPermissionUI(auth);
+
+  // Load app data from GAS
+  gasGet('getAppData')
+    .then(function(d) { initApp(d); })
+    .catch(function() {
+      toast('⚠️ Could not load app data. Check connection.', 'fail');
+    });
+
+  // Start dashboard refresh
+  refreshDash();
+  _rtimer = setInterval(refreshDash, 30000);
+
+  // On desktop: move #scroll into #dt-content
+  if (window.innerWidth >= 769) {
+    var dtContent = document.getElementById('dt-content');
+    var scroll    = document.getElementById('scroll');
+    if (dtContent && scroll && !dtContent.contains(scroll)) {
+      dtContent.appendChild(scroll);
+    }
+  }
+}
+
+function applyPermissionUI(auth) {
+  var perms = auth.permissions;
+  var role  = auth.role;
+
+  // Mobile nav tabs
+  var tInc = document.getElementById('t-inc');
+  var tExp = document.getElementById('t-exp');
+  var tRep = document.getElementById('t-rep');
+
+  // Desktop tabs
+  var dtInc = document.getElementById('dt-t-inc');
+  var dtExp = document.getElementById('dt-t-exp');
+  var dtRep = document.getElementById('dt-t-rep');
+
+  // For Admin — show everything (no changes needed)
+  if (role === 'Admin') return;
+
+  // For Management — hide tabs the user has no permissions for
+  // (hide income tab if no INC permission AND no EXP permission, etc.)
+  // Only hide a tab if the user has NO relevant permissions at all
+  var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
+
+  if (!perms.INC) { tInc.classList.add('hide'); if(dtInc) dtInc.classList.add('hide'); }
+  if (!perms.EXP) { tExp.classList.add('hide'); if(dtExp) dtExp.classList.add('hide'); }
+  if (!hasAnyReport) { tRep.classList.add('hide'); if(dtRep) dtRep.classList.add('hide'); }
+
+  // If income tab hidden, default to first visible tab
+  if (!perms.INC) {
+    if (perms.EXP) setTab('Expense');
+    else if (hasAnyReport) setTab('Report');
+  }
+
+  // Hide report type options the user can't access
+  if (!perms.REP_YTD)  document.querySelector('[value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display    = 'none');
+  if (!perms.REP_CUR)  document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
+  if (!perms.REP_LST)  document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
+  if (!perms.REP_JRN)  document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT APP (unchanged logic, called after login)
+// ══════════════════════════════════════════════════════════════════════════════
+
 function initApp(d) {
-  if (!d) { bootErr(); return; }
+  if (!d) return;
   window._cats = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
   if (d.legal && d.legal['BUILDING_NAME']) {
     document.getElementById('bldName').textContent    = d.legal['BUILDING_NAME'];
     document.getElementById('dt-bldName').textContent = d.legal['BUILDING_NAME'];
+    document.getElementById('lgn-bld-name').textContent = d.legal['BUILDING_NAME'];
   }
 
   var sel  = document.getElementById('sel-owner');
@@ -767,31 +1513,15 @@ function initApp(d) {
   if (d.fiscal && d.fiscal.locked) {
     document.getElementById('lock-banner').style.display = 'block';
     document.getElementById('lock-msg').textContent = d.fiscal.msg || '';
-    document.getElementById('dt-lock-banner').style.display = 'block';
-    document.getElementById('dt-lock-msg').textContent = d.fiscal.msg || '';
     document.getElementById('form').classList.add('disabled');
   }
 
   setTab('Income');
-
-  // Sync desktop dot with mobile dot
-  var dtDot = document.getElementById('dt-dot');
-  window.addEventListener('online',  function() { if(dtDot) dtDot.classList.remove('off'); });
-  window.addEventListener('offline', function() { if(dtDot) dtDot.classList.add('off'); });
-
-  // On desktop: physically move #scroll into #dt-content so CSS layout works
-  if (window.innerWidth >= 769) {
-    var dtContent = document.getElementById('dt-content');
-    var scroll    = document.getElementById('scroll');
-    if (dtContent && scroll) {
-      dtContent.appendChild(scroll);
-    }
-  }
-
-
-
-  hideLo();
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CATEGORIES
+// ══════════════════════════════════════════════════════════════════════════════
 
 function fillCats(type) {
   var cats  = (window._cats && window._cats[type]) ? window._cats[type] : [];
@@ -805,17 +1535,22 @@ function fillCats(type) {
   sel.innerHTML = ''; sel.appendChild(frag);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════════════════
+
 function setTab(type) {
   TAB = type;
   document.getElementById('eType').value = type;
 
   ['t-inc','t-exp','t-rep'].forEach(function(id) {
-    document.getElementById(id).className = 'nav-tab';
+    var el = document.getElementById(id);
+    if (el) el.className = 'nav-tab';
   });
 
-  // Sync desktop tabs
   ['dt-t-inc','dt-t-exp','dt-t-rep'].forEach(function(id) {
-    document.getElementById(id).className = 'dt-tab';
+    var el = document.getElementById(id);
+    if (el) el.className = 'dt-tab';
   });
 
   ['f-inc','f-exp','f-rep','f-amt'].forEach(function(id) {
@@ -828,7 +1563,7 @@ function setTab(type) {
 
   if (type === 'Income') {
     document.getElementById('t-inc').classList.add('n-inc');
-    document.getElementById('dt-t-inc').classList.add('dt-inc');
+    if (document.getElementById('dt-t-inc')) document.getElementById('dt-t-inc').classList.add('dt-inc');
     document.getElementById('f-inc').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('income');
@@ -837,7 +1572,7 @@ function setTab(type) {
 
   } else if (type === 'Expense') {
     document.getElementById('t-exp').classList.add('n-exp');
-    document.getElementById('dt-t-exp').classList.add('dt-exp');
+    if (document.getElementById('dt-t-exp')) document.getElementById('dt-t-exp').classList.add('dt-exp');
     document.getElementById('f-exp').classList.remove('hide');
     document.getElementById('f-amt').classList.remove('hide');
     fillCats('expense');
@@ -846,7 +1581,7 @@ function setTab(type) {
 
   } else {
     document.getElementById('t-rep').classList.add('n-rep');
-    document.getElementById('dt-t-rep').classList.add('dt-rep');
+    if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
@@ -854,10 +1589,12 @@ function setTab(type) {
   }
 
   document.getElementById('inp-amt').value = '';
-  document.getElementById('inp-pin').value = '';
-  resetPin();
   document.getElementById('scroll').scrollTop = 0;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REPORT CARDS
+// ══════════════════════════════════════════════════════════════════════════════
 
 function pickReport(type) {
   REPORT = type;
@@ -870,11 +1607,18 @@ function pickReport(type) {
   if (map[type]) document.getElementById(map[type]).classList.add('on');
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+
 function refreshDash() {
-  var rb = document.getElementById('rBtn');
-  rb.classList.add('spin');
+  if (!sessionValid()) return;
+
+  var rb   = document.getElementById('rBtn');
   var dtRb = document.getElementById('dt-rBtn');
+  rb.classList.add('spin');
   if (dtRb) dtRb.classList.add('spin');
+
   gasGet('getDashboardStats')
     .then(function(v) {
       var val = v || '$0.00';
@@ -882,67 +1626,86 @@ function refreshDash() {
       var t = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
       var isNeg = val.indexOf('-') !== -1;
       var amtColor = isNeg ? '#FF4D6A' : '#ffffff';
-      document.getElementById('cashAmt').textContent    = val;
-      document.getElementById('cashAmt').style.color    = amtColor;
-      document.getElementById('dt-cashAmt').textContent = val;
-      document.getElementById('dt-cashAmt').style.color = amtColor;
-      document.getElementById('dashTime').textContent   = t;
+      document.getElementById('cashAmt').textContent     = val;
+      document.getElementById('cashAmt').style.color     = amtColor;
+      document.getElementById('dt-cashAmt').textContent  = val;
+      document.getElementById('dt-cashAmt').style.color  = amtColor;
+      document.getElementById('dashTime').textContent    = t;
       document.getElementById('dt-dashTime').textContent = t;
       rb.classList.remove('spin');
-      document.getElementById('dt-rBtn').classList.remove('spin');
+      if (dtRb) dtRb.classList.remove('spin');
     })
     .catch(function() {
       rb.classList.remove('spin');
-      document.getElementById('dt-rBtn').classList.remove('spin');
+      if (dtRb) dtRb.classList.remove('spin');
     });
 
   gasGet('getBuildingHealth')
     .then(function(r) {
       var pct = r && r.pct != null ? r.pct : 0;
       var ico = pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
-      document.getElementById('hpct').textContent    = pct + '%';
-      document.getElementById('dt-hpct').textContent = pct + '%';
+      document.getElementById('hpct').textContent     = pct + '%';
+      document.getElementById('dt-hpct').textContent  = pct + '%';
       document.getElementById('heart').textContent    = ico;
       document.getElementById('dt-heart').textContent = ico;
     })
     .catch(function() {});
 }
 
-function pad(n) { return String(n).padStart(2, '0'); }
+// ══════════════════════════════════════════════════════════════════════════════
+// SUBMIT (no more PIN field — uses session token)
+// ══════════════════════════════════════════════════════════════════════════════
 
 function doSubmit() {
-  var type  = TAB;
-  var pinEl = document.getElementById('inp-pin');
-  var pin   = pinEl.value;
+  if (!sessionValid()) {
+    toast('⏱ Session expired. Please log in again.', 'fail');
+    setTimeout(doLogout, 1500);
+    return;
+  }
 
-  if (!pin || pin.length !== 4) { toast('❌ PIN must be 4 digits', 'fail'); markErr(pinEl); return; }
+  var type = TAB;
 
   if (type !== 'Report') {
     var amt = parseFloat(document.getElementById('inp-amt').value);
-    if (!amt || amt <= 0) { toast('❌ Enter a valid amount', 'fail'); markErr(document.getElementById('inp-amt')); return; }
-    if (type === 'Income' && !document.getElementById('sel-owner').value) { toast('❌ Select an occupant', 'fail'); markErr(document.getElementById('sel-owner')); return; }
+    if (!amt || amt <= 0) {
+      toast('❌ Enter a valid amount', 'fail');
+      markErr(document.getElementById('inp-amt'));
+      return;
+    }
+    if (type === 'Income' && !document.getElementById('sel-owner').value) {
+      toast('❌ Select an occupant', 'fail');
+      markErr(document.getElementById('sel-owner'));
+      return;
+    }
   }
 
   var cat = '';
   if (type === 'Income')  cat = document.getElementById('sel-icat').value;
   if (type === 'Expense') cat = document.getElementById('sel-ecat').value;
-  if (type !== 'Report' && !cat) { toast('❌ Select a category', 'fail'); return; }
+  if (type !== 'Report' && !cat) {
+    toast('❌ Select a category', 'fail');
+    return;
+  }
 
   var btn = document.getElementById('btn-sub');
   btn.disabled = true;
-  pinEl.classList.add('vfy');
-  toast('🔐 Verifying...', 'info');
+  toast('⏳ Processing...', 'info');
 
-  var tmout = setTimeout(function() { onFail({ message: 'Timed out. Try again.' }); }, 30000);
+  var tmout = setTimeout(function() {
+    onFail({ message: 'Timed out. Try again.' });
+  }, 30000);
 
   if (type === 'Report') {
-    gasPost({ action: 'processReportRequest', reportType: document.getElementById('sel-rep').value, pin: pin })
+    gasPost({
+      action: 'processReportRequest',
+      reportType: document.getElementById('sel-rep').value,
+      token: _session.token
+    })
       .then(function(r) {
         clearTimeout(tmout);
-        pinEl.classList.remove('vfy'); pinEl.classList.add('ok');
-        setTimeout(function() { resetPin(); onOk(r.msg || r); }, 500);
+        onOk(r.msg || r);
       })
-      .catch(function(e) { clearTimeout(tmout); pinFail(e); });
+      .catch(function(e) { clearTimeout(tmout); onFail(e); });
 
   } else {
     var ownerSel = document.getElementById('sel-owner');
@@ -954,16 +1717,15 @@ function doSubmit() {
       amount:     document.getElementById('inp-amt').value,
       unit:       selOpt ? (selOpt.dataset.section    || '') : '',
       contractId: selOpt ? (selOpt.dataset.contractId || '') : '',
-      pin:        pin
+      token:      _session.token
     };
 
     gasPost({ action: 'processEntry', payload: payload })
       .then(function(r) {
         clearTimeout(tmout);
-        pinEl.classList.remove('vfy'); pinEl.classList.add('ok');
-        setTimeout(function() { resetPin(); onOk(r); }, 500);
+        onOk(r);
       })
-      .catch(function(e) { clearTimeout(tmout); pinFail(e); });
+      .catch(function(e) { clearTimeout(tmout); onFail(e); });
   }
 }
 
@@ -973,29 +1735,18 @@ function onOk(msg) {
   document.getElementById('btn-sub').disabled = false;
   if (ok && TAB !== 'Report') {
     document.getElementById('inp-amt').value = '';
-    document.getElementById('inp-pin').value = '';
-    resetPin(); refreshDash();
-  } else {
-    document.getElementById('inp-pin').value = '';
-    resetPin();
+    refreshDash();
   }
 }
 
 function onFail(e) {
   toast('❌ ' + (e.message || String(e)), 'fail');
   document.getElementById('btn-sub').disabled = false;
-  resetPin();
 }
 
-function pinFail(e) {
-  var pinEl = document.getElementById('inp-pin');
-  pinEl.classList.remove('vfy', 'ok');
-  pinEl.classList.add('bad');
-  pinEl.value = ''; pinEl.focus();
-  toast('❌ Wrong PIN. Try again.', 'fail');
-  document.getElementById('btn-sub').disabled = false;
-  setTimeout(resetPin, 3000);
-}
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
 
 function toast(msg, type) {
   var t = document.getElementById('toast');
@@ -1003,7 +1754,9 @@ function toast(msg, type) {
   t.className   = type || 'info';
   t.classList.add('show');
   if (_ttimer) clearTimeout(_ttimer);
-  _ttimer = setTimeout(function() { t.classList.remove('show'); }, type === 'fail' ? 5000 : 3000);
+  _ttimer = setTimeout(function() {
+    t.classList.remove('show');
+  }, type === 'fail' ? 5000 : 3000);
 }
 
 function markErr(el) {
@@ -1012,20 +1765,61 @@ function markErr(el) {
   setTimeout(function() { el.classList.remove('err'); }, 1800);
 }
 
-function resetPin() {
-  var p = document.getElementById('inp-pin');
-  if (p) p.classList.remove('vfy', 'ok', 'bad', 'err');
-  var b = document.getElementById('btn-sub');
-  if (b) b.disabled = false;
-}
+function pad(n) { return String(n).padStart(2, '0'); }
 
 function watchNet() {
-  var dot = document.getElementById('dot');
-  window.addEventListener('online',  function() { dot.classList.remove('off'); toast('✅ Back online', 'ok'); });
-  window.addEventListener('offline', function() { dot.classList.add('off');    toast('⚠️ No internet', 'fail'); });
+  var dot   = document.getElementById('dot');
+  var dtDot = document.getElementById('dt-dot');
+  window.addEventListener('online',  function() {
+    dot.classList.remove('off');
+    if (dtDot) dtDot.classList.remove('off');
+    toast('✅ Back online', 'ok');
+  });
+  window.addEventListener('offline', function() {
+    dot.classList.add('off');
+    if (dtDot) dtDot.classList.add('off');
+    toast('⚠️ No internet', 'fail');
+  });
 }
 
+// ── Desktop keyboard support for PIN ─────────────────────────────────────────
+document.getElementById('pin-input').addEventListener('input', function(e) {
+  var val = this.value.replace(/\D/g, '').slice(0, 4);
+  this.value = val;
+  _pinBuffer = val;
+  updateDots();
+  if (_pinBuffer.length === 4) {
+    setTimeout(submitPin, 120);
+  }
+});
+
+document.getElementById('pin-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Backspace' && _pinBuffer.length > 0) {
+    _pinBuffer = _pinBuffer.slice(0, -1);
+    this.value = _pinBuffer;
+    updateDots();
+  }
+});
+
+// ── App keyboard shortcuts (only when logged in) ──────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (!sessionValid()) return;
+  if (e.altKey && e.key === '1') { e.preventDefault(); setTab('Income'); }
+  if (e.altKey && e.key === '2') { e.preventDefault(); setTab('Expense'); }
+  if (e.altKey && e.key === '3') { e.preventDefault(); setTab('Report'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    var b = document.getElementById('btn-sub');
+    if (!b.disabled) doSubmit();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FISCAL CLOSE
+// ══════════════════════════════════════════════════════════════════════════════
+
 function openFiscal() {
+  if (!sessionValid()) return;
   gasGet('previewFiscalClose')
     .then(function(d) {
       _fiscal = d;
@@ -1039,24 +1833,23 @@ function openFiscal() {
 }
 
 function execClose() {
-  if (!document.getElementById('conf-chk').checked) { toast('Please confirm first', 'fail'); return; }
+  if (!document.getElementById('conf-chk').checked) {
+    toast('Please confirm first', 'fail');
+    return;
+  }
   gasPost({ action: 'commitFiscalClose', payload: _fiscal })
-    .then(function(msg) { toast(msg, 'ok'); closeModal(); setTimeout(function() { location.reload(); }, 2000); })
+    .then(function(msg) {
+      toast(msg, 'ok');
+      closeModal();
+      setTimeout(function() { location.reload(); }, 2000);
+    })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
 
-document.addEventListener('keydown', function(e) {
-  if (e.altKey && e.key === '1') { e.preventDefault(); setTab('Income'); }
-  if (e.altKey && e.key === '2') { e.preventDefault(); setTab('Expense'); }
-  if (e.altKey && e.key === '3') { e.preventDefault(); setTab('Report'); }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    e.preventDefault();
-    var b = document.getElementById('btn-sub');
-    if (!b.disabled) doSubmit();
-  }
-});
 </script>
 </body>
 </html>

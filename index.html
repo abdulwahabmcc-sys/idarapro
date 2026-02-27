@@ -4114,6 +4114,17 @@ function escHtml(s) {
       <input class="inp" type="text" id="us-section" placeholder="٦">
     </div>
 
+    <div class="cs-field">
+      <div class="cs-lbl">Type / النوع <span class="req">*</span></div>
+      <select class="inp" id="us-type">
+        <option value="" disabled selected>Select...</option>
+        <option value="Residential">Residential / سكني</option>
+        <option value="Commercial">Commercial / تجاري</option>
+        <option value="Parking">Parking / موقف</option>
+        <option value="Storage">Storage / مخزن</option>
+      </select>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Floor / الطابق</div>
@@ -4125,21 +4136,9 @@ function escHtml(s) {
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
-        <div class="cs-lbl">Type / النوع <span class="req">*</span></div>
-        <select class="inp" id="us-type">
-          <option value="" disabled selected>Select...</option>
-          <option value="Residential">Residential / سكني</option>
-          <option value="Commercial">Commercial / تجاري</option>
-          <option value="Parking">Parking / موقف</option>
-          <option value="Storage">Storage / مخزن</option>
-        </select>
-      </div>
-      <div class="cs-field">
-        <div class="cs-lbl">Capacity / الطاقة (Amps)</div>
-        <input class="inp" type="number" id="us-amps" placeholder="0">
-      </div>
+    <div class="cs-field">
+      <div class="cs-lbl">Capacity / الطاقة (Amps)</div>
+      <input class="inp" type="number" id="us-amps" placeholder="0">
     </div>
 
     <div class="cs-btns">

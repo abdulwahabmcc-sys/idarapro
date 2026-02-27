@@ -413,6 +413,399 @@
 
     .sb-logout:active { color: rgba(255,255,255,0.8); }
 
+    .sb-gear {
+      display: none; /* shown only for Admin via JS */
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 7px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      transition: all 0.15s;
+      line-height: 1.4;
+    }
+
+    .sb-gear:active { background: rgba(255,255,255,0.1); }
+
+    /* ══════════════════════════════════════════════
+       SETTINGS PANEL
+    ══════════════════════════════════════════════ */
+    #settings-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    #settings-panel.open {
+      transform: translateY(0);
+    }
+
+    /* Settings top bar */
+    .stg-topbar {
+      flex-shrink: 0;
+      background: var(--navy);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: calc(12px + env(safe-area-inset-top));
+    }
+
+    .stg-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      direction: rtl;
+    }
+
+    .stg-title span {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 8px;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .stg-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .stg-close:active { background: rgba(255,255,255,0.18); }
+
+    /* Settings scroll area */
+    .stg-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 14px calc(32px + env(safe-area-inset-bottom));
+    }
+
+    .stg-scroll::-webkit-scrollbar { display: none; }
+
+    /* Section card */
+    .stg-section {
+      background: var(--surf);
+      border-radius: 16px;
+      border: 1px solid var(--bdr);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    /* Section header — tap to expand */
+    .stg-sec-hdr {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .stg-sec-hdr:active { background: rgba(27,42,74,0.03); }
+
+    .stg-sec-ico {
+      font-size: 22px;
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      background: var(--bg);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stg-sec-info { flex: 1; min-width: 0; }
+
+    .stg-sec-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      direction: rtl;
+    }
+
+    .stg-sec-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+      direction: ltr;
+    }
+
+    .stg-sec-arr {
+      font-size: 12px;
+      color: var(--muted);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .stg-section.expanded .stg-sec-arr {
+      transform: rotate(90deg);
+    }
+
+    /* Section body */
+    .stg-sec-body {
+      display: none;
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--bdr);
+    }
+
+    .stg-section.expanded .stg-sec-body {
+      display: block;
+    }
+
+    /* Field rows inside sections */
+    .stg-field {
+      margin-top: 14px;
+    }
+
+    .stg-field-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      direction: ltr;
+    }
+
+    .stg-field .inp {
+      margin: 0;
+    }
+
+    /* Read-only display value */
+    .stg-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+      padding: 10px 0 4px;
+      direction: rtl;
+      border-bottom: 1px solid var(--bdr);
+    }
+
+    /* Save button inside section */
+    .stg-save {
+      width: 100%;
+      height: 46px;
+      border: none;
+      border-radius: 10px;
+      background: var(--navy);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: opacity 0.2s;
+    }
+
+    .stg-save:active { opacity: 0.8; }
+
+    /* User table */
+    .stg-user-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--bdr);
+    }
+
+    .stg-user-row:last-child { border: none; }
+
+    .stg-user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stg-user-info { flex: 1; min-width: 0; }
+
+    .stg-user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      direction: rtl;
+    }
+
+    .stg-user-meta {
+      font-size: 9px;
+      color: var(--muted);
+      direction: ltr;
+      letter-spacing: 0.3px;
+    }
+
+    .stg-user-badge {
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .badge-admin  { background: rgba(27,42,74,0.10); color: var(--navy); }
+    .badge-mgmt   { background: rgba(201,168,76,0.18); color: #8a6e1a; }
+    .badge-occ    { background: rgba(26,107,60,0.12); color: var(--forest); }
+    .badge-off    { background: rgba(155,35,53,0.10); color: var(--burg); }
+
+    .stg-user-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .stg-user-btn {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--bdr);
+      background: var(--bg);
+      color: var(--navy);
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 600;
+      transition: all 0.12s;
+    }
+
+    .stg-user-btn:active { background: var(--navy); color: #fff; }
+    .stg-user-btn.danger { color: var(--burg); border-color: rgba(155,35,53,0.2); }
+    .stg-user-btn.danger:active { background: var(--burg); color: #fff; }
+
+    /* Add user button */
+    .stg-add-btn {
+      width: 100%;
+      height: 42px;
+      border: 1.5px dashed var(--bdr);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.15s;
+    }
+
+    .stg-add-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+    /* Permission grid inside user add/edit */
+    .perm-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .perm-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--bdr);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--navy);
+      direction: ltr;
+      transition: all 0.12s;
+    }
+
+    .perm-item input[type=checkbox] {
+      accent-color: var(--navy);
+      transform: scale(1.1);
+    }
+
+    /* Year-end specific */
+    .stg-ye-status {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      direction: rtl;
+    }
+
+    .stg-ye-status strong {
+      font-size: 14px;
+      color: var(--navy);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .stg-danger-btn {
+      width: 100%;
+      height: 46px;
+      border: none;
+      border-radius: 10px;
+      background: var(--burg);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: opacity 0.2s;
+    }
+
+    .stg-danger-btn:active { opacity: 0.8; }
+
+    /* Desktop settings — panel appears in content area not overlay */
+    @media (min-width: 769px) {
+      #settings-panel {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        z-index: 100;
+      }
+
+      #settings-panel.open {
+        transform: translateX(0);
+      }
+
+      .stg-topbar {
+        padding-top: 12px;
+      }
+
+      .stg-scroll {
+        padding: 24px 36px 40px;
+        max-width: 640px;
+      }
+    }
+
     /* ══════════════════════════════════════════════
        SCROLL ZONE
     ══════════════════════════════════════════════ */
@@ -761,6 +1154,18 @@
 
       .dt-logout:hover { color: var(--burg); border-color: var(--burg); }
 
+      .dt-gear {
+        font-size: 16px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border: 1px solid var(--bdr);
+        border-radius: 6px;
+        transition: all 0.15s;
+        line-height: 1.4;
+      }
+
+      .dt-gear:hover { border-color: var(--navy); background: var(--bg); }
+
       .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.2); transition: all 0.3s; }
       .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.2); }
 
@@ -971,7 +1376,10 @@
     <div class="sb-name" id="sb-name"></div>
     <div class="sb-role" id="sb-role"></div>
   </div>
-  <div class="sb-logout" onclick="doLogout()">خروج / Logout</div>
+  <div style="display:flex;align-items:center;gap:8px;direction:ltr;">
+    <div class="sb-gear" id="sb-gear" onclick="openSettings()">⚙️</div>
+    <div class="sb-logout" onclick="doLogout()">خروج / Logout</div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════
@@ -1143,6 +1551,7 @@
       <div class="dt-session-name" id="dt-session-name"></div>
       <div class="dt-session-role" id="dt-session-role"></div>
     </div>
+    <div class="dt-gear" id="dt-gear" onclick="openSettings()" style="display:none;">⚙️</div>
     <div class="dt-logout" onclick="doLogout()">خروج / Logout</div>
   </div>
   <div class="dt-bld">
@@ -1530,6 +1939,7 @@ function doLogout() {
 
   // Hide session bar + desktop session info
   document.getElementById('session-bar').classList.remove('show');
+  showGear(false);
   var dtSess = document.getElementById('dt-session');
   if (dtSess) dtSess.style.display = 'none';
 
@@ -1559,6 +1969,9 @@ function launchApp(auth) {
     document.getElementById('dt-session-role').textContent = auth.role;
     dtSess.style.display = 'flex';
   }
+
+  // Show gear icon only for Admin
+  showGear(auth.role === 'Admin');
 
   // Apply tab visibility based on permissions
   applyPermissionUI(auth);
@@ -1990,6 +2403,509 @@ function closeModal() {
   document.getElementById('modal').classList.remove('open');
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// SETTINGS PANEL
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openSettings() {
+  if (!sessionValid()) return;
+  if (_session.role !== 'Admin') return;
+  document.getElementById('settings-panel').classList.add('open');
+  // Load users section by default (most common admin task)
+  loadSettingsSection('users');
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+function toggleSection(id) {
+  var sec = document.getElementById(id);
+  var wasExpanded = sec.classList.contains('expanded');
+
+  // Collapse all
+  document.querySelectorAll('.stg-section').forEach(function(s) {
+    s.classList.remove('expanded');
+  });
+
+  // Expand clicked one (if it wasn't already open)
+  if (!wasExpanded) {
+    sec.classList.add('expanded');
+    // Trigger data load for this section
+    var sectionMap = {
+      'stg-building':  'building',
+      'stg-units':     'units',
+      'stg-occ':       'occupancy',
+      'stg-fees':      'fees',
+      'stg-balances':  'balances',
+      'stg-users':     'users',
+      'stg-yearend':   'yearend'
+    };
+    if (sectionMap[id]) loadSettingsSection(sectionMap[id]);
+  }
+}
+
+function loadSettingsSection(name) {
+  if (!sessionValid()) return;
+
+  if (name === 'building')  loadBuildingProfile();
+  if (name === 'units')     loadUnits();
+  if (name === 'occupancy') loadOccupancy();
+  if (name === 'fees')      loadFees();
+  if (name === 'balances')  loadBalances();
+  if (name === 'users')     loadUsers();
+  if (name === 'yearend')   loadYearEnd();
+}
+
+// ── ① Building Profile ───────────────────────────────────────────────────────
+function loadBuildingProfile() {
+  gasGet('getSettingsBuilding')
+    .then(function(d) {
+      if (!d) return;
+      document.getElementById('stg-bld-name').value      = d.buildingName    || '';
+      document.getElementById('stg-bld-addr').value      = d.address         || '';
+      document.getElementById('stg-fiscal-month').value  = d.fiscalMonth     || '1';
+      document.getElementById('stg-opening-cash').value  = d.openingCash     || '';
+    })
+    .catch(function() {});
+}
+
+// ── ② Units ──────────────────────────────────────────────────────────────────
+function loadUnits() {
+  var el = document.getElementById('stg-units-list');
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+
+  gasGet('getSettingsUnits')
+    .then(function(units) {
+      if (!units || !units.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد وحدات / No units found</div>';
+        return;
+      }
+      var html = '';
+      units.forEach(function(u) {
+        html += '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="background:var(--forest);font-size:11px;">' + (u.unit || '—') + '</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name">' + (u.unit || '—') + '</div>' +
+            '<div class="stg-user-meta">' + (u.type || '') + (u.area ? ' · ' + u.area : '') + '</div>' +
+          '</div>' +
+          '<div class="stg-user-actions">' +
+            '<button class="stg-user-btn" onclick="editUnit(\'' + escHtml(u.unit) + '\')">تعديل</button>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load units</div>';
+    });
+}
+
+// ── ③ Occupancy ──────────────────────────────────────────────────────────────
+function loadOccupancy() {
+  var el = document.getElementById('stg-occ-list');
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+
+  gasGet('getSettingsOccupancy')
+    .then(function(contracts) {
+      if (!contracts || !contracts.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد عقود / No contracts found</div>';
+        return;
+      }
+      var html = '';
+      contracts.forEach(function(c) {
+        var statusBadge = c.active
+          ? '<span style="font-size:9px;color:var(--forest);font-weight:700;">● Active</span>'
+          : '<span style="font-size:9px;color:var(--burg);font-weight:700;">● Inactive</span>';
+        html += '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="font-size:11px;">' + (c.unit || '—') + '</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
+            '<div class="stg-user-meta">' + (c.unit || '') + ' · ' + (c.contractId || '') + '</div>' +
+          '</div>' +
+          statusBadge +
+        '</div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load occupancy</div>';
+    });
+}
+
+// ── ④ Fee Rules ───────────────────────────────────────────────────────────────
+function loadFees() {
+  var el = document.getElementById('stg-fees-list');
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+
+  gasGet('getSettingsFees')
+    .then(function(fees) {
+      if (!fees || !fees.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد رسوم / No fees configured</div>';
+        return;
+      }
+      var html = '';
+      fees.forEach(function(f) {
+        html += '<div class="stg-user-row">' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
+            '<div class="stg-user-meta">' + (f.type || '') + '</div>' +
+          '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--forest);">$' + (f.amount || '0') + '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load fees</div>';
+    });
+}
+
+// ── ⑤ Opening Balances ───────────────────────────────────────────────────────
+function loadBalances() {
+  var el = document.getElementById('stg-bal-list');
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+
+  gasGet('getSettingsBalances')
+    .then(function(rows) {
+      if (!rows || !rows.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد أرصدة / No balances found</div>';
+        return;
+      }
+      var html = '';
+      rows.forEach(function(r) {
+        var bal = parseFloat(r.balance) || 0;
+        var color = bal < 0 ? 'var(--burg)' : 'var(--forest)';
+        html += '<div class="stg-user-row">' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
+            '<div class="stg-user-meta">' + (r.year || '') + ' · ' + (r.contractId || '') + '</div>' +
+          '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';">$' + bal.toFixed(2) + '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load balances</div>';
+    });
+}
+
+// ── ⑥ Users & Access ─────────────────────────────────────────────────────────
+function loadUsers() {
+  var el = document.getElementById('stg-users-list');
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+
+  gasGet('getSettingsUsers')
+    .then(function(users) {
+      if (!users || !users.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا يوجد مستخدمون / No users found</div>';
+        return;
+      }
+      var html = '';
+      users.forEach(function(u) {
+        var initial = (u.name || '?')[0].toUpperCase();
+        var badgeClass = u.role === 'Admin' ? 'badge-admin'
+                       : u.role === 'Management' ? 'badge-mgmt'
+                       : 'badge-occ';
+        if (!u.active) badgeClass = 'badge-off';
+        var statusLabel = u.active ? u.role : 'Inactive';
+
+        html += '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar">' + initial + '</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name">' + escHtml(u.name) + '</div>' +
+            '<div class="stg-user-meta">' + (u.email || 'No email') + '</div>' +
+          '</div>' +
+          '<span class="stg-user-badge ' + badgeClass + '">' + statusLabel.toUpperCase() + '</span>' +
+          '<div class="stg-user-actions">' +
+            '<button class="stg-user-btn" onclick="resetPin(\'' + escHtml(u.name) + '\')">PIN</button>' +
+            (u.active
+              ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\', false)">إيقاف</button>'
+              : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\', true)">تفعيل</button>') +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load users</div>';
+    });
+}
+
+// ── ⑦ Year-End ───────────────────────────────────────────────────────────────
+function loadYearEnd() {
+  var statusEl  = document.getElementById('stg-ye-status');
+  var historyEl = document.getElementById('stg-ye-history');
+
+  gasGet('getSettingsYearEnd')
+    .then(function(d) {
+      if (!d) return;
+      var closedThisYear = d.closedThisYear;
+      statusEl.innerHTML =
+        '<strong>' + (d.currentYear || '—') + ' · ' + (closedThisYear ? '✅ مغلقة / Closed' : '⏳ مفتوحة / Open') + '</strong>' +
+        '<span style="font-size:11px;color:var(--muted);">' + (d.statusMsg || '') + '</span>';
+
+      if (d.history && d.history.length) {
+        var h = '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Year History</div>';
+        d.history.forEach(function(row) {
+          h += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;">' +
+            '<span style="font-family:var(--mono);">' + (row.year || '—') + '</span>' +
+            '<span style="color:var(--muted);">' + (row.closingCash || '—') + '</span>' +
+            '<span style="color:var(--forest);font-weight:700;">' + (row.status || '') + '</span>' +
+          '</div>';
+        });
+        historyEl.innerHTML = h;
+      }
+    })
+    .catch(function() {
+      statusEl.innerHTML = '<strong>⚠️ Failed to load year-end status</strong>';
+    });
+}
+
+// ── Section action stubs (wired, GAS to follow) ───────────────────────────────
+function saveSection(name) {
+  if (!sessionValid()) return;
+
+  if (name === 'building') {
+    var payload = {
+      buildingName:  document.getElementById('stg-bld-name').value.trim(),
+      address:       document.getElementById('stg-bld-addr').value.trim(),
+      fiscalMonth:   document.getElementById('stg-fiscal-month').value,
+      openingCash:   document.getElementById('stg-opening-cash').value
+    };
+    stgSave('saveSettingsBuilding', payload, 'Building profile saved ✅');
+  }
+}
+
+function stgSave(action, payload, successMsg) {
+  gasPost({ action: action, payload: payload, token: _session.token })
+    .then(function() { toast(successMsg, 'ok'); })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function resetPin(name) {
+  if (!sessionValid()) return;
+  var newPin = prompt('New PIN for ' + name + ' (4 digits):');
+  if (!newPin || !/^\d{4}$/.test(newPin)) {
+    toast('❌ PIN must be exactly 4 digits', 'fail');
+    return;
+  }
+  gasPost({ action: 'resetUserPin', payload: { name: name, newPin: newPin }, token: _session.token })
+    .then(function() {
+      toast('✅ PIN updated for ' + name, 'ok');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function toggleUserStatus(name, activate) {
+  if (!sessionValid()) return;
+  var msg = activate ? 'Activate user ' + name + '?' : 'Deactivate user ' + name + '?';
+  if (!confirm(msg)) return;
+  gasPost({ action: 'setUserStatus', payload: { name: name, active: activate }, token: _session.token })
+    .then(function() {
+      toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok');
+      loadUsers();
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function openAddUser() {
+  toast('ℹ️ Add user form coming soon', 'info');
+}
+
+function addUnit()     { toast('ℹ️ Add unit form coming soon', 'info'); }
+function addContract() { toast('ℹ️ Add contract form coming soon', 'info'); }
+function editUnit(u)   { toast('ℹ️ Edit unit: ' + u, 'info'); }
+
+// ── Gear visibility helper ────────────────────────────────────────────────────
+function showGear(isAdmin) {
+  // Mobile gear
+  var sbGear = document.getElementById('sb-gear');
+  if (sbGear) sbGear.style.display = isAdmin ? 'block' : 'none';
+  // Desktop gear
+  var dtGear = document.getElementById('dt-gear');
+  if (dtGear) dtGear.style.display = isAdmin ? 'block' : 'none';
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 </script>
+<!-- ══════════════════════════════════════════════
+     SETTINGS PANEL (Admin only)
+══════════════════════════════════════════════ -->
+<div id="settings-panel">
+
+  <!-- Top bar -->
+  <div class="stg-topbar">
+    <div class="stg-title">
+      الإعدادات / Settings
+      <span>ADMIN ONLY</span>
+    </div>
+    <button class="stg-close" onclick="closeSettings()">✕</button>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="stg-scroll" id="stg-scroll">
+
+    <!-- ① Building Profile -->
+    <div class="stg-section" id="stg-building">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-building')">
+        <div class="stg-sec-ico">🏢</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">ملف المبنى / Building Profile</div>
+          <div class="stg-sec-sub">Name, address, fiscal year, opening cash</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div class="stg-field">
+          <div class="stg-field-lbl">Building Name / اسم المبنى</div>
+          <input class="inp" id="stg-bld-name" type="text" placeholder="e.g. Le Porter">
+        </div>
+        <div class="stg-field">
+          <div class="stg-field-lbl">Address / العنوان</div>
+          <input class="inp" id="stg-bld-addr" type="text" placeholder="Street, City">
+        </div>
+        <div class="stg-field">
+          <div class="stg-field-lbl">Fiscal Year Start / بداية السنة المالية</div>
+          <select class="inp" id="stg-fiscal-month">
+            <option value="1">January / يناير</option>
+            <option value="2">February / فبراير</option>
+            <option value="3">March / مارس</option>
+            <option value="4">April / أبريل</option>
+            <option value="5">May / مايو</option>
+            <option value="6">June / يونيو</option>
+            <option value="7">July / يوليو</option>
+            <option value="8">August / أغسطس</option>
+            <option value="9">September / سبتمبر</option>
+            <option value="10">October / أكتوبر</option>
+            <option value="11">November / نوفمبر</option>
+            <option value="12">December / ديسمبر</option>
+          </select>
+        </div>
+        <div class="stg-field">
+          <div class="stg-field-lbl">Opening Cash / النقد الافتتاحي</div>
+          <input class="inp" id="stg-opening-cash" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <button class="stg-save" onclick="saveSection('building')">حفظ / Save</button>
+      </div>
+    </div>
+
+    <!-- ② Units -->
+    <div class="stg-section" id="stg-units">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-units')">
+        <div class="stg-sec-ico">🏠</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">الوحدات / Units</div>
+          <div class="stg-sec-sub">View, add and edit building units</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-units-list" style="margin-top:4px;">
+          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        </div>
+        <button class="stg-add-btn" onclick="addUnit()">＋ إضافة وحدة / Add Unit</button>
+      </div>
+    </div>
+
+    <!-- ③ Occupancy -->
+    <div class="stg-section" id="stg-occ">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-occ')">
+        <div class="stg-sec-ico">👥</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">الإشغال / Occupancy</div>
+          <div class="stg-sec-sub">View, add and edit contracts</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-occ-list" style="margin-top:4px;">
+          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        </div>
+        <button class="stg-add-btn" onclick="addContract()">＋ إضافة عقد / Add Contract</button>
+      </div>
+    </div>
+
+    <!-- ④ Fee Rules -->
+    <div class="stg-section" id="stg-fees">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-fees')">
+        <div class="stg-sec-ico">💰</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">قواعد الرسوم / Fee Rules</div>
+          <div class="stg-sec-sub">View and edit the fee structure</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-fees-list" style="margin-top:4px;">
+          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ Opening Balances -->
+    <div class="stg-section" id="stg-balances">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-balances')">
+        <div class="stg-sec-ico">📊</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">الأرصدة الافتتاحية / Opening Balances</div>
+          <div class="stg-sec-sub">Per unit, per year</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-bal-list" style="margin-top:4px;">
+          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ Users & Access -->
+    <div class="stg-section" id="stg-users">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-users')">
+        <div class="stg-sec-ico">👤</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">المستخدمون / Users & Access</div>
+          <div class="stg-sec-sub">View users, reset PINs, manage access</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-users-list" style="margin-top:4px;">
+          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        </div>
+        <button class="stg-add-btn" onclick="openAddUser()">＋ إضافة مستخدم / Add User</button>
+      </div>
+    </div>
+
+    <!-- ⑦ Year-End Close -->
+    <div class="stg-section" id="stg-yearend">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-yearend')">
+        <div class="stg-sec-ico">📅</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">إغلاق السنة / Year-End Close</div>
+          <div class="stg-sec-sub">Run close, view year history</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div class="stg-ye-status" id="stg-ye-status">
+          <strong>جاري التحميل... / Loading...</strong>
+        </div>
+        <div id="stg-ye-history" style="margin-top:12px;"></div>
+        <button class="stg-danger-btn" onclick="openFiscal()">
+          ⚠️ تنفيذ الإغلاق / Execute Year-End Close
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /stg-scroll -->
+</div><!-- /settings-panel -->
+
 </body>
 </html>

@@ -782,6 +782,154 @@
 
     .stg-danger-btn:active { opacity: 0.8; }
 
+    /* List wrapper — uniform loading state */
+    .stg-list-wrap {
+      margin-top: 4px;
+      min-height: 40px;
+    }
+
+    .stg-loading {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 12px 0;
+      direction: rtl;
+    }
+
+    .stg-empty {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 12px 0;
+      direction: rtl;
+      font-style: italic;
+    }
+
+    .stg-err {
+      font-size: 12px;
+      color: var(--burg);
+      padding: 12px 0;
+    }
+
+    /* Category row — two-line with status badge */
+    .stg-cat-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--bdr);
+    }
+
+    .stg-cat-row:last-child { border: none; }
+
+    .stg-cat-info { flex: 1; min-width: 0; }
+
+    .stg-cat-ar {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      direction: rtl;
+    }
+
+    .stg-cat-en {
+      font-size: 10px;
+      color: var(--muted);
+      direction: ltr;
+      margin-top: 1px;
+    }
+
+    .stg-cat-code {
+      font-family: var(--mono);
+      font-size: 8px;
+      color: var(--muted);
+      margin-top: 2px;
+      direction: ltr;
+    }
+
+    .stg-cat-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Meter reading row */
+    .stg-meter-row {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--bdr);
+    }
+
+    .stg-meter-row:last-child { border: none; }
+
+    .stg-meter-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stg-meter-unit {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .stg-meter-date {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .stg-meter-vals {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .stg-meter-val {
+      font-size: 10px;
+      color: var(--muted);
+      direction: ltr;
+    }
+
+    .stg-meter-val strong {
+      font-family: var(--mono);
+      color: var(--navy);
+    }
+
+    /* YearCash table */
+    .stg-yc-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--bdr);
+      align-items: center;
+    }
+
+    .stg-yc-row:last-child { border: none; }
+
+    .stg-yc-hdr {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      direction: ltr;
+    }
+
+    .stg-yc-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--navy);
+      direction: ltr;
+    }
+
+    .stg-yc-cnt {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      direction: ltr;
+    }
+
     /* Desktop settings — panel appears in content area not overlay */
     @media (min-width: 769px) {
       #settings-panel {
@@ -1073,6 +1221,178 @@
     #modal.open { display: flex; }
     .m-sheet { background: var(--surf); border-radius: 24px 24px 0 0; padding: 24px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; animation: shup 0.3s ease; }
     @keyframes shup { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    /* ── Contract form sheet ── */
+    #contract-sheet-wrap {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(27,42,74,0.55);
+      z-index: 9500;
+      align-items: flex-end;
+      backdrop-filter: blur(3px);
+    }
+    #contract-sheet-wrap.open { display: flex; }
+
+    #contract-sheet {
+      background: var(--surf);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 24px 20px calc(32px + env(safe-area-inset-bottom));
+      animation: shup 0.3s ease;
+    }
+
+    #contract-sheet::-webkit-scrollbar { display: none; }
+
+    .cs-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+      direction: rtl;
+    }
+
+    .cs-sub {
+      font-size: 10px;
+      color: var(--muted);
+      direction: ltr;
+      margin-bottom: 18px;
+    }
+
+    .cs-field {
+      margin-bottom: 14px;
+    }
+
+    .cs-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      direction: ltr;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cs-lbl .req { color: var(--burg); }
+
+    /* Contract ID preview box */
+    .cs-preview {
+      background: var(--bg);
+      border: 1.5px solid var(--bdr);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.5px;
+      direction: ltr;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+    }
+
+    .cs-preview.empty { color: var(--muted); font-size: 11px; font-family: var(--font); }
+
+    /* Status pill */
+    .cs-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .cs-status-pill.active   { background: rgba(26,107,60,0.1);  color: var(--forest); }
+    .cs-status-pill.inactive { background: rgba(155,35,53,0.1);  color: var(--burg); }
+    .cs-status-pill.empty    { background: var(--bg); color: var(--muted); }
+
+    /* Warning box */
+    .cs-warn {
+      display: none;
+      background: rgba(201,168,76,0.12);
+      border: 1px solid rgba(201,168,76,0.4);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #7a5c0a;
+      direction: rtl;
+      line-height: 1.5;
+    }
+
+    .cs-warn.show { display: block; }
+
+    .cs-warn strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+    /* Confirm checkbox */
+    .cs-confirm {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    .cs-confirm.show { display: flex; }
+    .cs-confirm input { accent-color: var(--burg); transform: scale(1.15); }
+
+    /* Buttons */
+    .cs-btns { display: flex; gap: 10px; margin-top: 6px; }
+
+    .cs-submit {
+      flex: 1;
+      height: 50px;
+      border: none;
+      border-radius: 12px;
+      background: var(--forest);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .cs-submit:disabled { opacity: 0.3; cursor: not-allowed; }
+    .cs-submit:active:not(:disabled) { opacity: 0.8; }
+
+    .cs-cancel {
+      height: 50px;
+      padding: 0 22px;
+      border: 1.5px solid var(--bdr);
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @media (min-width: 769px) {
+      #contract-sheet-wrap { align-items: center; justify-content: center; }
+      #contract-sheet {
+        border-radius: 20px;
+        max-width: 500px;
+        max-height: 88vh;
+        padding: 32px 28px 32px;
+        animation: fadeUp 0.25s ease;
+      }
+    }
     .m-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 16px; }
     .m-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--bdr); font-size: 13px; }
     .m-row:last-of-type { border: none; }
@@ -2404,15 +2724,13 @@ function closeModal() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SETTINGS PANEL
+// SETTINGS PANEL — 14 sections
 // ══════════════════════════════════════════════════════════════════════════════
 
 function openSettings() {
   if (!sessionValid()) return;
   if (_session.role !== 'Admin') return;
   document.getElementById('settings-panel').classList.add('open');
-  // Load users section by default (most common admin task)
-  loadSettingsSection('users');
 }
 
 function closeSettings() {
@@ -2422,196 +2740,339 @@ function closeSettings() {
 function toggleSection(id) {
   var sec = document.getElementById(id);
   var wasExpanded = sec.classList.contains('expanded');
-
-  // Collapse all
   document.querySelectorAll('.stg-section').forEach(function(s) {
     s.classList.remove('expanded');
   });
-
-  // Expand clicked one (if it wasn't already open)
   if (!wasExpanded) {
     sec.classList.add('expanded');
-    // Trigger data load for this section
-    var sectionMap = {
+    var map = {
       'stg-building':  'building',
       'stg-units':     'units',
       'stg-occ':       'occupancy',
+      'stg-contacts':  'contacts',
       'stg-fees':      'fees',
+      'stg-overrides': 'overrides',
+      'stg-utility':   'utility',
+      'stg-meters':    'meters',
+      'stg-incat':     'incat',
+      'stg-excat':     'excat',
       'stg-balances':  'balances',
       'stg-users':     'users',
+      'stg-yearcash':  'yearcash',
       'stg-yearend':   'yearend'
     };
-    if (sectionMap[id]) loadSettingsSection(sectionMap[id]);
+    if (map[id]) stgLoad(map[id]);
   }
 }
 
-function loadSettingsSection(name) {
+// ── Generic loader dispatcher ─────────────────────────────────────────────────
+function stgLoad(name) {
   if (!sessionValid()) return;
-
-  if (name === 'building')  loadBuildingProfile();
-  if (name === 'units')     loadUnits();
-  if (name === 'occupancy') loadOccupancy();
-  if (name === 'fees')      loadFees();
-  if (name === 'balances')  loadBalances();
-  if (name === 'users')     loadUsers();
-  if (name === 'yearend')   loadYearEnd();
+  var fn = {
+    building:  loadBuildingProfile,
+    units:     loadUnits,
+    occupancy: loadOccupancy,
+    contacts:  loadContacts,
+    fees:      loadFees,
+    overrides: loadOverrides,
+    utility:   loadUtility,
+    meters:    loadMeters,
+    incat:     function() { loadCategories('income'); },
+    excat:     function() { loadCategories('expense'); },
+    balances:  loadBalances,
+    users:     loadUsers,
+    yearcash:  loadYearCash,
+    yearend:   loadYearEnd
+  };
+  if (fn[name]) fn[name]();
 }
 
-// ── ① Building Profile ───────────────────────────────────────────────────────
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function stgListEl(id) { return document.getElementById(id); }
+
+function stgLoading(el) {
+  el.innerHTML = '<div class="stg-loading">جاري التحميل... / Loading...</div>';
+}
+
+function stgEmpty(el, msg) {
+  el.innerHTML = '<div class="stg-empty">' + (msg || 'No records found') + '</div>';
+}
+
+function stgError(el) {
+  el.innerHTML = '<div class="stg-err">⚠️ Failed to load. Check connection.</div>';
+}
+
+// ── ①  Building Profile ───────────────────────────────────────────────────────
 function loadBuildingProfile() {
   gasGet('getSettingsBuilding')
     .then(function(d) {
       if (!d) return;
-      document.getElementById('stg-bld-name').value      = d.buildingName    || '';
-      document.getElementById('stg-bld-addr').value      = d.address         || '';
-      document.getElementById('stg-fiscal-month').value  = d.fiscalMonth     || '1';
-      document.getElementById('stg-opening-cash').value  = d.openingCash     || '';
-    })
-    .catch(function() {});
+      document.getElementById('stg-bld-name').value     = d.buildingName || '';
+      document.getElementById('stg-bld-addr').value     = d.address      || '';
+      document.getElementById('stg-fiscal-month').value = d.fiscalMonth  || '1';
+      document.getElementById('stg-opening-cash').value = d.openingCash  || '';
+    }).catch(function() {});
 }
 
-// ── ② Units ──────────────────────────────────────────────────────────────────
+// ── ②  Units ─────────────────────────────────────────────────────────────────
 function loadUnits() {
-  var el = document.getElementById('stg-units-list');
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
-
+  var el = stgListEl('stg-units-list'); stgLoading(el);
   gasGet('getSettingsUnits')
-    .then(function(units) {
-      if (!units || !units.length) {
-        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد وحدات / No units found</div>';
-        return;
-      }
-      var html = '';
-      units.forEach(function(u) {
-        html += '<div class="stg-user-row">' +
-          '<div class="stg-user-avatar" style="background:var(--forest);font-size:11px;">' + (u.unit || '—') + '</div>' +
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد وحدات / No units found'); return; }
+      el.innerHTML = rows.map(function(u) {
+        return '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="background:var(--forest);font-size:10px;">' + escHtml(u.section || u.unitId || '—') + '</div>' +
           '<div class="stg-user-info">' +
-            '<div class="stg-user-name">' + (u.unit || '—') + '</div>' +
-            '<div class="stg-user-meta">' + (u.type || '') + (u.area ? ' · ' + u.area : '') + '</div>' +
+            '<div class="stg-user-name">' + escHtml(u.unitId || '—') + ' — ' + escHtml(u.section || '') + '</div>' +
+            '<div class="stg-user-meta">' + (u.type || '') + (u.floor ? ' · ' + u.floor : '') + (u.sqm ? ' · ' + u.sqm + ' m²' : '') + (u.amps ? ' · ' + u.amps + 'A' : '') + '</div>' +
           '</div>' +
-          '<div class="stg-user-actions">' +
-            '<button class="stg-user-btn" onclick="editUnit(\'' + escHtml(u.unit) + '\')">تعديل</button>' +
-          '</div>' +
+          '<div class="stg-user-actions"><button class="stg-user-btn" onclick="editUnit(\'' + escHtml(u.unitId) + '\')">تعديل</button></div>' +
         '</div>';
-      });
-      el.innerHTML = html;
-    })
-    .catch(function() {
-      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load units</div>';
-    });
+      }).join('');
+    }).catch(function() { stgError(el); });
 }
 
-// ── ③ Occupancy ──────────────────────────────────────────────────────────────
+// ── ③  Occupancy ──────────────────────────────────────────────────────────────
+var _occShowAll = false;
+var _occAllRows = [];
+
+function toggleOccAll() {
+  _occShowAll = !_occShowAll;
+  var btn = document.getElementById('occ-toggle');
+  if (btn) btn.textContent = _occShowAll ? 'Active Only / نشطة فقط' : 'عرض الكل / Show All';
+  renderOccupancy();
+}
+
 function loadOccupancy() {
-  var el = document.getElementById('stg-occ-list');
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+  var el = stgListEl('stg-occ-list'); stgLoading(el);
+  _occShowAll = false;
+  var btn = document.getElementById('occ-toggle');
+  if (btn) btn.textContent = 'عرض الكل / Show All';
 
   gasGet('getSettingsOccupancy')
-    .then(function(contracts) {
-      if (!contracts || !contracts.length) {
-        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد عقود / No contracts found</div>';
-        return;
-      }
-      var html = '';
-      contracts.forEach(function(c) {
-        var statusBadge = c.active
-          ? '<span style="font-size:9px;color:var(--forest);font-weight:700;">● Active</span>'
-          : '<span style="font-size:9px;color:var(--burg);font-weight:700;">● Inactive</span>';
-        html += '<div class="stg-user-row">' +
-          '<div class="stg-user-avatar" style="font-size:11px;">' + (c.unit || '—') + '</div>' +
+    .then(function(rows) {
+      _occAllRows = rows || [];
+      renderOccupancy();
+    }).catch(function() { stgError(el); });
+}
+
+function renderOccupancy() {
+  var el = stgListEl('stg-occ-list');
+  var rows = _occShowAll
+    ? _occAllRows
+    : _occAllRows.filter(function(c) { return String(c.status).toLowerCase() === 'active'; });
+
+  var cntEl = document.getElementById('occ-count');
+  if (cntEl) {
+    var activeCount = _occAllRows.filter(function(c) { return String(c.status).toLowerCase() === 'active'; }).length;
+    cntEl.textContent = activeCount + ' active · ' + _occAllRows.length + ' total';
+  }
+
+  if (!rows.length) {
+    stgEmpty(el, _occShowAll ? 'لا توجد عقود / No contracts' : 'لا توجد عقود نشطة / No active contracts');
+    return;
+  }
+
+  el.innerHTML = rows.map(function(c) {
+    var isActive = String(c.status).toLowerCase() === 'active';
+    var rowStyle = isActive ? '' : 'opacity:0.55;';
+    var dot = isActive
+      ? '<span style="font-size:9px;color:var(--forest);font-weight:700;flex-shrink:0;white-space:nowrap;">● Active</span>'
+      : '<span style="font-size:9px;color:var(--burg);font-weight:700;flex-shrink:0;white-space:nowrap;">● Inactive</span>';
+    var endInfo = c.endDate ? ' → ' + c.endDate : '';
+    return '<div class="stg-user-row" style="' + rowStyle + '">' +
+      '<div class="stg-user-avatar" style="font-size:10px;background:' + (isActive ? 'var(--navy)' : 'var(--muted)') + ';">' +
+        escHtml(c.section || '—') +
+      '</div>' +
+      '<div class="stg-user-info">' +
+        '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
+        '<div class="stg-user-meta">' +
+          escHtml(c.role || '') + ' · ' + escHtml(c.contractId || '') +
+          '<br>' + (c.startDate || '') + endInfo +
+        '</div>' +
+      '</div>' +
+      dot +
+    '</div>';
+  }).join('');
+}
+
+// ── ④  Contacts ───────────────────────────────────────────────────────────────
+function loadContacts() {
+  var el = stgListEl('stg-contacts-list'); stgLoading(el);
+  gasGet('getSettingsContacts')
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد جهات اتصال / No contacts'); return; }
+      el.innerHTML = rows.map(function(c) {
+        var isActive = String(c.status).toLowerCase() === 'active';
+        var badgeColor = isActive ? 'var(--forest)' : 'var(--burg)';
+        return '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="font-size:10px;background:var(--navy);">' + escHtml((c.name || '?')[0]) + '</div>' +
           '<div class="stg-user-info">' +
             '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
-            '<div class="stg-user-meta">' + (c.unit || '') + ' · ' + (c.contractId || '') + '</div>' +
+            '<div class="stg-user-meta">' + (c.contactId || '') + (c.email ? ' · ' + c.email : '') + (c.phone ? ' · ' + c.phone : '') + '</div>' +
           '</div>' +
-          statusBadge +
+          '<span style="font-size:9px;color:' + badgeColor + ';font-weight:700;flex-shrink:0;">● ' + (isActive ? 'Active' : 'Inactive') + '</span>' +
+          '<div class="stg-user-actions">' +
+            '<button class="stg-user-btn" onclick="editContact(\'' + escHtml(c.contactId) + '\')">تعديل</button>' +
+            (isActive
+              ? '<button class="stg-user-btn danger" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',false)">إيقاف</button>'
+              : '<button class="stg-user-btn" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',true)">تفعيل</button>') +
+          '</div>' +
         '</div>';
-      });
-      el.innerHTML = html;
-    })
-    .catch(function() {
-      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load occupancy</div>';
-    });
+      }).join('');
+    }).catch(function() { stgError(el); });
 }
 
-// ── ④ Fee Rules ───────────────────────────────────────────────────────────────
+// ── ⑤  Fee Rules ─────────────────────────────────────────────────────────────
 function loadFees() {
-  var el = document.getElementById('stg-fees-list');
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
-
+  var el = stgListEl('stg-fees-list'); stgLoading(el);
   gasGet('getSettingsFees')
-    .then(function(fees) {
-      if (!fees || !fees.length) {
-        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد رسوم / No fees configured</div>';
-        return;
-      }
-      var html = '';
-      fees.forEach(function(f) {
-        html += '<div class="stg-user-row">' +
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد رسوم / No fees configured'); return; }
+      el.innerHTML = rows.map(function(f) {
+        var isActive = String(f.status).toLowerCase() === 'active';
+        var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+        return '<div class="stg-user-row">' +
           '<div class="stg-user-info">' +
             '<div class="stg-user-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
-            '<div class="stg-user-meta">' + (f.type || '') + '</div>' +
+            '<div class="stg-user-meta">' + (f.frequency || '') + ' · ' + (f.feeType || '') + ' · ' + (f.target || '') + (f.startDate ? ' · from ' + f.startDate : '') + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--forest);">$' + (f.amount || '0') + '</div>' +
+          '<div style="text-align:right;flex-shrink:0;">' +
+            '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--forest);">$' + (f.baseRate || '0') + '</div>' +
+            '<div style="font-size:9px;color:' + dotColor + ';">● ' + (f.status || '') + '</div>' +
+          '</div>' +
         '</div>';
-      });
-      el.innerHTML = html;
-    })
-    .catch(function() {
-      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load fees</div>';
-    });
+      }).join('');
+    }).catch(function() { stgError(el); });
 }
 
-// ── ⑤ Opening Balances ───────────────────────────────────────────────────────
-function loadBalances() {
-  var el = document.getElementById('stg-bal-list');
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
+// ── ⑥  Unit Fee Overrides ────────────────────────────────────────────────────
+function loadOverrides() {
+  var el = stgListEl('stg-overrides-list'); stgLoading(el);
+  gasGet('getSettingsOverrides')
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد استثناءات / No overrides configured'); return; }
+      el.innerHTML = rows.map(function(o) {
+        return '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="background:var(--gold);color:var(--navy);font-size:10px;">' + escHtml(o.unitId || '—') + '</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name">' + escHtml(o.unitId || '—') + ' — ' + escHtml(o.overrideType || '') + '</div>' +
+            '<div class="stg-user-meta">' + (o.appliesTo || '') + (o.reason ? ' · ' + o.reason : '') + (o.startDate ? ' · ' + o.startDate : '') + (o.endDate ? ' → ' + o.endDate : '') + '</div>' +
+          '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--burg);flex-shrink:0;">$' + (o.value || '0') + '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function() { stgError(el); });
+}
 
+// ── ⑦  Utility Master ────────────────────────────────────────────────────────
+function loadUtility() {
+  var el = stgListEl('stg-utility-list'); stgLoading(el);
+  gasGet('getSettingsUtility')
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد خدمات / No utilities configured'); return; }
+      el.innerHTML = rows.map(function(u) {
+        return '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name">' + escHtml(u.name || '—') + '</div>' +
+            '<div class="stg-user-meta">' + (u.unit || '') + (u.tag ? ' · ' + u.tag : '') + '</div>' +
+          '</div>' +
+          '<div class="stg-user-actions"><button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.name) + '\')">تعديل</button></div>' +
+        '</div>';
+      }).join('');
+    }).catch(function() { stgError(el); });
+}
+
+// ── ⑧  Meter Readings ────────────────────────────────────────────────────────
+function loadMeters() {
+  var el = stgListEl('stg-meters-list'); stgLoading(el);
+  gasGet('getSettingsMeters')
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد قراءات / No readings found'); return; }
+      el.innerHTML = rows.map(function(r) {
+        return '<div class="stg-meter-row">' +
+          '<div class="stg-meter-top">' +
+            '<div class="stg-meter-unit">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.utilityType || '') + '</div>' +
+            '<div class="stg-meter-date">' + (r.date || '') + '</div>' +
+          '</div>' +
+          '<div class="stg-meter-vals">' +
+            '<div class="stg-meter-val">Prev: <strong>' + (r.prev || '—') + '</strong></div>' +
+            '<div class="stg-meter-val">Curr: <strong>' + (r.curr || '—') + '</strong></div>' +
+            '<div class="stg-meter-val" style="color:var(--forest);">Use: <strong>' + (r.consumption || '—') + '</strong></div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function() { stgError(el); });
+}
+
+// ── ⑨ + ⑩  Categories (income / expense) ────────────────────────────────────
+function loadCategories(type) {
+  var elId  = type === 'income' ? 'stg-incat-list' : 'stg-excat-list';
+  var gasAct = type === 'income' ? 'getSettingsIncomeCategories' : 'getSettingsExpenseCategories';
+  var el    = stgListEl(elId); stgLoading(el);
+
+  gasGet(gasAct)
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
+      el.innerHTML = rows.map(function(c) {
+        var isActive = String(c.status).toLowerCase() === 'active';
+        var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+        return '<div class="stg-cat-row">' +
+          '<div class="stg-cat-info">' +
+            '<div class="stg-cat-ar">' + escHtml(c.nameAr || '—') + '</div>' +
+            '<div class="stg-cat-en">' + escHtml(c.nameEn || '') + '</div>' +
+            '<div class="stg-cat-code">' + (c.code || '') + (c.parent ? ' · ' + c.parent : '') + '</div>' +
+          '</div>' +
+          '<div class="stg-cat-actions">' +
+            '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (c.status || '') + '</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              '<button class="stg-user-btn" onclick="editCategory(\'' + type + '\',\'' + escHtml(c.code) + '\')">تعديل</button>' +
+              (isActive
+                ? '<button class="stg-user-btn danger" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',false)">إيقاف</button>'
+                : '<button class="stg-user-btn" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',true)">تفعيل</button>') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function() { stgError(el); });
+}
+
+// ── ⑪  Opening Balances ──────────────────────────────────────────────────────
+function loadBalances() {
+  var el = stgListEl('stg-bal-list'); stgLoading(el);
   gasGet('getSettingsBalances')
     .then(function(rows) {
-      if (!rows || !rows.length) {
-        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا توجد أرصدة / No balances found</div>';
-        return;
-      }
-      var html = '';
-      rows.forEach(function(r) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد أرصدة / No balances'); return; }
+      el.innerHTML = rows.map(function(r) {
         var bal = parseFloat(r.balance) || 0;
         var color = bal < 0 ? 'var(--burg)' : 'var(--forest)';
-        html += '<div class="stg-user-row">' +
+        return '<div class="stg-user-row">' +
           '<div class="stg-user-info">' +
             '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
-            '<div class="stg-user-meta">' + (r.year || '') + ' · ' + (r.contractId || '') + '</div>' +
+            '<div class="stg-user-meta">' + (r.year || '') + ' · ' + (r.contractId || '') + ' · ' + (r.type || '') + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';">$' + bal.toFixed(2) + '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">$' + bal.toFixed(2) + '</div>' +
         '</div>';
-      });
-      el.innerHTML = html;
-    })
-    .catch(function() {
-      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load balances</div>';
-    });
+      }).join('');
+    }).catch(function() { stgError(el); });
 }
 
-// ── ⑥ Users & Access ─────────────────────────────────────────────────────────
+// ── ⑫  Users & Access ────────────────────────────────────────────────────────
 function loadUsers() {
-  var el = document.getElementById('stg-users-list');
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>';
-
+  var el = stgListEl('stg-users-list'); stgLoading(el);
   gasGet('getSettingsUsers')
     .then(function(users) {
-      if (!users || !users.length) {
-        el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0;">لا يوجد مستخدمون / No users found</div>';
-        return;
-      }
-      var html = '';
-      users.forEach(function(u) {
-        var initial = (u.name || '?')[0].toUpperCase();
-        var badgeClass = u.role === 'Admin' ? 'badge-admin'
+      if (!users || !users.length) { stgEmpty(el, 'لا يوجد مستخدمون / No users found'); return; }
+      el.innerHTML = users.map(function(u) {
+        var initial    = (u.name || '?')[0].toUpperCase();
+        var badgeClass = !u.active ? 'badge-off'
+                       : u.role === 'Admin'      ? 'badge-admin'
                        : u.role === 'Management' ? 'badge-mgmt'
                        : 'badge-occ';
-        if (!u.active) badgeClass = 'badge-off';
         var statusLabel = u.active ? u.role : 'Inactive';
-
-        html += '<div class="stg-user-row">' +
+        return '<div class="stg-user-row">' +
           '<div class="stg-user-avatar">' + initial + '</div>' +
           '<div class="stg-user-info">' +
             '<div class="stg-user-name">' + escHtml(u.name) + '</div>' +
@@ -2621,60 +3082,79 @@ function loadUsers() {
           '<div class="stg-user-actions">' +
             '<button class="stg-user-btn" onclick="resetPin(\'' + escHtml(u.name) + '\')">PIN</button>' +
             (u.active
-              ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\', false)">إيقاف</button>'
-              : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\', true)">تفعيل</button>') +
+              ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',false)">إيقاف</button>'
+              : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',true)">تفعيل</button>') +
           '</div>' +
         '</div>';
-      });
-      el.innerHTML = html;
-    })
-    .catch(function() {
-      el.innerHTML = '<div style="font-size:12px;color:var(--burg);padding:12px 0;">⚠️ Failed to load users</div>';
-    });
+      }).join('');
+    }).catch(function() { stgError(el); });
 }
 
-// ── ⑦ Year-End ───────────────────────────────────────────────────────────────
+// ── ⑬  YearCash — view only ──────────────────────────────────────────────────
+function loadYearCash() {
+  var el = stgListEl('stg-yearcash-list'); stgLoading(el);
+  gasGet('getSettingsYearCash')
+    .then(function(rows) {
+      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد سجلات / No records'); return; }
+      var html = '<div class="stg-yc-row">' +
+        '<div class="stg-yc-hdr">Year</div>' +
+        '<div class="stg-yc-hdr">Opening</div>' +
+        '<div class="stg-yc-hdr">Closing</div>' +
+        '<div class="stg-yc-hdr">INC</div>' +
+        '<div class="stg-yc-hdr">EXP</div>' +
+      '</div>';
+      html += rows.map(function(r) {
+        var open  = parseFloat(r.opening)  || 0;
+        var close = parseFloat(r.closing)  || 0;
+        return '<div class="stg-yc-row">' +
+          '<div class="stg-yc-val">' + (r.year || '—') + '</div>' +
+          '<div class="stg-yc-val">$' + open.toFixed(2) + '</div>' +
+          '<div class="stg-yc-val" style="color:' + (close >= 0 ? 'var(--forest)' : 'var(--burg)') + ';">$' + close.toFixed(2) + '</div>' +
+          '<div class="stg-yc-cnt">' + (r.incCount || '—') + '</div>' +
+          '<div class="stg-yc-cnt">' + (r.expCount || '—') + '</div>' +
+        '</div>';
+      }).join('');
+      el.innerHTML = html;
+    }).catch(function() { stgError(el); });
+}
+
+// ── ⑭  Year-End Close ────────────────────────────────────────────────────────
 function loadYearEnd() {
   var statusEl  = document.getElementById('stg-ye-status');
   var historyEl = document.getElementById('stg-ye-history');
-
   gasGet('getSettingsYearEnd')
     .then(function(d) {
       if (!d) return;
-      var closedThisYear = d.closedThisYear;
+      var closed = d.closedThisYear;
       statusEl.innerHTML =
-        '<strong>' + (d.currentYear || '—') + ' · ' + (closedThisYear ? '✅ مغلقة / Closed' : '⏳ مفتوحة / Open') + '</strong>' +
-        '<span style="font-size:11px;color:var(--muted);">' + (d.statusMsg || '') + '</span>';
-
+        '<strong>' + (d.currentYear || '—') + ' · ' + (closed ? '✅ مغلقة / Closed' : '⏳ مفتوحة / Open') + '</strong>' +
+        '<span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">' + (d.statusMsg || '') + '</span>';
       if (d.history && d.history.length) {
         var h = '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Year History</div>';
-        d.history.forEach(function(row) {
-          h += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;">' +
+        h += d.history.map(function(row) {
+          return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;">' +
             '<span style="font-family:var(--mono);">' + (row.year || '—') + '</span>' +
-            '<span style="color:var(--muted);">' + (row.closingCash || '—') + '</span>' +
-            '<span style="color:var(--forest);font-weight:700;">' + (row.status || '') + '</span>' +
+            '<span style="color:var(--muted);">Opening: $' + (row.openingCash || '—') + '</span>' +
+            '<span style="color:var(--forest);">Closing: $' + (row.closingCash || '—') + '</span>' +
           '</div>';
-        });
+        }).join('');
         historyEl.innerHTML = h;
       }
-    })
-    .catch(function() {
+    }).catch(function() {
       statusEl.innerHTML = '<strong>⚠️ Failed to load year-end status</strong>';
     });
 }
 
-// ── Section action stubs (wired, GAS to follow) ───────────────────────────────
+// ── Save actions ──────────────────────────────────────────────────────────────
 function saveSection(name) {
   if (!sessionValid()) return;
-
   if (name === 'building') {
-    var payload = {
-      buildingName:  document.getElementById('stg-bld-name').value.trim(),
-      address:       document.getElementById('stg-bld-addr').value.trim(),
-      fiscalMonth:   document.getElementById('stg-fiscal-month').value,
-      openingCash:   document.getElementById('stg-opening-cash').value
-    };
-    stgSave('saveSettingsBuilding', payload, 'Building profile saved ✅');
+    stgSave('saveSettingsBuilding', {
+      buildingName: document.getElementById('stg-bld-name').value.trim(),
+      address:      document.getElementById('stg-bld-addr').value.trim(),
+      fiscalMonth:  document.getElementById('stg-fiscal-month').value,
+      openingCash:  document.getElementById('stg-opening-cash').value
+    }, 'Building profile saved ✅');
   }
 }
 
@@ -2684,46 +3164,331 @@ function stgSave(action, payload, successMsg) {
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
+// ── Contacts actions ──────────────────────────────────────────────────────────
+function editContact(id)  { toast('ℹ️ Edit contact: ' + id, 'info'); }
+function addContact()     { toast('ℹ️ Add contact form — coming soon', 'info'); }
+function toggleContact(id, activate) {
+  if (!sessionValid()) return;
+  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' contact ' + id + '?')) return;
+  gasPost({ action: 'setContactStatus', payload: { contactId: id, active: activate }, token: _session.token })
+    .then(function() { toast('✅ Contact updated', 'ok'); loadContacts(); })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+// ── Category actions ──────────────────────────────────────────────────────────
+function editCategory(type, code)  { toast('ℹ️ Edit category: ' + code, 'info'); }
+function addCategory(type)         { toast('ℹ️ Add ' + type + ' category — coming soon', 'info'); }
+function toggleCategory(type, code, activate) {
+  if (!sessionValid()) return;
+  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' category ' + code + '?')) return;
+  gasPost({ action: 'setCategoryStatus', payload: { type: type, code: code, active: activate }, token: _session.token })
+    .then(function() { toast('✅ Category updated', 'ok'); loadCategories(type); })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+// ── User actions ──────────────────────────────────────────────────────────────
 function resetPin(name) {
   if (!sessionValid()) return;
   var newPin = prompt('New PIN for ' + name + ' (4 digits):');
-  if (!newPin || !/^\d{4}$/.test(newPin)) {
-    toast('❌ PIN must be exactly 4 digits', 'fail');
-    return;
-  }
+  if (!newPin || !/^\d{4}$/.test(newPin)) { toast('❌ PIN must be exactly 4 digits', 'fail'); return; }
   gasPost({ action: 'resetUserPin', payload: { name: name, newPin: newPin }, token: _session.token })
-    .then(function() {
-      toast('✅ PIN updated for ' + name, 'ok');
-    })
+    .then(function() { toast('✅ PIN updated for ' + name, 'ok'); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
 function toggleUserStatus(name, activate) {
   if (!sessionValid()) return;
-  var msg = activate ? 'Activate user ' + name + '?' : 'Deactivate user ' + name + '?';
-  if (!confirm(msg)) return;
+  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' user ' + name + '?')) return;
   gasPost({ action: 'setUserStatus', payload: { name: name, active: activate }, token: _session.token })
-    .then(function() {
-      toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok');
-      loadUsers();
-    })
+    .then(function() { toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok'); loadUsers(); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-function openAddUser() {
-  toast('ℹ️ Add user form coming soon', 'info');
+function openAddUser() { toast('ℹ️ Add user form — coming soon', 'info'); }
+
+// ── Unit / Utility / Meter / Override stubs ───────────────────────────────────
+// ── Add Contract sheet ────────────────────────────────────────────────────────
+var _contractUnits    = [];   // [{unitId, section, type}]
+var _contractContacts = [];   // [{contactId, name}]
+var _activeContracts  = {};   // { unitId: contractRow } — active contract per unit
+
+function addContract() {
+  if (!sessionValid()) return;
+  // Reset form
+  document.getElementById('cs-unit').innerHTML    = '<option value="" disabled selected>جاري التحميل... / Loading...</option>';
+  document.getElementById('cs-contact').innerHTML = '<option value="" disabled selected>جاري التحميل... / Loading...</option>';
+  document.getElementById('cs-role').value    = '';
+  document.getElementById('cs-start').value   = '';
+  document.getElementById('cs-end').value     = '';
+  document.getElementById('cs-balance').value = '0';
+  document.getElementById('cs-id-preview').textContent = 'Fill Unit · Contact · Start Date to generate';
+  document.getElementById('cs-id-preview').classList.add('empty');
+  document.getElementById('cs-status-pill').textContent = '— fill dates —';
+  document.getElementById('cs-status-pill').className = 'cs-status-pill empty';
+  document.getElementById('cs-warn').classList.remove('show');
+  document.getElementById('cs-confirm').classList.remove('show');
+  document.getElementById('cs-confirm-chk').checked = false;
+  document.getElementById('cs-submit').disabled = true;
+
+  // Set max date = today
+  var today = todayStr();
+  document.getElementById('cs-start').max = today;
+
+  // Open sheet
+  document.getElementById('contract-sheet-wrap').classList.add('open');
+
+  // Load units + contacts in parallel
+  Promise.all([
+    gasGet('getSettingsUnits'),
+    gasGet('getSettingsContacts'),
+    gasGet('getSettingsOccupancy')  // all contracts to find active ones
+  ]).then(function(results) {
+    _contractUnits    = results[0] || [];
+    _contractContacts = (results[1] || []).filter(function(c) {
+      return String(c.status).toLowerCase() === 'active';
+    });
+    // Build active contract lookup by unitId
+    _activeContracts = {};
+    (results[2] || []).forEach(function(c) {
+      if (String(c.status).toLowerCase() === 'active') {
+        _activeContracts[c.unitId] = c;
+      }
+    });
+
+    // Populate unit dropdown
+    var uSel = document.getElementById('cs-unit');
+    uSel.innerHTML = '<option value="" disabled selected>اختر وحدة / Select unit...</option>';
+    _contractUnits.forEach(function(u) {
+      var opt = document.createElement('option');
+      opt.value = u.unitId;
+      opt.dataset.section = u.section || '';
+      var occupied = _activeContracts[u.unitId]
+        ? ' ● (occupied)' : '';
+      opt.textContent = u.unitId + ' — §' + (u.section || '') + ' · ' + (u.type || '') + occupied;
+      uSel.appendChild(opt);
+    });
+
+    // Populate contact dropdown
+    var cSel = document.getElementById('cs-contact');
+    cSel.innerHTML = '<option value="" disabled selected>اختر جهة اتصال / Select contact...</option>';
+    _contractContacts.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.contactId;
+      opt.dataset.name = c.name || '';
+      opt.textContent = c.contactId + ' — ' + (c.name || '');
+      cSel.appendChild(opt);
+    });
+  }).catch(function() {
+    toast('⚠️ Failed to load form data', 'fail');
+    closeContractSheet();
+  });
 }
 
-function addUnit()     { toast('ℹ️ Add unit form coming soon', 'info'); }
-function addContract() { toast('ℹ️ Add contract form coming soon', 'info'); }
-function editUnit(u)   { toast('ℹ️ Edit unit: ' + u, 'info'); }
+function closeContractSheet() {
+  document.getElementById('contract-sheet-wrap').classList.remove('open');
+}
 
-// ── Gear visibility helper ────────────────────────────────────────────────────
+function onContractUnitChange() {
+  checkActiveContract();
+  onContractFieldChange();
+}
+
+function checkActiveContract() {
+  var unitId  = document.getElementById('cs-unit').value;
+  var warnEl  = document.getElementById('cs-warn');
+  var confEl  = document.getElementById('cs-confirm');
+  var confChk = document.getElementById('cs-confirm-chk');
+
+  if (unitId && _activeContracts[unitId]) {
+    var existing = _activeContracts[unitId];
+    var startVal = document.getElementById('cs-start').value;
+    var closeDate = startVal ? dateMinus1(startVal) : '(new start date − 1 day)';
+    document.getElementById('cs-warn-msg').innerHTML =
+      'الوحدة <strong>' + unitId + '</strong> لديها عقد نشط مع ' +
+      '<strong>' + escHtml(existing.name || '') + '</strong> ' +
+      '(العقد: ' + escHtml(existing.contractId || '') + ').<br>' +
+      'سيتم إغلاقه تلقائياً بتاريخ <strong>' + closeDate + '</strong>.<br><br>' +
+      'Unit <strong>' + unitId + '</strong> has an active contract with ' +
+      '<strong>' + escHtml(existing.name || '') + '</strong>. ' +
+      'It will be auto-closed on <strong>' + closeDate + '</strong>.';
+    document.getElementById('cs-confirm-txt').textContent =
+      'I confirm closing the existing contract and creating the new one.';
+    warnEl.classList.add('show');
+    confEl.classList.add('show');
+    confChk.checked = false;
+  } else {
+    warnEl.classList.remove('show');
+    confEl.classList.remove('show');
+  }
+  updateContractSubmit();
+}
+
+function onContractDateChange() {
+  // Update status pill
+  var startVal = document.getElementById('cs-start').value;
+  var endVal   = document.getElementById('cs-end').value;
+  var pill     = document.getElementById('cs-status-pill');
+
+  if (!startVal) {
+    pill.textContent = '— fill dates —';
+    pill.className   = 'cs-status-pill empty';
+  } else if (endVal) {
+    pill.textContent = '● Inactive';
+    pill.className   = 'cs-status-pill inactive';
+  } else {
+    pill.textContent = '● Active';
+    pill.className   = 'cs-status-pill active';
+  }
+
+  // Update warning close date if unit already selected
+  var unitId = document.getElementById('cs-unit').value;
+  if (unitId && _activeContracts[unitId]) {
+    checkActiveContract();
+  }
+
+  onContractFieldChange();
+}
+
+function onContractFieldChange() {
+  // Update Contract ID preview
+  var unitSel    = document.getElementById('cs-unit');
+  var contactSel = document.getElementById('cs-contact');
+  var startVal   = document.getElementById('cs-start').value;
+  var preview    = document.getElementById('cs-id-preview');
+
+  var unitId     = unitSel.value;
+  var contactId  = contactSel.value;
+
+  if (unitId && contactId && startVal) {
+    var year   = startVal.substring(0, 4);
+    // Sequence: count existing contracts for this unit + 1
+    var seq = (_occAllRows.filter(function(c) { return c.unitId === unitId; }).length + 1);
+    var seqStr = String(seq).padStart(3, '0');
+    var contractId = unitId + '-' + contactId + '-' + year + '-' + seqStr;
+    preview.textContent = contractId;
+    preview.classList.remove('empty');
+  } else {
+    preview.textContent = 'Fill Unit · Contact · Start Date to generate';
+    preview.classList.add('empty');
+  }
+
+  updateContractSubmit();
+}
+
+function updateContractSubmit() {
+  var unitId    = document.getElementById('cs-unit').value;
+  var contactId = document.getElementById('cs-contact').value;
+  var role      = document.getElementById('cs-role').value;
+  var startVal  = document.getElementById('cs-start').value;
+  var endVal    = document.getElementById('cs-end').value;
+  var btn       = document.getElementById('cs-submit');
+  var hasConflict = unitId && _activeContracts[unitId];
+  var confirmed   = document.getElementById('cs-confirm-chk').checked;
+
+  // Validation
+  var valid = unitId && contactId && role && startVal;
+
+  // Start date must not be in future
+  if (startVal && startVal > todayStr()) valid = false;
+
+  // End date must be >= start date if provided
+  if (startVal && endVal && endVal < startVal) valid = false;
+
+  // If conflict, must confirm
+  if (hasConflict && !confirmed) valid = false;
+
+  btn.disabled = !valid;
+}
+
+function submitContract() {
+  if (!sessionValid()) return;
+
+  var unitSel    = document.getElementById('cs-unit');
+  var contactSel = document.getElementById('cs-contact');
+  var unitId     = unitSel.value;
+  var contactId  = contactSel.value;
+  var unitOpt    = unitSel.options[unitSel.selectedIndex];
+  var contactOpt = contactSel.options[contactSel.selectedIndex];
+  var role       = document.getElementById('cs-role').value;
+  var startVal   = document.getElementById('cs-start').value;
+  var endVal     = document.getElementById('cs-end').value;
+  var balance    = parseFloat(document.getElementById('cs-balance').value) || 0;
+
+  // Final validation
+  if (!unitId || !contactId || !role || !startVal) {
+    toast('❌ Please fill all required fields', 'fail'); return;
+  }
+  if (startVal > todayStr()) {
+    toast('❌ Start date cannot be in the future', 'fail'); return;
+  }
+  if (endVal && endVal < startVal) {
+    toast('❌ End date must be on or after start date', 'fail'); return;
+  }
+
+  var hasConflict = _activeContracts[unitId];
+  if (hasConflict && !document.getElementById('cs-confirm-chk').checked) {
+    toast('❌ Please confirm closing the existing contract', 'fail'); return;
+  }
+
+  // Build payload
+  var year   = startVal.substring(0, 4);
+  var seq    = (_occAllRows.filter(function(c) { return c.unitId === unitId; }).length + 1);
+  var seqStr = String(seq).padStart(3, '0');
+  var contractId = unitId + '-' + contactId + '-' + year + '-' + seqStr;
+
+  var payload = {
+    unitId:       unitId,
+    section:      (unitOpt && unitOpt.dataset.section) || '',
+    contactId:    contactId,
+    contactName:  (contactOpt && contactOpt.dataset.name) || '',
+    role:         role,
+    startDate:    startVal,
+    endDate:      endVal || '',
+    balanceFwd:   balance,
+    contractId:   contractId,
+    closeExisting: hasConflict ? hasConflict.contractId : ''
+  };
+
+  document.getElementById('cs-submit').disabled = true;
+  document.getElementById('cs-submit').textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'addOccupancyContract', payload: payload, token: _session.token })
+    .then(function(msg) {
+      toast('✅ ' + (msg || 'Contract saved'), 'ok');
+      closeContractSheet();
+      loadOccupancy(); // refresh the list
+    })
+    .catch(function(e) {
+      toast('❌ ' + (e.message || 'Failed to save'), 'fail');
+      document.getElementById('cs-submit').disabled = false;
+      document.getElementById('cs-submit').textContent = 'حفظ العقد / Save Contract';
+    });
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+function dateMinus1(dateStr) {
+  var d = new Date(dateStr);
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+function addUtility()       { toast('ℹ️ Add utility — coming soon', 'info'); }
+function editUtility(name)  { toast('ℹ️ Edit utility: ' + name, 'info'); }
+function addOverride()      { toast('ℹ️ Add override — coming soon', 'info'); }
+function addMeterReading()  { toast('ℹ️ Add meter reading — coming soon', 'info'); }
+
+// ── Gear visibility ───────────────────────────────────────────────────────────
 function showGear(isAdmin) {
-  // Mobile gear
   var sbGear = document.getElementById('sb-gear');
   if (sbGear) sbGear.style.display = isAdmin ? 'block' : 'none';
-  // Desktop gear
   var dtGear = document.getElementById('dt-gear');
   if (dtGear) dtGear.style.display = isAdmin ? 'block' : 'none';
 }
@@ -2735,11 +3500,10 @@ function escHtml(s) {
 
 </script>
 <!-- ══════════════════════════════════════════════
-     SETTINGS PANEL (Admin only)
+     SETTINGS PANEL (Admin only — 14 sections)
 ══════════════════════════════════════════════ -->
 <div id="settings-panel">
 
-  <!-- Top bar -->
   <div class="stg-topbar">
     <div class="stg-title">
       الإعدادات / Settings
@@ -2748,10 +3512,9 @@ function escHtml(s) {
     <button class="stg-close" onclick="closeSettings()">✕</button>
   </div>
 
-  <!-- Scrollable content -->
   <div class="stg-scroll" id="stg-scroll">
 
-    <!-- ① Building Profile -->
+    <!-- ①  Building Profile -->
     <div class="stg-section" id="stg-building">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-building')">
         <div class="stg-sec-ico">🏢</div>
@@ -2762,134 +3525,228 @@ function escHtml(s) {
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div class="stg-field">
-          <div class="stg-field-lbl">Building Name / اسم المبنى</div>
-          <input class="inp" id="stg-bld-name" type="text" placeholder="e.g. Le Porter">
-        </div>
-        <div class="stg-field">
-          <div class="stg-field-lbl">Address / العنوان</div>
-          <input class="inp" id="stg-bld-addr" type="text" placeholder="Street, City">
-        </div>
-        <div class="stg-field">
-          <div class="stg-field-lbl">Fiscal Year Start / بداية السنة المالية</div>
+        <div class="stg-field"><div class="stg-field-lbl">Building Name / اسم المبنى</div>
+          <input class="inp" id="stg-bld-name" type="text" placeholder="e.g. Le Porter"></div>
+        <div class="stg-field"><div class="stg-field-lbl">Address / العنوان</div>
+          <input class="inp" id="stg-bld-addr" type="text" placeholder="Street, City"></div>
+        <div class="stg-field"><div class="stg-field-lbl">Fiscal Year Start / بداية السنة المالية</div>
           <select class="inp" id="stg-fiscal-month">
-            <option value="1">January / يناير</option>
-            <option value="2">February / فبراير</option>
-            <option value="3">March / مارس</option>
-            <option value="4">April / أبريل</option>
-            <option value="5">May / مايو</option>
-            <option value="6">June / يونيو</option>
-            <option value="7">July / يوليو</option>
-            <option value="8">August / أغسطس</option>
-            <option value="9">September / سبتمبر</option>
-            <option value="10">October / أكتوبر</option>
-            <option value="11">November / نوفمبر</option>
-            <option value="12">December / ديسمبر</option>
-          </select>
-        </div>
-        <div class="stg-field">
-          <div class="stg-field-lbl">Opening Cash / النقد الافتتاحي</div>
-          <input class="inp" id="stg-opening-cash" type="number" step="0.01" placeholder="0.00">
-        </div>
+            <option value="1">January / يناير</option><option value="2">February / فبراير</option>
+            <option value="3">March / مارس</option><option value="4">April / أبريل</option>
+            <option value="5">May / مايو</option><option value="6">June / يونيو</option>
+            <option value="7">July / يوليو</option><option value="8">August / أغسطس</option>
+            <option value="9">September / سبتمبر</option><option value="10">October / أكتوبر</option>
+            <option value="11">November / نوفمبر</option><option value="12">December / ديسمبر</option>
+          </select></div>
+        <div class="stg-field"><div class="stg-field-lbl">Opening Cash / النقد الافتتاحي</div>
+          <input class="inp" id="stg-opening-cash" type="number" step="0.01" placeholder="0.00"></div>
         <button class="stg-save" onclick="saveSection('building')">حفظ / Save</button>
       </div>
     </div>
 
-    <!-- ② Units -->
+    <!-- ②  Units -->
     <div class="stg-section" id="stg-units">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-units')">
         <div class="stg-sec-ico">🏠</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">الوحدات / Units</div>
-          <div class="stg-sec-sub">View, add and edit building units</div>
+          <div class="stg-sec-sub">Unit ID · Floor · Type · SqM · Amps</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div id="stg-units-list" style="margin-top:4px;">
-          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
-        </div>
+        <div id="stg-units-list" class="stg-list-wrap"></div>
         <button class="stg-add-btn" onclick="addUnit()">＋ إضافة وحدة / Add Unit</button>
       </div>
     </div>
 
-    <!-- ③ Occupancy -->
+    <!-- ③  Occupancy -->
     <div class="stg-section" id="stg-occ">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-occ')">
         <div class="stg-sec-ico">👥</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">الإشغال / Occupancy</div>
-          <div class="stg-sec-sub">View, add and edit contracts</div>
+          <div class="stg-sec-sub">Contracts · tenants · roles · dates</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div id="stg-occ-list" style="margin-top:4px;">
-          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:10px;color:var(--muted);" id="occ-count"></div>
+          <button class="stg-user-btn" id="occ-toggle" onclick="toggleOccAll()"
+            style="border-color:var(--navy);color:var(--navy);">
+            عرض الكل / Show All
+          </button>
         </div>
+        <div id="stg-occ-list" class="stg-list-wrap"></div>
         <button class="stg-add-btn" onclick="addContract()">＋ إضافة عقد / Add Contract</button>
       </div>
     </div>
 
-    <!-- ④ Fee Rules -->
+    <!-- ④  Contacts -->
+    <div class="stg-section" id="stg-contacts">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-contacts')">
+        <div class="stg-sec-ico">📋</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">جهات الاتصال / Contacts</div>
+          <div class="stg-sec-sub">Contact ID · Name · Email · Phone · Status</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-contacts-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addContact()">＋ إضافة جهة اتصال / Add Contact</button>
+      </div>
+    </div>
+
+    <!-- ⑤  Fee Rules -->
     <div class="stg-section" id="stg-fees">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-fees')">
         <div class="stg-sec-ico">💰</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">قواعد الرسوم / Fee Rules</div>
-          <div class="stg-sec-sub">View and edit the fee structure</div>
+          <div class="stg-sec-sub">Charge · frequency · type · rate · target</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div id="stg-fees-list" style="margin-top:4px;">
-          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
-        </div>
+        <div id="stg-fees-list" class="stg-list-wrap"></div>
       </div>
     </div>
 
-    <!-- ⑤ Opening Balances -->
+    <!-- ⑥  Unit Fee Override -->
+    <div class="stg-section" id="stg-overrides">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-overrides')">
+        <div class="stg-sec-ico">🔧</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">تجاوز رسوم الوحدة / Unit Fee Override</div>
+          <div class="stg-sec-sub">Per-unit exceptions to standard fee rules</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-overrides-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addOverride()">＋ إضافة استثناء / Add Override</button>
+      </div>
+    </div>
+
+    <!-- ⑦  Utility Master -->
+    <div class="stg-section" id="stg-utility">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-utility')">
+        <div class="stg-sec-ico">⚡</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">الخدمات / Utility Master</div>
+          <div class="stg-sec-sub">Utility name · unit of measure · system tag</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-utility-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addUtility()">＋ إضافة خدمة / Add Utility</button>
+      </div>
+    </div>
+
+    <!-- ⑧  Meter Readings -->
+    <div class="stg-section" id="stg-meters">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-meters')">
+        <div class="stg-sec-ico">📈</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">قراءات العداد / Meter Readings</div>
+          <div class="stg-sec-sub">Date · unit · utility · prev / current · consumption</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-meters-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addMeterReading()">＋ إضافة قراءة / Add Reading</button>
+      </div>
+    </div>
+
+    <!-- ⑨  Income Categories -->
+    <div class="stg-section" id="stg-incat">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-incat')">
+        <div class="stg-sec-ico">🏷️</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">فئات الدخل / Income Categories</div>
+          <div class="stg-sec-sub">Code · Arabic · English · parent · status</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-incat-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addCategory('income')">＋ إضافة فئة / Add Category</button>
+      </div>
+    </div>
+
+    <!-- ⑩  Expense Categories -->
+    <div class="stg-section" id="stg-excat">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-excat')">
+        <div class="stg-sec-ico">🏷️</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">فئات المصروف / Expense Categories</div>
+          <div class="stg-sec-sub">Code · Arabic · English · parent · status</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-excat-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addCategory('expense')">＋ إضافة فئة / Add Category</button>
+      </div>
+    </div>
+
+    <!-- ⑪  Opening Balances -->
     <div class="stg-section" id="stg-balances">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-balances')">
         <div class="stg-sec-ico">📊</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">الأرصدة الافتتاحية / Opening Balances</div>
-          <div class="stg-sec-sub">Per unit, per year</div>
+          <div class="stg-sec-sub">Per contract · per year · debit / credit</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div id="stg-bal-list" style="margin-top:4px;">
-          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
-        </div>
+        <div id="stg-bal-list" class="stg-list-wrap"></div>
       </div>
     </div>
 
-    <!-- ⑥ Users & Access -->
+    <!-- ⑫  Users & Access -->
     <div class="stg-section" id="stg-users">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-users')">
         <div class="stg-sec-ico">👤</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">المستخدمون / Users & Access</div>
-          <div class="stg-sec-sub">View users, reset PINs, manage access</div>
+          <div class="stg-sec-sub">View users · reset PINs · activate / deactivate</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
-        <div id="stg-users-list" style="margin-top:4px;">
-          <div style="font-size:12px;color:var(--muted);padding:12px 0;">جاري التحميل... / Loading...</div>
-        </div>
+        <div id="stg-users-list" class="stg-list-wrap"></div>
         <button class="stg-add-btn" onclick="openAddUser()">＋ إضافة مستخدم / Add User</button>
       </div>
     </div>
 
-    <!-- ⑦ Year-End Close -->
+    <!-- ⑬  YearCash — view only -->
+    <div class="stg-section" id="stg-yearcash">
+      <div class="stg-sec-hdr" onclick="toggleSection('stg-yearcash')">
+        <div class="stg-sec-ico">💵</div>
+        <div class="stg-sec-info">
+          <div class="stg-sec-title">سجل النقد السنوي / YearCash</div>
+          <div class="stg-sec-sub">Year · opening · closing · INC / EXP counts — view only</div>
+        </div>
+        <div class="stg-sec-arr">›</div>
+      </div>
+      <div class="stg-sec-body">
+        <div id="stg-yearcash-list" class="stg-list-wrap"></div>
+      </div>
+    </div>
+
+    <!-- ⑭  Year-End Close -->
     <div class="stg-section" id="stg-yearend">
       <div class="stg-sec-hdr" onclick="toggleSection('stg-yearend')">
         <div class="stg-sec-ico">📅</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">إغلاق السنة / Year-End Close</div>
-          <div class="stg-sec-sub">Run close, view year history</div>
+          <div class="stg-sec-sub">Run close · view history</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
@@ -2906,6 +3763,95 @@ function escHtml(s) {
 
   </div><!-- /stg-scroll -->
 </div><!-- /settings-panel -->
+
+<!-- ══════════════════════════════════════════════
+     ADD CONTRACT SHEET
+══════════════════════════════════════════════ -->
+<div id="contract-sheet-wrap">
+  <div id="contract-sheet">
+
+    <div class="cs-title">إضافة عقد / Add Contract</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <!-- Warning: unit already has active contract -->
+    <div class="cs-warn" id="cs-warn">
+      <strong>⚠️ تنبيه / Warning</strong>
+      <span id="cs-warn-msg"></span>
+    </div>
+
+    <!-- Confirm checkbox (shown with warning) -->
+    <label class="cs-confirm" id="cs-confirm">
+      <input type="checkbox" id="cs-confirm-chk" onchange="updateContractSubmit()">
+      <span id="cs-confirm-txt"></span>
+    </label>
+
+    <!-- Unit -->
+    <div class="cs-field">
+      <div class="cs-lbl">Unit / الوحدة <span class="req">*</span></div>
+      <select class="inp" id="cs-unit" onchange="onContractUnitChange()">
+        <option value="" disabled selected>اختر وحدة / Select unit...</option>
+      </select>
+    </div>
+
+    <!-- Contact -->
+    <div class="cs-field">
+      <div class="cs-lbl">Contact / جهة الاتصال <span class="req">*</span></div>
+      <select class="inp" id="cs-contact" onchange="onContractFieldChange()">
+        <option value="" disabled selected>اختر جهة اتصال / Select contact...</option>
+      </select>
+    </div>
+
+    <!-- Role -->
+    <div class="cs-field">
+      <div class="cs-lbl">Role / الدور <span class="req">*</span></div>
+      <select class="inp" id="cs-role" onchange="onContractFieldChange()">
+        <option value="" disabled selected>اختر الدور / Select role...</option>
+        <option value="Tenant">Tenant / مستأجر</option>
+        <option value="Relative">Relative / قريب</option>
+        <option value="Owner">Owner / مالك</option>
+      </select>
+    </div>
+
+    <!-- Start Date -->
+    <div class="cs-field">
+      <div class="cs-lbl">Start Date / تاريخ البدء <span class="req">*</span></div>
+      <input class="inp" type="date" id="cs-start" onchange="onContractDateChange()">
+    </div>
+
+    <!-- End Date -->
+    <div class="cs-field">
+      <div class="cs-lbl">End Date / تاريخ الانتهاء <span style="color:var(--muted);font-weight:400;">(optional)</span></div>
+      <input class="inp" type="date" id="cs-end" onchange="onContractDateChange()">
+    </div>
+
+    <!-- Balance Forward -->
+    <div class="cs-field">
+      <div class="cs-lbl">Balance Forward / الرصيد المرحّل</div>
+      <input class="inp" type="number" step="0.01" id="cs-balance" placeholder="0.00" value="0">
+    </div>
+
+    <!-- Contract ID preview -->
+    <div class="cs-field">
+      <div class="cs-lbl">Contract ID (auto-generated)</div>
+      <div class="cs-preview empty" id="cs-id-preview">Fill Unit · Contact · Start Date to generate</div>
+    </div>
+
+    <!-- Status preview -->
+    <div class="cs-field">
+      <div class="cs-lbl">Status / الحالة (auto)</div>
+      <div class="cs-status-pill empty" id="cs-status-pill">— fill dates —</div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="cs-btns">
+      <button class="cs-submit" id="cs-submit" onclick="submitContract()" disabled>
+        حفظ العقد / Save Contract
+      </button>
+      <button class="cs-cancel" onclick="closeContractSheet()">إلغاء</button>
+    </div>
+
+  </div>
+</div>
 
 </body>
 </html>

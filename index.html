@@ -269,6 +269,50 @@
       min-height: 16px;
     }
 
+    /* Verifying spinner */
+    #lgn-verifying {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      min-height: 52px;
+    }
+
+    #lgn-verifying.show { display: flex; }
+
+    .lgn-wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 24px;
+    }
+
+    .lgn-wave span {
+      display: block;
+      width: 5px;
+      border-radius: 3px;
+      background: var(--navy);
+      animation: waveBar 1.1s ease-in-out infinite;
+    }
+
+    .lgn-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+    .lgn-wave span:nth-child(2) { height: 16px; animation-delay: 0.15s; }
+    .lgn-wave span:nth-child(3) { height: 24px; animation-delay: 0.3s; }
+    .lgn-wave span:nth-child(4) { height: 16px; animation-delay: 0.45s; }
+    .lgn-wave span:nth-child(5) { height: 8px;  animation-delay: 0.6s; }
+
+    @keyframes waveBar {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.35; }
+      50%       { transform: scaleY(1);   opacity: 1; }
+    }
+
+    .lgn-verif-txt {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
     /* Lockout overlay (inside login screen) */
     #lockout-banner {
       display: none;
@@ -840,7 +884,15 @@
       <button class="pad-btn pad-back" onclick="padBack()">⌫</button>
     </div>
 
-    <!-- Status + attempts -->
+    <!-- Verifying spinner (shown during GAS call) -->
+    <div id="lgn-verifying">
+      <div class="lgn-wave">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="lgn-verif-txt">جاري التحقق / Verifying...</div>
+    </div>
+
+    <!-- Status + attempts (shown on wrong PIN / error) -->
     <div class="lgn-status" id="lgn-status"></div>
     <div class="lgn-attempts" id="lgn-attempts"></div>
   </div>
@@ -1244,12 +1296,14 @@ function submitPin() {
   _pinBuffer = '';
   updateDots();
 
-  // Disable pad while verifying
+  // Show verifying spinner, hide status text
   disablePad(true);
-  setLoginStatus('جاري التحقق... / Verifying...');
+  showVerifying(true);
+  setLoginStatus('');
 
   gasPost({ action: 'login', pin: pin })
     .then(function(auth) {
+      showVerifying(false);
       disablePad(false);
       if (!auth) {
         onWrongPin();
@@ -1258,6 +1312,7 @@ function submitPin() {
       onLoginSuccess(auth);
     })
     .catch(function(e) {
+      showVerifying(false);
       disablePad(false);
       setLoginStatus('⚠️ Connection error. Try again.');
       setTimeout(function() { setLoginStatus(''); }, 3000);
@@ -1267,6 +1322,15 @@ function submitPin() {
 function disablePad(state) {
   var btns = document.querySelectorAll('.pad-btn');
   btns.forEach(function(b) { b.disabled = state; });
+}
+
+function showVerifying(state) {
+  var el = document.getElementById('lgn-verifying');
+  if (state) {
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
 }
 
 // ── Wrong PIN ────────────────────────────────────────────────────────────────

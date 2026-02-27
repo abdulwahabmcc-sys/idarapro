@@ -618,6 +618,55 @@
     .b-exp { background: var(--burg);   box-shadow: 0 4px 14px rgba(155,35,53,0.26); }
     .b-rep { background: var(--navy);   box-shadow: 0 4px 14px rgba(27,42,74,0.24); }
 
+    /* Button processing state */
+    .btn-sub.processing {
+      opacity: 1 !important;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-wave {
+      display: none;
+      align-items: flex-end;
+      gap: 4px;
+      height: 20px;
+    }
+
+    .btn-sub.processing .btn-wave { display: flex; }
+    .btn-sub.processing .btn-label { display: none; }
+
+    .btn-wave span {
+      display: block;
+      width: 4px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.9);
+      animation: btnWave 1.1s ease-in-out infinite;
+    }
+
+    .btn-wave span:nth-child(1) { height: 6px;  animation-delay: 0s; }
+    .btn-wave span:nth-child(2) { height: 12px; animation-delay: 0.15s; }
+    .btn-wave span:nth-child(3) { height: 18px; animation-delay: 0.3s; }
+    .btn-wave span:nth-child(4) { height: 12px; animation-delay: 0.45s; }
+    .btn-wave span:nth-child(5) { height: 6px;  animation-delay: 0.6s; }
+
+    @keyframes btnWave {
+      0%, 100% { transform: scaleY(0.35); opacity: 0.4; }
+      50%       { transform: scaleY(1);   opacity: 1; }
+    }
+
+    .btn-proc-txt {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.3px;
+    }
+
+    .btn-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     /* ══════════════════════════════════════════════
        LOCK BANNER
     ══════════════════════════════════════════════ */
@@ -1009,8 +1058,16 @@
     <!-- Submit button — no more PIN field -->
     <div class="card">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
-        <span id="btn-ico">💰</span>
-        <span id="btn-txt">تسجيل الدفعة / Record Payment</span>
+        <!-- Processing state -->
+        <div class="btn-wave">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span class="btn-proc-txt" id="btn-proc-txt"></span>
+        <!-- Normal label -->
+        <span class="btn-label" id="btn-label">
+          <span id="btn-ico">💰</span>
+          <span id="btn-txt">تسجيل الدفعة / Record Payment</span>
+        </span>
       </button>
     </div>
 
@@ -1330,6 +1387,26 @@ function showVerifying(state) {
     el.classList.add('show');
   } else {
     el.classList.remove('show');
+  }
+}
+
+function setBtnProcessing(state) {
+  var btn  = document.getElementById('btn-sub');
+  var proc = document.getElementById('btn-proc-txt');
+  if (state) {
+    // Set contextual message based on current tab
+    var msgs = {
+      'Income':  'جاري الحفظ / Saving...',
+      'Expense': 'جاري الحفظ / Saving...',
+      'Report':  'جاري الإرسال / Sending...'
+    };
+    proc.textContent = msgs[TAB] || 'جاري المعالجة / Processing...';
+    btn.classList.add('processing');
+    btn.disabled = true;
+  } else {
+    btn.classList.remove('processing');
+    btn.disabled = false;
+    proc.textContent = '';
   }
 }
 
@@ -1752,8 +1829,7 @@ function doSubmit() {
   }
 
   var btn = document.getElementById('btn-sub');
-  btn.disabled = true;
-  toast('⏳ Processing...', 'info');
+  setBtnProcessing(true);
 
   var tmout = setTimeout(function() {
     onFail({ message: 'Timed out. Try again.' });
@@ -1795,8 +1871,8 @@ function doSubmit() {
 
 function onOk(msg) {
   var ok = msg && (msg.includes('✅') || msg.includes('success') || msg.includes('Saved'));
+  setBtnProcessing(false);
   toast(msg, ok ? 'ok' : 'fail');
-  document.getElementById('btn-sub').disabled = false;
   if (ok && TAB !== 'Report') {
     document.getElementById('inp-amt').value = '';
     refreshDash();
@@ -1804,8 +1880,8 @@ function onOk(msg) {
 }
 
 function onFail(e) {
+  setBtnProcessing(false);
   toast('❌ ' + (e.message || String(e)), 'fail');
-  document.getElementById('btn-sub').disabled = false;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

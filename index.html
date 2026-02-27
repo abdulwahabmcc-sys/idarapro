@@ -1948,8 +1948,10 @@ var _lockTimer    = null;
 var _session = null;
 
 // ── GAS helpers ──────────────────────────────────────────────────────────────
-function gasGet(action) {
-  return fetch(GAS + '?action=' + action)
+function gasGet(action, token) {
+  var url = GAS + '?action=' + encodeURIComponent(action);
+  if (token) url += '&token=' + encodeURIComponent(token);
+  return fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
 }
@@ -2804,7 +2806,7 @@ function stgError(el) {
 
 // ── ①  Building Profile ───────────────────────────────────────────────────────
 function loadBuildingProfile() {
-  gasGet('getSettingsBuilding')
+  gasGet('getSettingsBuilding', _session && _session.token)
     .then(function(d) {
       if (!d) return;
       document.getElementById('stg-bld-name').value     = d.buildingName || '';
@@ -2817,7 +2819,7 @@ function loadBuildingProfile() {
 // ── ②  Units ─────────────────────────────────────────────────────────────────
 function loadUnits() {
   var el = stgListEl('stg-units-list'); stgLoading(el);
-  gasGet('getSettingsUnits')
+  gasGet('getSettingsUnits', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد وحدات / No units found'); return; }
       el.innerHTML = rows.map(function(u) {
@@ -2850,7 +2852,7 @@ function loadOccupancy() {
   var btn = document.getElementById('occ-toggle');
   if (btn) btn.textContent = 'عرض الكل / Show All';
 
-  gasGet('getSettingsOccupancy')
+  gasGet('getSettingsOccupancy', _session && _session.token)
     .then(function(rows) {
       _occAllRows = rows || [];
       renderOccupancy();
@@ -2900,7 +2902,7 @@ function renderOccupancy() {
 // ── ④  Contacts ───────────────────────────────────────────────────────────────
 function loadContacts() {
   var el = stgListEl('stg-contacts-list'); stgLoading(el);
-  gasGet('getSettingsContacts')
+  gasGet('getSettingsContacts', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد جهات اتصال / No contacts'); return; }
       el.innerHTML = rows.map(function(c) {
@@ -2927,7 +2929,7 @@ function loadContacts() {
 // ── ⑤  Fee Rules ─────────────────────────────────────────────────────────────
 function loadFees() {
   var el = stgListEl('stg-fees-list'); stgLoading(el);
-  gasGet('getSettingsFees')
+  gasGet('getSettingsFees', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد رسوم / No fees configured'); return; }
       el.innerHTML = rows.map(function(f) {
@@ -2950,7 +2952,7 @@ function loadFees() {
 // ── ⑥  Unit Fee Overrides ────────────────────────────────────────────────────
 function loadOverrides() {
   var el = stgListEl('stg-overrides-list'); stgLoading(el);
-  gasGet('getSettingsOverrides')
+  gasGet('getSettingsOverrides', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد استثناءات / No overrides configured'); return; }
       el.innerHTML = rows.map(function(o) {
@@ -2969,7 +2971,7 @@ function loadOverrides() {
 // ── ⑦  Utility Master ────────────────────────────────────────────────────────
 function loadUtility() {
   var el = stgListEl('stg-utility-list'); stgLoading(el);
-  gasGet('getSettingsUtility')
+  gasGet('getSettingsUtility', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد خدمات / No utilities configured'); return; }
       el.innerHTML = rows.map(function(u) {
@@ -2988,7 +2990,7 @@ function loadUtility() {
 // ── ⑧  Meter Readings ────────────────────────────────────────────────────────
 function loadMeters() {
   var el = stgListEl('stg-meters-list'); stgLoading(el);
-  gasGet('getSettingsMeters')
+  gasGet('getSettingsMeters', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد قراءات / No readings found'); return; }
       el.innerHTML = rows.map(function(r) {
@@ -3042,7 +3044,7 @@ function loadCategories(type) {
 // ── ⑪  Opening Balances ──────────────────────────────────────────────────────
 function loadBalances() {
   var el = stgListEl('stg-bal-list'); stgLoading(el);
-  gasGet('getSettingsBalances')
+  gasGet('getSettingsBalances', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد أرصدة / No balances'); return; }
       el.innerHTML = rows.map(function(r) {
@@ -3062,7 +3064,7 @@ function loadBalances() {
 // ── ⑫  Users & Access ────────────────────────────────────────────────────────
 function loadUsers() {
   var el = stgListEl('stg-users-list'); stgLoading(el);
-  gasGet('getSettingsUsers')
+  gasGet('getSettingsUsers', _session && _session.token)
     .then(function(users) {
       if (!users || !users.length) { stgEmpty(el, 'لا يوجد مستخدمون / No users found'); return; }
       el.innerHTML = users.map(function(u) {
@@ -3093,7 +3095,7 @@ function loadUsers() {
 // ── ⑬  YearCash — view only ──────────────────────────────────────────────────
 function loadYearCash() {
   var el = stgListEl('stg-yearcash-list'); stgLoading(el);
-  gasGet('getSettingsYearCash')
+  gasGet('getSettingsYearCash', _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد سجلات / No records'); return; }
       var html = '<div class="stg-yc-row">' +
@@ -3122,7 +3124,7 @@ function loadYearCash() {
 function loadYearEnd() {
   var statusEl  = document.getElementById('stg-ye-status');
   var historyEl = document.getElementById('stg-ye-history');
-  gasGet('getSettingsYearEnd')
+  gasGet('getSettingsYearEnd', _session && _session.token)
     .then(function(d) {
       if (!d) return;
       var closed = d.closedThisYear;
@@ -3239,9 +3241,9 @@ function addContract() {
 
   // Load units + contacts in parallel
   Promise.all([
-    gasGet('getSettingsUnits'),
-    gasGet('getSettingsContacts'),
-    gasGet('getSettingsOccupancy')  // all contracts to find active ones
+    gasGet('getSettingsUnits', _session && _session.token),
+    gasGet('getSettingsContacts', _session && _session.token),
+    gasGet('getSettingsOccupancy', _session && _session.token)  // all contracts to find active ones
   ]).then(function(results) {
     _contractUnits    = results[0] || [];
     _contractContacts = (results[1] || []).filter(function(c) {

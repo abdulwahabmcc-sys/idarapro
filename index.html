@@ -788,11 +788,46 @@
       min-height: 40px;
     }
 
+    /* ── Section loading wave (replaces plain text) ── */
     .stg-loading {
-      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 0;
+    }
+
+    .stg-loading-wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 20px;
+    }
+
+    .stg-loading-wave span {
+      display: block;
+      width: 4px;
+      border-radius: 3px;
+      background: var(--navy);
+      animation: stgWave 1.1s ease-in-out infinite;
+    }
+
+    .stg-loading-wave span:nth-child(1) { height: 6px;  animation-delay: 0s; }
+    .stg-loading-wave span:nth-child(2) { height: 12px; animation-delay: 0.15s; }
+    .stg-loading-wave span:nth-child(3) { height: 18px; animation-delay: 0.3s; }
+    .stg-loading-wave span:nth-child(4) { height: 12px; animation-delay: 0.45s; }
+    .stg-loading-wave span:nth-child(5) { height: 6px;  animation-delay: 0.6s; }
+
+    @keyframes stgWave {
+      0%, 100% { transform: scaleY(0.35); opacity: 0.3; }
+      50%       { transform: scaleY(1);   opacity: 1; }
+    }
+
+    .stg-loading-txt {
+      font-size: 11px;
+      font-weight: 600;
       color: var(--muted);
-      padding: 12px 0;
-      direction: rtl;
+      direction: ltr;
+      letter-spacing: 0.3px;
     }
 
     .stg-empty {
@@ -807,6 +842,132 @@
       font-size: 12px;
       color: var(--burg);
       padding: 12px 0;
+    }
+
+    /* ── Unit cards ── */
+    .unit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .unit-card {
+      background: var(--bg);
+      border: 1px solid var(--bdr);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .unit-card:active { transform: scale(0.98); }
+    .unit-card:hover  { border-color: var(--navy); }
+
+    .unit-card-num {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1;
+    }
+
+    .unit-card-id {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .unit-card-type {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .unit-type-res  { background: rgba(27,42,74,0.08);  color: var(--navy); }
+    .unit-type-com  { background: rgba(201,168,76,0.18); color: #7a5c0a; }
+
+    .unit-card-details {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .unit-chip {
+      font-size: 9px;
+      color: var(--muted);
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: 4px;
+      padding: 2px 6px;
+      direction: ltr;
+    }
+
+    .unit-edit-btn {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--bdr);
+      background: var(--surf);
+      color: var(--navy);
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .unit-card:hover .unit-edit-btn { opacity: 1; }
+
+    /* On touch devices show edit btn always */
+    @media (hover: none) {
+      .unit-edit-btn { opacity: 1; }
+    }
+
+    /* ── Unit form sheet ── */
+    #unit-sheet-wrap {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(27,42,74,0.55);
+      z-index: 9600;
+      align-items: flex-end;
+      backdrop-filter: blur(3px);
+    }
+
+    #unit-sheet-wrap.open { display: flex; }
+
+    #unit-sheet {
+      background: var(--surf);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 24px 20px calc(32px + env(safe-area-inset-bottom));
+      animation: shup 0.3s ease;
+    }
+
+    #unit-sheet::-webkit-scrollbar { display: none; }
+
+    @media (min-width: 769px) {
+      #unit-sheet-wrap { align-items: center; justify-content: center; }
+      #unit-sheet {
+        border-radius: 20px;
+        max-width: 440px;
+        padding: 28px 28px 32px;
+        animation: fadeUp 0.25s ease;
+      }
     }
 
     /* Category row — two-line with status badge */
@@ -2793,7 +2954,10 @@ function stgLoad(name) {
 function stgListEl(id) { return document.getElementById(id); }
 
 function stgLoading(el) {
-  el.innerHTML = '<div class="stg-loading">جاري التحميل... / Loading...</div>';
+  el.innerHTML = '<div class="stg-loading">' +
+    '<div class="stg-loading-wave"><span></span><span></span><span></span><span></span><span></span></div>' +
+    '<div class="stg-loading-txt">Loading...</div>' +
+  '</div>';
 }
 
 function stgEmpty(el, msg) {
@@ -2817,22 +2981,38 @@ function loadBuildingProfile() {
 }
 
 // ── ②  Units ─────────────────────────────────────────────────────────────────
+var _unitsCache = [];
+
 function loadUnits() {
   var el = stgListEl('stg-units-list'); stgLoading(el);
   gasGet('getSettingsUnits', _session && _session.token)
     .then(function(rows) {
+      _unitsCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد وحدات / No units found'); return; }
-      el.innerHTML = rows.map(function(u) {
-        return '<div class="stg-user-row">' +
-          '<div class="stg-user-avatar" style="background:var(--forest);font-size:10px;">' + escHtml(u.section || u.unitId || '—') + '</div>' +
-          '<div class="stg-user-info">' +
-            '<div class="stg-user-name">' + escHtml(u.unitId || '—') + ' — ' + escHtml(u.section || '') + '</div>' +
-            '<div class="stg-user-meta">' + (u.type || '') + (u.floor ? ' · ' + u.floor : '') + (u.sqm ? ' · ' + u.sqm + ' m²' : '') + (u.amps ? ' · ' + u.amps + 'A' : '') + '</div>' +
-          '</div>' +
-          '<div class="stg-user-actions"><button class="stg-user-btn" onclick="editUnit(\'' + escHtml(u.unitId) + '\')">تعديل</button></div>' +
-        '</div>';
-      }).join('');
+      renderUnitCards(el, rows);
     }).catch(function() { stgError(el); });
+}
+
+function renderUnitCards(el, rows) {
+  var html = '<div class="unit-grid">';
+  rows.forEach(function(u) {
+    var typeClass = (u.type || '').toLowerCase().indexOf('res') > -1 ? 'unit-type-res' : 'unit-type-com';
+    var typeLabel = (u.type || '').toLowerCase().indexOf('res') > -1 ? 'Residential' : (u.type || 'Unknown');
+    html +=
+      '<div class="unit-card" onclick="editUnit(\'' + escHtml(u.unitId) + '\')">' +
+        '<button class="unit-edit-btn" onclick="event.stopPropagation();editUnit(\'' + escHtml(u.unitId) + '\')">تعديل ✏️</button>' +
+        '<div class="unit-card-num">§' + escHtml(u.section || u.unitId) + '</div>' +
+        '<div class="unit-card-id">' + escHtml(u.unitId) + '</div>' +
+        '<div class="unit-card-type ' + typeClass + '">' + typeLabel + '</div>' +
+        '<div class="unit-card-details">' +
+          (u.floor ? '<span class="unit-chip">🏢 ' + escHtml(u.floor) + '</span>' : '') +
+          (u.sqm   ? '<span class="unit-chip">📐 ' + escHtml(u.sqm) + ' m²</span>' : '') +
+          (u.amps  ? '<span class="unit-chip">⚡ ' + escHtml(u.amps) + 'A</span>' : '') +
+        '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ── ③  Occupancy ──────────────────────────────────────────────────────────────
@@ -3482,7 +3662,67 @@ function dateMinus1(dateStr) {
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
 }
-function addUtility()       { toast('ℹ️ Add utility — coming soon', 'info'); }
+function addUnit() {
+  openUnitSheet(null);
+}
+
+function editUnit(unitId) {
+  var unit = _unitsCache.find(function(u) { return u.unitId === unitId; }) || null;
+  openUnitSheet(unit);
+}
+
+function openUnitSheet(unit) {
+  var isEdit = !!unit;
+  document.getElementById('us-title').textContent = isEdit ? 'تعديل وحدة / Edit Unit' : 'إضافة وحدة / Add Unit';
+  document.getElementById('us-unit-id').value   = isEdit ? (unit.unitId  || '') : '';
+  document.getElementById('us-section').value   = isEdit ? (unit.section || '') : '';
+  document.getElementById('us-floor').value     = isEdit ? (unit.floor   || '') : '';
+  document.getElementById('us-sqm').value       = isEdit ? (unit.sqm     || '') : '';
+  document.getElementById('us-type').value      = isEdit ? (unit.type    || '') : '';
+  document.getElementById('us-amps').value      = isEdit ? (unit.amps    || '') : '';
+  // Lock Unit ID when editing
+  document.getElementById('us-unit-id').readOnly = isEdit;
+  document.getElementById('us-unit-id').style.opacity = isEdit ? '0.6' : '1';
+  document.getElementById('us-submit').textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
+  document.getElementById('unit-sheet-wrap').classList.add('open');
+}
+
+function closeUnitSheet() {
+  document.getElementById('unit-sheet-wrap').classList.remove('open');
+}
+
+function submitUnit() {
+  if (!sessionValid()) return;
+  var unitId  = document.getElementById('us-unit-id').value.trim();
+  var section = document.getElementById('us-section').value.trim();
+  var floor   = document.getElementById('us-floor').value.trim();
+  var sqm     = document.getElementById('us-sqm').value.trim();
+  var type    = document.getElementById('us-type').value;
+  var amps    = document.getElementById('us-amps').value.trim();
+
+  if (!unitId || !section || !type) {
+    toast('❌ Unit ID, Section and Type are required', 'fail'); return;
+  }
+
+  var isEdit = document.getElementById('us-unit-id').readOnly;
+  var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
+
+  var btn = document.getElementById('us-submit');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveUnit', payload: payload, token: _session.token })
+    .then(function(msg) {
+      toast('✅ ' + (msg || 'Unit saved'), 'ok');
+      closeUnitSheet();
+      loadUnits();
+    })
+    .catch(function(e) {
+      toast('❌ ' + (e.message || 'Failed'), 'fail');
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
+    });
+}
 function editUtility(name)  { toast('ℹ️ Edit utility: ' + name, 'info'); }
 function addOverride()      { toast('ℹ️ Add override — coming soon', 'info'); }
 function addMeterReading()  { toast('ℹ️ Add meter reading — coming soon', 'info'); }
@@ -3850,6 +4090,61 @@ function escHtml(s) {
         حفظ العقد / Save Contract
       </button>
       <button class="cs-cancel" onclick="closeContractSheet()">إلغاء</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ADD / EDIT UNIT SHEET
+══════════════════════════════════════════════ -->
+<div id="unit-sheet-wrap">
+  <div id="unit-sheet">
+
+    <div class="cs-title" id="us-title">إضافة وحدة / Add Unit</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Unit ID <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(e.g. U-06)</span></div>
+      <input class="inp" type="text" id="us-unit-id" placeholder="U-XX">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Section / القسم <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(Arabic numeral e.g. ٦)</span></div>
+      <input class="inp" type="text" id="us-section" placeholder="٦">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Floor / الطابق</div>
+        <input class="inp" type="text" id="us-floor" placeholder="e.g. ارضي">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Area / المساحة (m²)</div>
+        <input class="inp" type="number" id="us-sqm" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Type / النوع <span class="req">*</span></div>
+        <select class="inp" id="us-type">
+          <option value="" disabled selected>Select...</option>
+          <option value="Residential">Residential / سكني</option>
+          <option value="Commercial">Commercial / تجاري</option>
+          <option value="Parking">Parking / موقف</option>
+          <option value="Storage">Storage / مخزن</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Capacity / الطاقة (Amps)</div>
+        <input class="inp" type="number" id="us-amps" placeholder="0">
+      </div>
+    </div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="us-submit" onclick="submitUnit()">إضافة الوحدة / Add Unit</button>
+      <button class="cs-cancel" onclick="closeUnitSheet()">إلغاء</button>
     </div>
 
   </div>

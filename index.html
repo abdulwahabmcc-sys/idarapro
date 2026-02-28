@@ -3758,6 +3758,17 @@ function submitUnit() {
   if (!section) { showUnitErr('❌ Section is required'); return; }
   if (!type)    { showUnitErr('❌ Type is required'); return; }
 
+  // Section uniqueness — check against cache before hitting GAS
+  var sectionTaken = _unitsCache.find(function(u) {
+    var sameSection = u.section.trim() === section;
+    var sameUnit    = u.unitId === unitId; // true when editing this exact unit
+    return sameSection && !sameUnit;       // conflict = same section, different unit
+  });
+  if (sectionTaken) {
+    showUnitErr('❌ Section ' + section + ' is already assigned to unit ' + sectionTaken.unitId + '. Each unit must have a unique section number.');
+    return;
+  }
+
   var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
   var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
 

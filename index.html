@@ -1240,7 +1240,7 @@
       border-radius: 12px;
       font-size: 14px; font-weight: 600;
       color: #fff; text-align: center;
-      z-index: 8000;
+      z-index: 99999;
       opacity: 0; transform: translateY(8px);
       pointer-events: none;
       transition: all 0.25s ease;
@@ -3001,7 +3001,7 @@ function renderUnitCards(el, rows) {
     html +=
       '<div class="unit-card" onclick="editUnit(\'' + escHtml(u.unitId) + '\')">' +
         '<button class="unit-edit-btn" onclick="event.stopPropagation();editUnit(\'' + escHtml(u.unitId) + '\')">تعديل ✏️</button>' +
-        '<div class="unit-card-num">§' + escHtml(u.section || u.unitId) + '</div>' +
+        '<div class="unit-card-num">' + escHtml(u.section || u.unitId) + '</div>' +
         '<div class="unit-card-id">' + escHtml(u.unitId) + '</div>' +
         '<div class="unit-card-type ' + typeClass + '">' + typeLabel + '</div>' +
         '<div class="unit-card-details">' +
@@ -3673,17 +3673,49 @@ function editUnit(unitId) {
 
 function openUnitSheet(unit) {
   var isEdit = !!unit;
+
+  // Title
   document.getElementById('us-title').textContent = isEdit ? 'تعديل وحدة / Edit Unit' : 'إضافة وحدة / Add Unit';
-  document.getElementById('us-unit-id').value   = isEdit ? (unit.unitId  || '') : '';
-  document.getElementById('us-section').value   = isEdit ? (unit.section || '') : '';
-  document.getElementById('us-floor').value     = isEdit ? (unit.floor   || '') : '';
-  document.getElementById('us-sqm').value       = isEdit ? (unit.sqm     || '') : '';
-  document.getElementById('us-type').value      = isEdit ? (unit.type    || '') : '';
-  document.getElementById('us-amps').value      = isEdit ? (unit.amps    || '') : '';
-  // Lock Unit ID when editing
-  document.getElementById('us-unit-id').readOnly = isEdit;
-  document.getElementById('us-unit-id').style.opacity = isEdit ? '0.6' : '1';
-  document.getElementById('us-submit').textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
+
+  // Unit ID — auto-generate for new, show existing for edit
+  var displayEl = document.getElementById('us-unit-id-display');
+  var hiddenEl  = document.getElementById('us-unit-id');
+  if (isEdit) {
+    displayEl.textContent = unit.unitId;
+    displayEl.style.color = 'var(--navy)';
+    hiddenEl.value = unit.unitId;
+  } else {
+    // Generate next ID from cache: find highest U-XX number and increment
+    var maxNum = 0;
+    _unitsCache.forEach(function(u) {
+      var m = String(u.unitId).match(/U-(\d+)/i);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    });
+    var nextId = 'U-' + String(maxNum + 1).padStart(2, '0');
+    displayEl.textContent = nextId + ' (pending save)';
+    displayEl.style.color = 'var(--muted)';
+    hiddenEl.value = nextId;
+  }
+
+  // Reset all fields
+  document.getElementById('us-section').value = isEdit ? (unit.section || '') : '';
+  document.getElementById('us-type').value    = isEdit ? (unit.type    || '') : '';
+  document.getElementById('us-sqm').value     = isEdit ? (unit.sqm     || '') : '';
+  document.getElementById('us-amps').value    = isEdit ? (unit.amps    || '') : '';
+
+  // Floor dropdown — match value
+  var floorSel = document.getElementById('us-floor');
+  floorSel.value = isEdit ? (unit.floor || '') : '';
+
+  // Reset submit button fully — this is the freeze fix
+  var btn = document.getElementById('us-submit');
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
+
+  // Clear any inline error
+  var errEl = document.getElementById('us-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
   document.getElementById('unit-sheet-wrap').classList.add('open');
 }
 
@@ -3691,20 +3723,42 @@ function closeUnitSheet() {
   document.getElementById('unit-sheet-wrap').classList.remove('open');
 }
 
+function showUnitErr(msg) {
+  // Show error inside the sheet, always visible above the backdrop
+  var errEl = document.getElementById('us-inline-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = 'us-inline-err';
+    errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);' +
+      'border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);' +
+      'margin-bottom:12px;direction:ltr;display:none;';
+    var btnsEl = document.querySelector('.cs-btns');
+    btnsEl.parentNode.insertBefore(errEl, btnsEl);
+  }
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  // Scroll to bottom of sheet so error is visible
+  document.getElementById('unit-sheet').scrollTop = document.getElementById('unit-sheet').scrollHeight;
+}
+
 function submitUnit() {
   if (!sessionValid()) return;
+
   var unitId  = document.getElementById('us-unit-id').value.trim();
   var section = document.getElementById('us-section').value.trim();
-  var floor   = document.getElementById('us-floor').value.trim();
+  var floor   = document.getElementById('us-floor').value;
   var sqm     = document.getElementById('us-sqm').value.trim();
   var type    = document.getElementById('us-type').value;
   var amps    = document.getElementById('us-amps').value.trim();
 
-  if (!unitId || !section || !type) {
-    toast('❌ Unit ID, Section and Type are required', 'fail'); return;
-  }
+  // Clear previous inline error
+  var errEl = document.getElementById('us-inline-err');
+  if (errEl) errEl.style.display = 'none';
 
-  var isEdit = document.getElementById('us-unit-id').readOnly;
+  if (!section) { showUnitErr('❌ Section is required'); return; }
+  if (!type)    { showUnitErr('❌ Type is required'); return; }
+
+  var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
   var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
 
   var btn = document.getElementById('us-submit');
@@ -3713,12 +3767,19 @@ function submitUnit() {
 
   gasPost({ action: 'saveUnit', payload: payload, token: _session.token })
     .then(function(msg) {
+      // Check if GAS returned an error string (starts with ❌)
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showUnitErr(msg);
+        btn.disabled = false;
+        btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
+        return;
+      }
       toast('✅ ' + (msg || 'Unit saved'), 'ok');
       closeUnitSheet();
-      loadUnits();
+      loadUnits(); // refresh cache + cards
     })
     .catch(function(e) {
-      toast('❌ ' + (e.message || 'Failed'), 'fail');
+      showUnitErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
     });
@@ -4104,20 +4165,22 @@ function escHtml(s) {
     <div class="cs-title" id="us-title">إضافة وحدة / Add Unit</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
-    <div class="cs-field">
-      <div class="cs-lbl">Unit ID <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(e.g. U-06)</span></div>
-      <input class="inp" type="text" id="us-unit-id" placeholder="U-XX">
+    <!-- Unit ID: hidden input for edit mode, preview box always shown -->
+    <div class="cs-field" id="us-id-row">
+      <div class="cs-lbl">Unit ID (auto-generated)</div>
+      <div class="cs-preview" id="us-unit-id-display" style="font-size:14px;color:var(--navy);">—</div>
+      <input type="hidden" id="us-unit-id">
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">Section / القسم <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(Arabic numeral e.g. ٦)</span></div>
-      <input class="inp" type="text" id="us-section" placeholder="٦">
+      <div class="cs-lbl">Section / القسم <span class="req">*</span></div>
+      <input class="inp" type="text" id="us-section" placeholder="e.g. ٦" style="direction:rtl;">
     </div>
 
     <div class="cs-field">
       <div class="cs-lbl">Type / النوع <span class="req">*</span></div>
       <select class="inp" id="us-type">
-        <option value="" disabled selected>Select...</option>
+        <option value="" disabled selected>Select / اختر...</option>
         <option value="Residential">Residential / سكني</option>
         <option value="Commercial">Commercial / تجاري</option>
         <option value="Parking">Parking / موقف</option>
@@ -4128,17 +4191,43 @@ function escHtml(s) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Floor / الطابق</div>
-        <input class="inp" type="text" id="us-floor" placeholder="e.g. ارضي">
+        <select class="inp" id="us-floor">
+          <option value="">— None —</option>
+          <option value="ارضي">Ground / ارضي</option>
+          <option value="الاول">1st / الاول</option>
+          <option value="الثاني">2nd / الثاني</option>
+          <option value="الثالث">3rd / الثالث</option>
+          <option value="الرابع">4th / الرابع</option>
+          <option value="الخامس">5th / الخامس</option>
+          <option value="السادس">6th / السادس</option>
+          <option value="السابع">7th / السابع</option>
+          <option value="الثامن">8th / الثامن</option>
+          <option value="التاسع">9th / التاسع</option>
+          <option value="العاشر">10th / العاشر</option>
+          <option value="الحادي عشر">11th / الحادي عشر</option>
+          <option value="الثاني عشر">12th / الثاني عشر</option>
+          <option value="الثالث عشر">13th / الثالث عشر</option>
+          <option value="الرابع عشر">14th / الرابع عشر</option>
+          <option value="الخامس عشر">15th / الخامس عشر</option>
+          <option value="السادس عشر">16th / السادس عشر</option>
+          <option value="السابع عشر">17th / السابع عشر</option>
+          <option value="الثامن عشر">18th / الثامن عشر</option>
+          <option value="التاسع عشر">19th / التاسع عشر</option>
+          <option value="العشرون">20th / العشرون</option>
+          <option value="الميزانين">Mezzanine / الميزانين</option>
+          <option value="السفلي">Basement / السفلي</option>
+          <option value="السطح">Roof / السطح</option>
+        </select>
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Area / المساحة (m²)</div>
-        <input class="inp" type="number" id="us-sqm" placeholder="0.00" step="0.01">
+        <input class="inp" type="number" id="us-sqm" placeholder="0.00" step="0.01" min="0">
       </div>
     </div>
 
     <div class="cs-field">
       <div class="cs-lbl">Capacity / الطاقة (Amps)</div>
-      <input class="inp" type="number" id="us-amps" placeholder="0">
+      <input class="inp" type="number" id="us-amps" placeholder="0" min="0">
     </div>
 
     <div class="cs-btns">

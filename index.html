@@ -3760,10 +3760,6 @@ function submitUnit() {
 
   var unitId  = document.getElementById('us-unit-id').value.trim();
   var section = document.getElementById('us-section').value.trim();
-
-  // DEBUG — alert char codes to confirm what browser actually holds
-  var codes = section.split('').map(function(c){ return c.charCodeAt(0).toString(16); }).join(' ');
-  alert('Section value: "' + section + '"\nChar codes: ' + codes);
   var floor   = document.getElementById('us-floor').value;
   var sqm     = document.getElementById('us-sqm').value.trim();
   var type    = document.getElementById('us-type').value;
@@ -3789,7 +3785,7 @@ function submitUnit() {
   }
 
   var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
-  var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
+  var payload = { unitId: unitId, section: 'STR:' + section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
 
   var btn = document.getElementById('us-submit');
   btn.disabled = true;

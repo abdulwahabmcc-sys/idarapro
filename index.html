@@ -3785,7 +3785,7 @@ function submitUnit() {
   }
 
   var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
-  var payload = { unitId: unitId, section: 'STR:' + section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
+  var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
 
   var btn = document.getElementById('us-submit');
   btn.disabled = true;

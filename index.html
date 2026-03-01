@@ -844,6 +844,126 @@
       padding: 12px 0;
     }
 
+    /* ── Fee cards ── */
+    .fee-card {
+      background: var(--bg);
+      border: 1px solid var(--bdr);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+
+    .fee-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .fee-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      flex: 1;
+      line-height: 1.3;
+    }
+
+    .fee-status-pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .fee-card-rate {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--forest);
+      margin: 6px 0 8px;
+      line-height: 1;
+    }
+
+    .fee-rate-per {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      font-family: var(--font);
+    }
+
+    .fee-card-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .fee-chip {
+      font-size: 9px;
+      color: var(--muted);
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: 4px;
+      padding: 2px 7px;
+      direction: ltr;
+      white-space: nowrap;
+    }
+
+    .fee-card-dates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .fee-notes {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 6px;
+      font-style: italic;
+      direction: ltr;
+    }
+
+    /* ── Fee form sheet ── */
+    #fee-sheet-wrap {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(27,42,74,0.55);
+      z-index: 9600;
+      align-items: flex-end;
+      backdrop-filter: blur(3px);
+    }
+
+    #fee-sheet-wrap.open { display: flex; }
+
+    #fee-sheet {
+      background: var(--surf);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 24px 20px calc(32px + env(safe-area-inset-bottom));
+      animation: shup 0.3s ease;
+    }
+
+    #fee-sheet::-webkit-scrollbar { display: none; }
+
+    @media (min-width: 769px) {
+      #fee-sheet-wrap { align-items: center; justify-content: center; }
+      #fee-sheet {
+        border-radius: 20px;
+        max-width: 520px;
+        max-height: 88vh;
+        padding: 32px 28px 32px;
+        animation: fadeUp 0.25s ease;
+      }
+    }
+
     /* ── Unit cards ── */
     .unit-grid {
       display: grid;
@@ -3107,26 +3227,52 @@ function loadContacts() {
 }
 
 // ── ⑤  Fee Rules ─────────────────────────────────────────────────────────────
+var _feesCache = [];
+
 function loadFees() {
   var el = stgListEl('stg-fees-list'); stgLoading(el);
   gasGet('getSettingsFees', _session && _session.token)
     .then(function(rows) {
+      _feesCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد رسوم / No fees configured'); return; }
-      el.innerHTML = rows.map(function(f) {
-        var isActive = String(f.status).toLowerCase() === 'active';
-        var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
-        return '<div class="stg-user-row">' +
-          '<div class="stg-user-info">' +
-            '<div class="stg-user-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
-            '<div class="stg-user-meta">' + (f.frequency || '') + ' · ' + (f.feeType || '') + ' · ' + (f.target || '') + (f.startDate ? ' · from ' + f.startDate : '') + '</div>' +
-          '</div>' +
-          '<div style="text-align:right;flex-shrink:0;">' +
-            '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--forest);">$' + (f.baseRate || '0') + '</div>' +
-            '<div style="font-size:9px;color:' + dotColor + ';">● ' + (f.status || '') + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+      renderFeeCards(el, rows);
     }).catch(function() { stgError(el); });
+}
+
+function renderFeeCards(el, rows) {
+  el.innerHTML = rows.map(function(f) {
+    var status   = String(f.status || '').toLowerCase();
+    var isActive  = status === 'active';
+    var isExpired = status === 'expired';
+    var statusColor = isActive ? 'var(--forest)' : isExpired ? 'var(--burg)' : 'var(--muted)';
+    var statusBg    = isActive ? 'rgba(26,107,60,0.08)' : isExpired ? 'rgba(155,35,53,0.08)' : 'var(--bg)';
+
+    var targetLabel = f.targetType && f.target
+      ? escHtml(f.targetType) + ': ' + escHtml(f.target)
+      : escHtml(f.targetType || f.target || 'All');
+
+    var dates = '';
+    if (f.startDate) dates += '<span class="fee-chip">From ' + f.startDate + '</span>';
+    if (f.endDate)   dates += '<span class="fee-chip" style="color:var(--burg);">Until ' + f.endDate + '</span>';
+
+    var notes = f.notes ? '<div class="fee-notes">' + escHtml(f.notes) + '</div>' : '';
+
+    return '<div class="fee-card" style="opacity:' + (isExpired ? '0.65' : '1') + ';">' +
+      '<div class="fee-card-top">' +
+        '<div class="fee-card-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
+        '<div class="fee-status-pill" style="background:' + statusBg + ';color:' + statusColor + ';">● ' + escHtml(f.status || '') + '</div>' +
+      '</div>' +
+      '<div class="fee-card-rate">$' + escHtml(String(f.baseRate || '0')) + '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span></div>' +
+      '<div class="fee-card-chips">' +
+        '<span class="fee-chip">' + escHtml(f.feeType || '') + '</span>' +
+        '<span class="fee-chip">' + targetLabel + '</span>' +
+        (f.category ? '<span class="fee-chip">' + escHtml(f.category) + '</span>' : '') +
+        (f.prorationRule ? '<span class="fee-chip">' + escHtml(f.prorationRule) + '</span>' : '') +
+      '</div>' +
+      '<div class="fee-card-dates">' + dates + '</div>' +
+      notes +
+    '</div>';
+  }).join('');
 }
 
 // ── ⑥  Unit Fee Overrides ────────────────────────────────────────────────────
@@ -3195,7 +3341,7 @@ function loadCategories(type) {
   var gasAct = type === 'income' ? 'getSettingsIncomeCategories' : 'getSettingsExpenseCategories';
   var el    = stgListEl(elId); stgLoading(el);
 
-  gasGet(gasAct)
+  gasGet(gasAct, _session && _session.token)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
       el.innerHTML = rows.map(function(c) {
@@ -3229,23 +3375,95 @@ function loadBalances() {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد أرصدة / No balances'); return; }
       el.innerHTML = rows.map(function(r) {
         var bal = parseFloat(r.balance) || 0;
-        var color = bal < 0 ? 'var(--burg)' : 'var(--forest)';
+        var color = bal < 0 ? 'var(--burg)' : bal > 0 ? 'var(--forest)' : 'var(--muted)';
+        var typeLabel = String(r.type || '').trim();
         return '<div class="stg-user-row">' +
           '<div class="stg-user-info">' +
             '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
-            '<div class="stg-user-meta">' + (r.year || '') + ' · ' + (r.contractId || '') + ' · ' + (r.type || '') + '</div>' +
+            '<div class="stg-user-meta">' + (r.year || '') + ' · ' + escHtml(r.contractId || '') + ' · ' + escHtml(typeLabel) + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">$' + bal.toFixed(2) + '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">' + (bal >= 0 ? '+' : '') + '$' + bal.toFixed(2) + '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
 }
 
+function openBalSheet() {
+  ['bal-contract','bal-unit','bal-name','bal-notes'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('bal-year').value   = new Date().getFullYear();
+  document.getElementById('bal-date').value   = todayStr();
+  document.getElementById('bal-type').value   = '';
+  document.getElementById('bal-amount').value = '';
+  var btn = document.getElementById('bal-submit');
+  btn.disabled = false; btn.textContent = 'إضافة / Add Balance';
+  var err = document.getElementById('bal-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('bal-sheet-wrap').classList.add('open');
+}
+
+function closeBalSheet() {
+  document.getElementById('bal-sheet-wrap').classList.remove('open');
+}
+
+function showBalErr(msg) {
+  var sheet = document.getElementById('bal-sheet');
+  var errEl = document.getElementById('bal-inline-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = 'bal-inline-err';
+    errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);margin-bottom:12px;direction:ltr;display:none;line-height:1.5;';
+    sheet.querySelector('.cs-btns').parentNode.insertBefore(errEl, sheet.querySelector('.cs-btns'));
+  }
+  errEl.textContent = msg; errEl.style.display = 'block';
+  sheet.scrollTop = sheet.scrollHeight;
+}
+
+function submitBalance() {
+  if (!sessionValid()) return;
+  var contract = document.getElementById('bal-contract').value.trim();
+  var unit     = document.getElementById('bal-unit').value.trim();
+  var name     = document.getElementById('bal-name').value.trim();
+  var year     = document.getElementById('bal-year').value.trim();
+  var type     = document.getElementById('bal-type').value;
+  var amount   = document.getElementById('bal-amount').value.trim();
+  var date     = document.getElementById('bal-date').value;
+  var notes    = document.getElementById('bal-notes').value.trim();
+
+  var errEl = document.getElementById('bal-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!contract) { showBalErr('❌ Contract ID is required'); return; }
+  if (!unit)     { showBalErr('❌ Unit / Section is required'); return; }
+  if (!name)     { showBalErr('❌ Contact Name is required'); return; }
+  if (!year)     { showBalErr('❌ Year is required'); return; }
+  if (!type)     { showBalErr('❌ Type is required'); return; }
+  if (!amount)   { showBalErr('❌ Amount is required'); return; }
+
+  var btn = document.getElementById('bal-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveOpeningBalance', payload: { contractId: contract, unit: unit, name: name, year: parseInt(year), type: type, amount: parseFloat(amount) || 0, date: date, notes: notes }, token: _session.token })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showBalErr(msg); btn.disabled = false; btn.textContent = 'إضافة / Add Balance'; return;
+      }
+      toast('✅ ' + (msg || 'Balance added'), 'ok');
+      closeBalSheet(); loadBalances();
+    })
+    .catch(function(e) {
+      showBalErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false; btn.textContent = 'إضافة / Add Balance';
+    });
+}
+
 // ── ⑫  Users & Access ────────────────────────────────────────────────────────
+var _usersCache = [];
+
 function loadUsers() {
   var el = stgListEl('stg-users-list'); stgLoading(el);
   gasGet('getSettingsUsers', _session && _session.token)
     .then(function(users) {
+      _usersCache = users || [];
       if (!users || !users.length) { stgEmpty(el, 'لا يوجد مستخدمون / No users found'); return; }
       el.innerHTML = users.map(function(u) {
         var initial    = (u.name || '?')[0].toUpperCase();
@@ -3262,6 +3480,7 @@ function loadUsers() {
           '</div>' +
           '<span class="stg-user-badge ' + badgeClass + '">' + statusLabel.toUpperCase() + '</span>' +
           '<div class="stg-user-actions">' +
+            '<button class="stg-user-btn" onclick="openUserSheet(\'' + escHtml(u.name) + '\')">تعديل</button>' +
             '<button class="stg-user-btn" onclick="resetPin(\'' + escHtml(u.name) + '\')">PIN</button>' +
             (u.active
               ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',false)">إيقاف</button>'
@@ -3272,32 +3491,210 @@ function loadUsers() {
     }).catch(function() { stgError(el); });
 }
 
-// ── ⑬  YearCash — view only ──────────────────────────────────────────────────
+function openUserSheet(name) {
+  var isEdit = !!name;
+  var u = isEdit ? _usersCache.find(function(x){ return x.name === name; }) : null;
+  document.getElementById('usr-title').textContent = isEdit ? 'تعديل مستخدم / Edit User' : 'إضافة مستخدم / Add User';
+  document.getElementById('usr-name').value   = isEdit ? (u.name  || '') : '';
+  document.getElementById('usr-email').value  = isEdit ? (u.email || '') : '';
+  document.getElementById('usr-role').value   = isEdit ? (u.role  || '') : '';
+  document.getElementById('usr-status').value = isEdit ? (u.active ? 'Active' : 'Inactive') : 'Active';
+  document.getElementById('usr-pin').value    = '';
+  document.getElementById('usr-name').readOnly   = isEdit;
+  document.getElementById('usr-name').style.opacity = isEdit ? '0.6' : '1';
+  // Permissions
+  if (isEdit && u.perms) {
+    document.getElementById('usr-perm-inc').checked = !!u.perms.INC;
+    document.getElementById('usr-perm-exp').checked = !!u.perms.EXP;
+    document.getElementById('usr-perm-ytd').checked = !!u.perms.REP_YTD;
+    document.getElementById('usr-perm-cur').checked = !!u.perms.REP_CUR;
+    document.getElementById('usr-perm-lst').checked = !!u.perms.REP_LST;
+    document.getElementById('usr-perm-jrn').checked = !!u.perms.REP_JRN;
+  } else {
+    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn'].forEach(function(id){ document.getElementById(id).checked = false; });
+  }
+  var btn = document.getElementById('usr-submit');
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
+  var err = document.getElementById('usr-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('user-sheet-wrap').classList.add('open');
+}
+
+function closeUserSheet() {
+  document.getElementById('user-sheet-wrap').classList.remove('open');
+}
+
+function showUserErr(msg) {
+  var sheet = document.getElementById('user-sheet');
+  var errEl = document.getElementById('usr-inline-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = 'usr-inline-err';
+    errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);margin-bottom:12px;direction:ltr;display:none;line-height:1.5;';
+    sheet.querySelector('.cs-btns').parentNode.insertBefore(errEl, sheet.querySelector('.cs-btns'));
+  }
+  errEl.textContent = msg; errEl.style.display = 'block';
+  sheet.scrollTop = sheet.scrollHeight;
+}
+
+function submitUser() {
+  if (!sessionValid()) return;
+  var name   = document.getElementById('usr-name').value.trim();
+  var email  = document.getElementById('usr-email').value.trim();
+  var role   = document.getElementById('usr-role').value;
+  var status = document.getElementById('usr-status').value;
+  var pin    = document.getElementById('usr-pin').value.trim();
+  var isEdit = document.getElementById('usr-name').readOnly;
+  var perms  = {
+    INC:     document.getElementById('usr-perm-inc').checked,
+    EXP:     document.getElementById('usr-perm-exp').checked,
+    REP_YTD: document.getElementById('usr-perm-ytd').checked,
+    REP_CUR: document.getElementById('usr-perm-cur').checked,
+    REP_LST: document.getElementById('usr-perm-lst').checked,
+    REP_JRN: document.getElementById('usr-perm-jrn').checked
+  };
+
+  var errEl = document.getElementById('usr-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!name)  { showUserErr('❌ Name is required'); return; }
+  if (!role)  { showUserErr('❌ Role is required'); return; }
+  if (!isEdit && (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin))) {
+    showUserErr('❌ PIN must be exactly 4 digits for new users'); return;
+  }
+  if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) {
+    showUserErr('❌ PIN must be exactly 4 digits'); return;
+  }
+
+  var btn = document.getElementById('usr-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveUser', payload: { name: name, email: email, role: role, status: status, pin: pin, perms: perms, isEdit: isEdit }, token: _session.token })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showUserErr(msg); btn.disabled = false;
+        btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User'; return;
+      }
+      toast('✅ ' + (msg || 'User saved'), 'ok');
+      closeUserSheet(); loadUsers();
+    })
+    .catch(function(e) {
+      showUserErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false; btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
+    });
+}
+
+// ── ⑬  YearCash ──────────────────────────────────────────────────────────────
+var _yearCashCache = [];
+
 function loadYearCash() {
   var el = stgListEl('stg-yearcash-list'); stgLoading(el);
   gasGet('getSettingsYearCash', _session && _session.token)
     .then(function(rows) {
-      if (!rows || !rows.length) { stgEmpty(el, 'لا توجد سجلات / No records'); return; }
+      _yearCashCache = rows || [];
+      if (!rows || !rows.length) {
+        el.innerHTML = '<div class="stg-empty">لا توجد سجلات / No records</div>' +
+          '<button class="stg-add-btn" style="margin-top:8px;" onclick="openYearCashForm(null)">＋ Add Opening Year</button>';
+        return;
+      }
       var html = '<div class="stg-yc-row">' +
         '<div class="stg-yc-hdr">Year</div>' +
         '<div class="stg-yc-hdr">Opening</div>' +
         '<div class="stg-yc-hdr">Closing</div>' +
         '<div class="stg-yc-hdr">INC</div>' +
         '<div class="stg-yc-hdr">EXP</div>' +
+        '<div class="stg-yc-hdr"></div>' +
       '</div>';
       html += rows.map(function(r) {
-        var open  = parseFloat(r.opening)  || 0;
-        var close = parseFloat(r.closing)  || 0;
+        var open  = parseFloat(r.opening) || 0;
+        var close = parseFloat(r.closing) || 0;
+        var isOpen = !r.closing || r.closing == 0;
         return '<div class="stg-yc-row">' +
           '<div class="stg-yc-val">' + (r.year || '—') + '</div>' +
           '<div class="stg-yc-val">$' + open.toFixed(2) + '</div>' +
-          '<div class="stg-yc-val" style="color:' + (close >= 0 ? 'var(--forest)' : 'var(--burg)') + ';">$' + close.toFixed(2) + '</div>' +
+          '<div class="stg-yc-val" style="color:' + (isOpen ? 'var(--muted)' : close >= 0 ? 'var(--forest)' : 'var(--burg)') + ';">' + (isOpen ? '—' : '$' + close.toFixed(2)) + '</div>' +
           '<div class="stg-yc-cnt">' + (r.incCount || '—') + '</div>' +
           '<div class="stg-yc-cnt">' + (r.expCount || '—') + '</div>' +
+          '<div class="stg-yc-cnt"><button class="stg-user-btn" onclick="openYearCashForm(' + JSON.stringify(r) + ')">✏️</button></div>' +
         '</div>';
       }).join('');
       el.innerHTML = html;
     }).catch(function() { stgError(el); });
+}
+
+function openYearCashForm(row) {
+  var isEdit = !!row;
+  document.getElementById('yc-title').textContent = isEdit ? 'تعديل السنة / Edit Year' : 'إضافة سنة / Add Year';
+  document.getElementById('yc-year').value   = isEdit ? (row.year   || '') : new Date().getFullYear();
+  document.getElementById('yc-opening').value = isEdit ? (row.opening || '') : '';
+  document.getElementById('yc-year').readOnly = isEdit;
+  document.getElementById('yc-year').style.opacity = isEdit ? '0.6' : '1';
+  var btn = document.getElementById('yc-submit');
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
+  var err = document.getElementById('yc-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('yearcash-sheet-wrap').classList.add('open');
+}
+
+function closeYearCashSheet() {
+  document.getElementById('yearcash-sheet-wrap').classList.remove('open');
+}
+
+function submitYearCash() {
+  if (!sessionValid()) return;
+  var year    = document.getElementById('yc-year').value.trim();
+  var opening = document.getElementById('yc-opening').value.trim();
+  var isEdit  = document.getElementById('yc-year').readOnly;
+
+  var err = document.getElementById('yc-inline-err');
+  if (err) err.style.display = 'none';
+
+  if (!year)    { showYearCashErr('❌ Year is required'); return; }
+  if (!opening && opening !== '0') { showYearCashErr('❌ Opening Cash is required'); return; }
+
+  // Uniqueness check for new year
+  if (!isEdit) {
+    var exists = _yearCashCache.find(function(r) { return String(r.year) === String(year); });
+    if (exists) { showYearCashErr('❌ Year ' + year + ' already exists. Use the edit button instead.'); return; }
+  }
+
+  var btn = document.getElementById('yc-submit');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveYearCash', payload: { year: year, opening: parseFloat(opening) || 0, isEdit: isEdit }, token: _session.token })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showYearCashErr(msg);
+        btn.disabled = false;
+        btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
+        return;
+      }
+      toast('✅ ' + (msg || 'Saved'), 'ok');
+      closeYearCashSheet();
+      loadYearCash();
+    })
+    .catch(function(e) {
+      showYearCashErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
+    });
+}
+
+function showYearCashErr(msg) {
+  var sheet = document.getElementById('yearcash-sheet');
+  var errEl = document.getElementById('yc-inline-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = 'yc-inline-err';
+    errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);margin-bottom:12px;direction:ltr;display:none;line-height:1.5;';
+    sheet.querySelector('.cs-btns').parentNode.insertBefore(errEl, sheet.querySelector('.cs-btns'));
+  }
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  sheet.scrollTop = sheet.scrollHeight;
 }
 
 // ── ⑭  Year-End Close ────────────────────────────────────────────────────────
@@ -3809,7 +4206,106 @@ function submitUnit() {
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
     });
 }
-function editUtility(name)  { toast('ℹ️ Edit utility: ' + name, 'info'); }
+function addFee() {
+  // Reset form
+  ['fs-name','fs-start','fs-end','fs-rate','fs-notes'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fs-frequency').value = '';
+  document.getElementById('fs-status').value = 'Active';
+  document.getElementById('fs-target-type').value = '';
+  document.getElementById('fs-target-val').value = '';
+  document.getElementById('fs-fee-type').value = 'Fixed';
+  document.getElementById('fs-proration').value = 'Full-Month';
+  document.getElementById('fs-category').value = '';
+  // Set start date default = today
+  document.getElementById('fs-start').value = todayStr();
+  // Reset submit btn
+  var btn = document.getElementById('fs-submit');
+  btn.disabled = false;
+  btn.textContent = 'حفظ الرسم / Save Fee Rule';
+  // Clear error
+  var err = document.getElementById('fs-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('fee-sheet-wrap').classList.add('open');
+}
+
+function closeFeeSheet() {
+  document.getElementById('fee-sheet-wrap').classList.remove('open');
+}
+
+function showFeeErr(msg) {
+  var sheet = document.getElementById('fee-sheet');
+  var errEl = document.getElementById('fs-inline-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = 'fs-inline-err';
+    errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);' +
+      'border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);' +
+      'margin-bottom:12px;direction:ltr;display:none;line-height:1.5;';
+    var btnsEl = sheet.querySelector('.cs-btns');
+    btnsEl.parentNode.insertBefore(errEl, btnsEl);
+  }
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  sheet.scrollTop = sheet.scrollHeight;
+}
+
+function submitFee() {
+  if (!sessionValid()) return;
+
+  var name        = document.getElementById('fs-name').value.trim();
+  var frequency   = document.getElementById('fs-frequency').value;
+  var status      = document.getElementById('fs-status').value;
+  var targetType  = document.getElementById('fs-target-type').value;
+  var targetVal   = document.getElementById('fs-target-val').value.trim();
+  var feeType     = document.getElementById('fs-fee-type').value;
+  var rate        = document.getElementById('fs-rate').value.trim();
+  var startDate   = document.getElementById('fs-start').value;
+  var endDate     = document.getElementById('fs-end').value;
+  var proration   = document.getElementById('fs-proration').value;
+  var category    = document.getElementById('fs-category').value.trim();
+  var notes       = document.getElementById('fs-notes').value.trim();
+
+  var errEl = document.getElementById('fs-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!name)      { showFeeErr('❌ Charge Name is required'); return; }
+  if (!frequency) { showFeeErr('❌ Frequency is required'); return; }
+  if (!rate)      { showFeeErr('❌ Base Rate is required'); return; }
+  if (!startDate) { showFeeErr('❌ Start Date is required'); return; }
+  if (endDate && endDate < startDate) { showFeeErr('❌ End Date must be on or after Start Date'); return; }
+
+  var payload = {
+    name: name, frequency: frequency, status: status,
+    targetType: targetType, target: targetVal, feeType: feeType,
+    baseRate: parseFloat(rate) || 0, startDate: startDate,
+    endDate: endDate || '', proration: proration,
+    category: category, notes: notes
+  };
+
+  var btn = document.getElementById('fs-submit');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveFee', payload: payload, token: _session.token })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showFeeErr(msg);
+        btn.disabled = false;
+        btn.textContent = 'حفظ الرسم / Save Fee Rule';
+        return;
+      }
+      toast('✅ ' + (msg || 'Fee saved'), 'ok');
+      closeFeeSheet();
+      loadFees();
+    })
+    .catch(function(e) {
+      showFeeErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false;
+      btn.textContent = 'حفظ الرسم / Save Fee Rule';
+    });
+}
 function addOverride()      { toast('ℹ️ Add override — coming soon', 'info'); }
 function addMeterReading()  { toast('ℹ️ Add meter reading — coming soon', 'info'); }
 
@@ -3939,6 +4435,7 @@ function escHtml(s) {
       </div>
       <div class="stg-sec-body">
         <div id="stg-fees-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="addFee()">＋ إضافة رسم / Add Fee Rule</button>
       </div>
     </div>
 
@@ -4034,6 +4531,7 @@ function escHtml(s) {
       </div>
       <div class="stg-sec-body">
         <div id="stg-bal-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="openBalSheet()">＋ إضافة رصيد / Add Opening Balance</button>
       </div>
     </div>
 
@@ -4043,13 +4541,13 @@ function escHtml(s) {
         <div class="stg-sec-ico">👤</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">المستخدمون / Users & Access</div>
-          <div class="stg-sec-sub">View users · reset PINs · activate / deactivate</div>
+          <div class="stg-sec-sub">Edit users · reset PINs · activate / deactivate</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
         <div id="stg-users-list" class="stg-list-wrap"></div>
-        <button class="stg-add-btn" onclick="openAddUser()">＋ إضافة مستخدم / Add User</button>
+        <button class="stg-add-btn" onclick="openUserSheet(null)">＋ إضافة مستخدم / Add User</button>
       </div>
     </div>
 
@@ -4059,12 +4557,13 @@ function escHtml(s) {
         <div class="stg-sec-ico">💵</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">سجل النقد السنوي / YearCash</div>
-          <div class="stg-sec-sub">Year · opening · closing · INC / EXP counts — view only</div>
+          <div class="stg-sec-sub">Year · opening · closing · INC / EXP counts</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
         <div id="stg-yearcash-list" class="stg-list-wrap"></div>
+        <button class="stg-add-btn" onclick="openYearCashForm(null)">＋ إضافة سنة / Add Year</button>
       </div>
     </div>
 
@@ -4260,6 +4759,256 @@ function escHtml(s) {
       <button class="cs-cancel" onclick="closeUnitSheet()">إلغاء</button>
     </div>
 
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     ADD FEE RULE SHEET
+══════════════════════════════════════════════ -->
+<div id="fee-sheet-wrap">
+  <div id="fee-sheet">
+
+    <div class="cs-title">إضافة رسم / Add Fee Rule</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Charge Name / اسم الرسم <span class="req">*</span></div>
+      <input class="inp" type="text" id="fs-name" placeholder="e.g. سلفة عن تكاليف الاقسام" style="direction:rtl;">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Frequency <span class="req">*</span></div>
+        <select class="inp" id="fs-frequency">
+          <option value="" disabled selected>Select...</option>
+          <option value="Monthly">Monthly</option>
+          <option value="Quarterly">Quarterly</option>
+          <option value="Annual">Annual</option>
+          <option value="One-Time">One-Time</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Status</div>
+        <select class="inp" id="fs-status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Target Type</div>
+        <select class="inp" id="fs-target-type">
+          <option value="">All</option>
+          <option value="Category">Category</option>
+          <option value="Unit">Unit</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Target Value</div>
+        <input class="inp" type="text" id="fs-target-val" placeholder="e.g. Residential">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Fee Type</div>
+        <select class="inp" id="fs-fee-type">
+          <option value="Fixed">Fixed</option>
+          <option value="Variable">Variable</option>
+          <option value="Per-SqM">Per-SqM</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Base Rate ($) <span class="req">*</span></div>
+        <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Start Date <span class="req">*</span></div>
+        <input class="inp" type="date" id="fs-start">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">End Date <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <input class="inp" type="date" id="fs-end">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Proration Rule</div>
+        <select class="inp" id="fs-proration">
+          <option value="Full-Month">Full-Month</option>
+          <option value="Daily">Daily</option>
+          <option value="None">None</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Category</div>
+        <input class="inp" type="text" id="fs-category" placeholder="e.g. Common Areas">
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Notes</div>
+      <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
+    </div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="fs-submit" onclick="submitFee()">حفظ الرسم / Save Fee Rule</button>
+      <button class="cs-cancel" onclick="closeFeeSheet()">إلغاء</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     YEARCASH ADD/EDIT SHEET
+══════════════════════════════════════════════ -->
+<div id="yearcash-sheet-wrap" style="display:none;position:fixed;inset:0;background:rgba(27,42,74,0.55);z-index:9600;align-items:flex-end;backdrop-filter:blur(3px);">
+  <div id="yearcash-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+    <div class="cs-title" id="yc-title">إضافة سنة / Add Year</div>
+    <div class="cs-sub">Set the opening cash balance for a fiscal year</div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Year <span class="req">*</span></div>
+      <input class="inp" type="number" id="yc-year" placeholder="e.g. 2026" min="2000" max="2100">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Opening Cash ($) <span class="req">*</span></div>
+      <input class="inp" type="number" id="yc-opening" placeholder="0.00" step="0.01">
+    </div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="yc-submit" onclick="submitYearCash()">إضافة / Add Year</button>
+      <button class="cs-cancel" onclick="closeYearCashSheet()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     OPENING BALANCE ADD SHEET
+══════════════════════════════════════════════ -->
+<div id="bal-sheet-wrap" style="display:none;position:fixed;inset:0;background:rgba(27,42,74,0.55);z-index:9600;align-items:flex-end;backdrop-filter:blur(3px);">
+  <div id="bal-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+    <div class="cs-title">إضافة رصيد افتتاحي / Add Opening Balance</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Contract ID <span class="req">*</span></div>
+      <input class="inp" type="text" id="bal-contract" placeholder="e.g. U-06-C-01-2025-001">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Unit / Section <span class="req">*</span></div>
+        <input class="inp" type="text" id="bal-unit" placeholder="e.g. ٦" style="direction:rtl;">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Year <span class="req">*</span></div>
+        <input class="inp" type="number" id="bal-year" placeholder="2026" min="2000" max="2100">
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Contact Name <span class="req">*</span></div>
+      <input class="inp" type="text" id="bal-name" placeholder="Tenant name" style="direction:rtl;">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Type <span class="req">*</span></div>
+        <select class="inp" id="bal-type">
+          <option value="" disabled selected>Select...</option>
+          <option value="Credit">Credit (owed to tenant)</option>
+          <option value="Debit">Debit (tenant owes)</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Amount ($) <span class="req">*</span></div>
+        <input class="inp" type="number" id="bal-amount" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Date</div>
+      <input class="inp" type="date" id="bal-date">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Notes</div>
+      <input class="inp" type="text" id="bal-notes" placeholder="Optional...">
+    </div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="bal-submit" onclick="submitBalance()">إضافة / Add Balance</button>
+      <button class="cs-cancel" onclick="closeBalSheet()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     USER ADD/EDIT SHEET
+══════════════════════════════════════════════ -->
+<div id="user-sheet-wrap" style="display:none;position:fixed;inset:0;background:rgba(27,42,74,0.55);z-index:9600;align-items:flex-end;backdrop-filter:blur(3px);">
+  <div id="user-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+    <div class="cs-title" id="usr-title">إضافة مستخدم / Add User</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Name / الاسم <span class="req">*</span></div>
+      <input class="inp" type="text" id="usr-name" placeholder="Full name" style="direction:rtl;">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Role <span class="req">*</span></div>
+        <select class="inp" id="usr-role">
+          <option value="" disabled selected>Select...</option>
+          <option value="Admin">Admin</option>
+          <option value="Management">Management</option>
+          <option value="Occupant">Occupant</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Status</div>
+        <select class="inp" id="usr-status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Email</div>
+      <input class="inp" type="email" id="usr-email" placeholder="user@example.com">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">PIN <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(4 digits)</span></div>
+      <input class="inp" type="password" id="usr-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+    </div>
+
+    <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Permissions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-inc"> Income (INC)</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-exp"> Expenses (EXP)</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-ytd"> Report YTD</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-cur"> Report Current</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-lst"> Report Last</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-jrn"> Report Journal</label>
+    </div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="usr-submit" onclick="submitUser()">إضافة المستخدم / Add User</button>
+      <button class="cs-cancel" onclick="closeUserSheet()">إلغاء</button>
+    </div>
   </div>
 </div>
 

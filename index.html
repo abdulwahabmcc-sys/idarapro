@@ -3723,28 +3723,43 @@ function closeUnitSheet() {
   document.getElementById('unit-sheet-wrap').classList.remove('open');
 }
 
+// ── Section numeral helpers ───────────────────────────────────────────────────
+// Converts Arabic-Indic digits (٠-٩) to Western ASCII (0-9) FOR COMPARISON ONLY.
+// Storage always uses whatever the admin typed — we never mutate their input.
+function toWesternNumerals(str) {
+  return String(str).replace(/[٠-٩]/g, function(d) {
+    return d.charCodeAt(0) - 0x0660;
+  });
+}
+
+// Numeric value of a section string regardless of numeral system
+function sectionNumeric(val) {
+  return toWesternNumerals(String(val).trim());
+}
+
 function showUnitErr(msg) {
-  // Show error inside the sheet, always visible above the backdrop
+  // Scope to #unit-sheet — not document-wide — so we don't inject into the wrong form
+  var sheet = document.getElementById('unit-sheet');
   var errEl = document.getElementById('us-inline-err');
   if (!errEl) {
     errEl = document.createElement('div');
     errEl.id = 'us-inline-err';
     errEl.style.cssText = 'background:rgba(155,35,53,0.1);border:1px solid rgba(155,35,53,0.35);' +
       'border-radius:10px;padding:10px 14px;font-size:12px;color:var(--burg);' +
-      'margin-bottom:12px;direction:ltr;display:none;';
-    var btnsEl = document.querySelector('.cs-btns');
+      'margin-bottom:12px;direction:ltr;display:none;line-height:1.5;';
+    var btnsEl = sheet.querySelector('.cs-btns');
     btnsEl.parentNode.insertBefore(errEl, btnsEl);
   }
   errEl.textContent = msg;
   errEl.style.display = 'block';
-  // Scroll to bottom of sheet so error is visible
-  document.getElementById('unit-sheet').scrollTop = document.getElementById('unit-sheet').scrollHeight;
+  sheet.scrollTop = sheet.scrollHeight;
 }
 
 function submitUnit() {
   if (!sessionValid()) return;
 
   var unitId  = document.getElementById('us-unit-id').value.trim();
+  // Store exactly what admin typed — no conversion
   var section = document.getElementById('us-section').value.trim();
   var floor   = document.getElementById('us-floor').value;
   var sqm     = document.getElementById('us-sqm').value.trim();
@@ -3758,11 +3773,12 @@ function submitUnit() {
   if (!section) { showUnitErr('❌ Section is required'); return; }
   if (!type)    { showUnitErr('❌ Type is required'); return; }
 
-  // Section uniqueness — check against cache before hitting GAS
+  // Section uniqueness — compare numerically so ٦٦ and 66 are treated as the same
+  var inputNumeric = sectionNumeric(section);
   var sectionTaken = _unitsCache.find(function(u) {
-    var sameSection = u.section.trim() === section;
-    var sameUnit    = u.unitId === unitId; // true when editing this exact unit
-    return sameSection && !sameUnit;       // conflict = same section, different unit
+    var sameSection = sectionNumeric(u.section) === inputNumeric;
+    var sameUnit    = u.unitId === unitId;
+    return sameSection && !sameUnit;
   });
   if (sectionTaken) {
     showUnitErr('❌ Section ' + section + ' is already assigned to unit ' + sectionTaken.unitId + '. Each unit must have a unique section number.');
@@ -3778,7 +3794,6 @@ function submitUnit() {
 
   gasPost({ action: 'saveUnit', payload: payload, token: _session.token })
     .then(function(msg) {
-      // Check if GAS returned an error string (starts with ❌)
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
         showUnitErr(msg);
         btn.disabled = false;
@@ -3787,7 +3802,7 @@ function submitUnit() {
       }
       toast('✅ ' + (msg || 'Unit saved'), 'ok');
       closeUnitSheet();
-      loadUnits(); // refresh cache + cards
+      loadUnits();
     })
     .catch(function(e) {
       showUnitErr('❌ ' + (e.message || 'Save failed'));

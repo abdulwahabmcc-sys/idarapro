@@ -3759,8 +3759,11 @@ function submitUnit() {
   if (!sessionValid()) return;
 
   var unitId  = document.getElementById('us-unit-id').value.trim();
-  // Store exactly what admin typed — no conversion
   var section = document.getElementById('us-section').value.trim();
+
+  // DEBUG — alert char codes to confirm what browser actually holds
+  var codes = section.split('').map(function(c){ return c.charCodeAt(0).toString(16); }).join(' ');
+  alert('Section value: "' + section + '"\nChar codes: ' + codes);
   var floor   = document.getElementById('us-floor').value;
   var sqm     = document.getElementById('us-sqm').value.trim();
   var type    = document.getElementById('us-type').value;
@@ -4200,7 +4203,7 @@ function escHtml(s) {
 
     <div class="cs-field">
       <div class="cs-lbl">Section / القسم <span class="req">*</span></div>
-      <input class="inp" type="text" id="us-section" placeholder="e.g. ٦" style="direction:rtl;">
+      <input class="inp" type="text" id="us-section" placeholder="e.g. ٦" inputmode="text" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="cs-field">

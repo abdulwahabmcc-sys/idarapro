@@ -2244,7 +2244,7 @@ function gasPost(body) {
     body: JSON.stringify(body)
   })
     .then(function(r) { return r.json(); })
-    .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
+    .then(function(r) { if (!r.ok) throw new Error(r.error); return r; }); // ← return r not r.data
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

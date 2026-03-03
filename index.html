@@ -2648,7 +2648,7 @@ function initApp(d) {
   ph.disabled = true; ph.selected = true;
   frag.appendChild(ph);
   (d.owners || []).forEach(function(o) {
-    var opt = new Option(o.name, o.name);
+    var opt = new Option(o.display, o.name);
     opt.dataset.section    = o.section    || '';
     opt.dataset.contractId = o.contractId || '';
     frag.appendChild(opt);

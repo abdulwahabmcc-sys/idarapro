@@ -2250,18 +2250,8 @@ function gasPost(body) {
 // ══════════════════════════════════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════════════════════════════════
-window.onload = function() {
-  // Fetch building name for login screen (lightweight getAppData call)
-  gasGet('getBuildingName')
-    .then(function(name) {
-      if (name) {
-        document.getElementById('lgn-bld-name').textContent = name;
-        document.getElementById('dt-bldName').textContent   = name;
-      }
-    })
-    .catch(function() {});
 
-  // Show login screen, focus hidden input for desktop keyboard
+  window.onload = function() {
   showLoginScreen();
   hideLo();
   watchNet();
@@ -2370,7 +2360,7 @@ function submitPin() {
   showVerifying(true);
   setLoginStatus('');
 
-  gasPost({ action: 'login', pin: pin })
+  gasPost({ action: 'validatePin', pin: pin })
     .then(function(auth) {
       showVerifying(false);
       disablePad(false);
@@ -2580,7 +2570,7 @@ function launchApp(auth) {
   applyPermissionUI(auth);
 
   // Load app data from GAS
-  gasGet('getAppData')
+  gasPost({ action: 'getAppData', token: _session.token })
     .then(function(d) { initApp(d); })
     .catch(function() {
       toast('⚠️ Could not load app data. Check connection.', 'fail');
@@ -2776,9 +2766,9 @@ function refreshDash() {
   rb.classList.add('spin');
   if (dtRb) dtRb.classList.add('spin');
 
-  gasGet('getDashboardStats')
+  gasPost({ action: 'getDashboardStats', token: _session && _session.token })
     .then(function(v) {
-      var val = v || '$0.00';
+      var val = (v && v.cashBalance) ? v.cashBalance : '$0.00';
       var n = new Date();
       var t = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
       var isNeg = val.indexOf('-') !== -1;
@@ -2797,9 +2787,9 @@ function refreshDash() {
       if (dtRb) dtRb.classList.remove('spin');
     });
 
-  gasGet('getBuildingHealth')
+  gasPost({ action: 'getDashboardStats', token: _session && _session.token })
     .then(function(r) {
-      var pct = r && r.pct != null ? r.pct : 0;
+      var pct = r && r.buildingHealth && r.buildingHealth.score != null ? r.buildingHealth.score : 0;
       var ico = pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
       document.getElementById('hpct').textContent     = pct + '%';
       document.getElementById('dt-hpct').textContent  = pct + '%';
@@ -2853,7 +2843,7 @@ function doSubmit() {
 
   if (type === 'Report') {
     gasPost({
-      action: 'processReportRequest',
+      action: 'sendReport',
       reportType: document.getElementById('sel-rep').value,
       token: _session.token
     })
@@ -2867,16 +2857,18 @@ function doSubmit() {
     var ownerSel = document.getElementById('sel-owner');
     var selOpt   = ownerSel.selectedIndex >= 0 ? ownerSel.options[ownerSel.selectedIndex] : null;
     var payload  = {
-      entryType:  type,
-      ownerName:  type === 'Income' ? ownerSel.value : '',
+      action:     'recordEntry',
+      type:       type === 'Income' ? 'INC' : 'EXP',
       category:   cat,
       amount:     document.getElementById('inp-amt').value,
-      unit:       selOpt ? (selOpt.dataset.section    || '') : '',
+      date:       new Date().toISOString().substring(0, 10),
+      section:    selOpt ? (selOpt.dataset.section    || '') : '',
       contractId: selOpt ? (selOpt.dataset.contractId || '') : '',
+      description:type === 'Income' ? ownerSel.value : cat,
       token:      _session.token
     };
 
-    gasPost({ action: 'processEntry', payload: payload })
+    gasPost(payload)
       .then(function(r) {
         clearTimeout(tmout);
         onOk(r);

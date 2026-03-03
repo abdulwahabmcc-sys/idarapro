@@ -2361,15 +2361,15 @@ function submitPin() {
   setLoginStatus('');
 
   gasPost({ action: 'validatePin', pin: pin })
-    .then(function(auth) {
-      showVerifying(false);
-      disablePad(false);
-      if (!auth) {
-        onWrongPin();
-        return;
-      }
-      onLoginSuccess(auth, token);
-    })
+    .then(function(r) {
+  showVerifying(false);
+  disablePad(false);
+  if (!r || !r.user) {
+    onWrongPin();
+    return;
+  }
+  onLoginSuccess(r.user, r.token);
+})
     .catch(function(e) {
       showVerifying(false);
       disablePad(false);

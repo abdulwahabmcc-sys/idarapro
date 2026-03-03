@@ -2368,7 +2368,7 @@ function submitPin() {
         onWrongPin();
         return;
       }
-      onLoginSuccess(auth);
+      onLoginSuccess(auth, token);
     })
     .catch(function(e) {
       showVerifying(false);
@@ -2476,7 +2476,7 @@ function hideLockout() {
 }
 
 // ── Login success ────────────────────────────────────────────────────────────
-function onLoginSuccess(auth) {
+function onLoginSuccess(auth, token) {
   setDotsSuccess();
   _attempts = 0;
 
@@ -2490,7 +2490,7 @@ function onLoginSuccess(auth) {
     auth.role.toUpperCase();
 
   // Start session
-  startSession(auth);
+  startSession(auth, token);
 
   // Transition to main app after welcome flash
   setTimeout(function() {
@@ -2503,10 +2503,10 @@ function onLoginSuccess(auth) {
 // SESSION MANAGEMENT
 // ══════════════════════════════════════════════════════════════════════════════
 
-function startSession(auth) {
+function startSession(auth, token) {
   var now = Date.now();
   _session = {
-    token:       auth.name + '_' + now,
+    token:      token,
     name:        auth.name,
     role:        auth.role,
     permissions: auth.permissions,

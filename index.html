@@ -2880,15 +2880,15 @@ function doSubmit() {
 }
 
 function onOk(msg) {
-  var ok = msg && (msg.includes('✅') || msg.includes('success') || msg.includes('Saved'));
+  var msgStr = typeof msg === 'object' ? (msg.message || JSON.stringify(msg)) : String(msg || '');
+  var ok = msgStr.indexOf('✅') !== -1 || msgStr.indexOf('success') !== -1 || msgStr.indexOf('Saved') !== -1;
   setBtnProcessing(false);
-  toast(msg, ok ? 'ok' : 'fail');
+  toast(msgStr, ok ? 'ok' : 'fail');
   if (ok && TAB !== 'Report') {
     document.getElementById('inp-amt').value = '';
     refreshDash();
   }
 }
-
 function onFail(e) {
   setBtnProcessing(false);
   toast('❌ ' + (e.message || String(e)), 'fail');

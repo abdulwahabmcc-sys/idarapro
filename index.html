@@ -4224,6 +4224,20 @@ function addFee() {
   document.getElementById('fee-sheet-wrap').classList.add('open');
 }
 
+function applyFees() {
+  if (!sessionValid()) return;
+  toast('⏳ جاري تطبيق الرسوم... / Applying fees...', 'info');
+  gasPost({ action: 'applyFees', token: _session.token })
+    .then(function(r) {
+      toast('✅ ' + (r.message || 'Fees applied successfully'), 'ok');
+      refreshDash();
+      loadFees();
+    })
+    .catch(function(e) {
+      toast('❌ ' + (e.message || 'Failed to apply fees'), 'fail');
+    });
+}
+
 function closeFeeSheet() {
   document.getElementById('fee-sheet-wrap').classList.remove('open');
 }
@@ -4429,7 +4443,10 @@ function escHtml(s) {
       </div>
       <div class="stg-sec-body">
         <div id="stg-fees-list" class="stg-list-wrap"></div>
-        <button class="stg-add-btn" onclick="addFee()">＋ إضافة رسم / Add Fee Rule</button>
+<button class="stg-save" onclick="applyFees()" style="background:var(--forest);margin-bottom:8px;">
+  ⚡ تطبيق الرسوم / Apply Fees
+</button>
+<button class="stg-add-btn" onclick="addFee()">＋ إضافة رسم / Add Fee Rule</button>
       </div>
     </div>
 

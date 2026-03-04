@@ -2760,17 +2760,16 @@ function pickReport(type) {
 
 function refreshDash() {
   if (!sessionValid()) return;
-
   var rb   = document.getElementById('rBtn');
   var dtRb = document.getElementById('dt-rBtn');
   rb.classList.add('spin');
   if (dtRb) dtRb.classList.add('spin');
 
   gasPost({ action: 'getDashboardStats', token: _session && _session.token })
-    .then(function(v) {
-      var val = (v && v.cashBalance && v.cashBalance.balance != null)
-          ? v.cashBalance.balance.toFixed(2)
-          : '0.00';
+    .then(function(r) {
+      // Cash balance
+      var val = (r && r.cashBalance && r.cashBalance.balance != null)
+          ? r.cashBalance.balance.toFixed(2) : '0.00';
       var n = new Date();
       var t = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
       var isNeg = val.indexOf('-') !== -1;
@@ -2781,6 +2780,15 @@ function refreshDash() {
       document.getElementById('dt-cashAmt').style.color  = amtColor;
       document.getElementById('dashTime').textContent    = t;
       document.getElementById('dt-dashTime').textContent = t;
+
+      // Building health
+      var pct = r && r.buildingHealth && r.buildingHealth.score != null ? r.buildingHealth.score : 0;
+      var ico = pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
+      document.getElementById('hpct').textContent     = pct + '%';
+      document.getElementById('dt-hpct').textContent  = pct + '%';
+      document.getElementById('heart').textContent    = ico;
+      document.getElementById('dt-heart').textContent = ico;
+
       rb.classList.remove('spin');
       if (dtRb) dtRb.classList.remove('spin');
     })
@@ -2788,19 +2796,7 @@ function refreshDash() {
       rb.classList.remove('spin');
       if (dtRb) dtRb.classList.remove('spin');
     });
-
-  gasPost({ action: 'getDashboardStats', token: _session && _session.token })
-    .then(function(r) {
-      var pct = r && r.buildingHealth && r.buildingHealth.score != null ? r.buildingHealth.score : 0;
-      var ico = pct >= 80 ? '💚' : pct >= 50 ? '🧡' : '❤️';
-      document.getElementById('hpct').textContent     = pct + '%';
-      document.getElementById('dt-hpct').textContent  = pct + '%';
-      document.getElementById('heart').textContent    = ico;
-      document.getElementById('dt-heart').textContent = ico;
-    })
-    .catch(function() {});
 }
-
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBMIT (no more PIN field — uses session token)
 // ══════════════════════════════════════════════════════════════════════════════

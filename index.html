@@ -4090,6 +4090,12 @@ function openUnitSheet(unit) {
   // Title
   document.getElementById('us-title').textContent = isEdit ? 'تعديل وحدة / Edit Unit' : 'إضافة وحدة / Add Unit';
 
+ // Toggle the Delete Button visibility based on edit mode
+  var delBtn = document.getElementById('us-delete-btn');
+  if (delBtn) {
+    delBtn.style.display = isEdit ? 'block' : 'none';
+  }
+  
   // Unit ID — auto-generate for new, show existing for edit
   var displayEl = document.getElementById('us-unit-id-display');
   var hiddenEl  = document.getElementById('us-unit-id');
@@ -4222,6 +4228,39 @@ function submitUnit() {
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
     });
 }
+
+function deleteUnit() {
+  if (!sessionValid()) return;
+  
+  var unitId = document.getElementById('us-unit-id').value;
+  if (!unitId) return;
+
+  // Confirm with the admin before permanently deleting
+  if (!confirm('Are you sure you want to delete unit ' + unitId + '?\n\n⚠️ Warning: This will permanently remove it from the Building database.')) {
+    return;
+  }
+
+  var btn = document.getElementById('us-delete-btn');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحذف... / Deleting...';
+
+  // Send delete command to backend
+  gasPost({ action: 'deleteUnit', payload: { unitId: unitId }, token: _session.token })
+    .then(function(msg) {
+      toast('✅ ' + (msg.message || msg || 'Unit deleted'), 'ok');
+      closeUnitSheet(); // Close the form
+      loadUnits();      // Refresh the units list instantly
+      btn.disabled = false;
+      btn.textContent = '🗑️ حذف الوحدة / Delete Unit';
+    })
+    .catch(function(e) {
+      showUnitErr('❌ ' + (e.message || 'Delete failed'));
+      btn.disabled = false;
+      btn.textContent = '🗑️ حذف الوحدة / Delete Unit';
+    });
+}
+
+  
 function addFee() {
   // Reset form
   ['fs-name','fs-start','fs-end','fs-rate','fs-notes'].forEach(function(id){
@@ -4826,8 +4865,9 @@ function escHtml(s) {
       <button class="cs-submit" id="us-submit" onclick="submitUnit()">إضافة الوحدة / Add Unit</button>
       <button class="cs-cancel" onclick="closeUnitSheet()">إلغاء</button>
     </div>
-
-  </div>
+      <button id="us-delete-btn" class="stg-danger-btn" style="display:none; margin-top:16px;" onclick="deleteUnit()">
+      🗑️ حذف الوحدة / Delete Unit
+      </button>  </div>
 </div>
 
 

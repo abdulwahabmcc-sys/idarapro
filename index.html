@@ -3080,15 +3080,16 @@ function stgError(el) {
 
 // ── ①  Building Profile ───────────────────────────────────────────────────────
 // --- Update 1: Loading the data ---
+// ── ① Update 2: Building Profile ───────────────────────────────────────────────────────
 function loadBuildingProfile() {
   gasGet('getSettingsBuilding', _session && _session.token)
     .then(function(d) {
       if (!d) return;
       document.getElementById('stg-bld-name').value     = d.buildingName || '';
       document.getElementById('stg-bld-addr').value     = d.address      || '';
-      document.getElementById('stg-fiscal-month').value = d.fiscalMonth  || '1';
+      document.getElementById('stg-fiscal-month').value = d.fiscalStart  || '1/1'; // Uses exact date now
       document.getElementById('stg-opening-cash').value = d.openingCash  || '';
-      document.getElementById('stg-timezone').value     = d.timezone     || 'Asia/Beirut'; // ADDED
+      document.getElementById('stg-timezone').value     = d.timezone     || 'Asia/Beirut';
     }).catch(function(err) { stgError(stgListEl('stg-building'), err); });
 }
 
@@ -3719,34 +3720,27 @@ function loadYearEnd() {
 // ── Save actions ──────────────────────────────────────────────────────────────
 // --- Update 2: Saving the data ---
 // ── Save actions ──────────────────────────────────────────────────────────────
+// ── Save actions (UPDATE 3) ──────────────────────────────────────────────────────────────
 function saveSection(name) {
   if (!sessionValid()) return;
-  
   if (name === 'building') {
-    // 1. Safely grab elements
     var nameEl     = document.getElementById('stg-bld-name');
     var addrEl     = document.getElementById('stg-bld-addr');
     var monthEl    = document.getElementById('stg-fiscal-month');
     var cashEl     = document.getElementById('stg-opening-cash');
     var timezoneEl = document.getElementById('stg-timezone');
 
-    // 2. Disable the button visually so the user knows it's working
     var btn = document.querySelector('#stg-building .stg-save');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'جاري الحفظ... / Saving...';
-    }
+    if (btn) { btn.disabled = true; btn.textContent = 'جاري الحفظ... / Saving...'; }
 
-    // 3. Extract values safely without assuming strict string types
     var payload = {
       buildingName: nameEl     ? String(nameEl.value || '').trim() : '',
       address:      addrEl     ? String(addrEl.value || '').trim() : '',
-      fiscalMonth:  monthEl    ? String(monthEl.value || '1') : '1',
+      fiscalStart:  monthEl    ? String(monthEl.value || '1/1') : '1/1', // Sends exact date
       openingCash:  cashEl     ? String(cashEl.value || '0') : '0',
       timezone:     timezoneEl ? String(timezoneEl.value || '').trim() : 'Asia/Beirut'
     };
 
-    // 4. Send to backend
     gasPost({ action: 'saveSettingsBuilding', payload: payload, token: _session.token })
       .then(function(r) { 
         toast('✅ Building profile saved', 'ok'); 
@@ -4391,12 +4385,18 @@ function escHtml(s) {
           <input class="inp" id="stg-bld-addr" type="text" placeholder="Street, City"></div>
         <div class="stg-field"><div class="stg-field-lbl">Fiscal Year Start / بداية السنة المالية</div>
           <select class="inp" id="stg-fiscal-month">
-            <option value="1">January / يناير</option><option value="2">February / فبراير</option>
-            <option value="3">March / مارس</option><option value="4">April / أبريل</option>
-            <option value="5">May / مايو</option><option value="6">June / يونيو</option>
-            <option value="7">July / يوليو</option><option value="8">August / أغسطس</option>
-            <option value="9">September / سبتمبر</option><option value="10">October / أكتوبر</option>
-            <option value="11">November / نوفمبر</option><option value="12">December / ديسمبر</option>
+            <option value="1/1">1 Jan / ١ يناير (1/1)</option>
+            <option value="2/1">1 Feb / ١ فبراير (2/1)</option>
+            <option value="3/1">1 Mar / ١ مارس (3/1)</option>
+            <option value="4/1">1 Apr / ١ أبريل (4/1)</option>
+            <option value="5/1">1 May / ١ مايو (5/1)</option>
+            <option value="6/1">1 Jun / ١ يونيو (6/1)</option>
+            <option value="7/1">1 Jul / ١ يوليو (7/1)</option>
+            <option value="8/1">1 Aug / ١ أغسطس (8/1)</option>
+            <option value="9/1">1 Sep / ١ سبتمبر (9/1)</option>
+            <option value="10/1">1 Oct / ١ أكتوبر (10/1)</option>
+            <option value="11/1">1 Nov / ١ نوفمبر (11/1)</option>
+            <option value="12/1">1 Dec / ١ ديسمبر (12/1)</option>
           </select></div>
         <div class="stg-field"><div class="stg-field-lbl">Opening Cash / النقد الافتتاحي</div>
           <input class="inp" id="stg-opening-cash" type="number" step="0.01" placeholder="0.00"></div>

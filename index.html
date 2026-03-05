@@ -4229,16 +4229,63 @@ function submitUnit() {
     });
 }
 
-function deleteUnit() {
-  if (!sessionValid()) return;
-  
-  var unitId = document.getElementById('us-unit-id').value;
-  if (!unitId) return;
+// Variable to temporarily store what we are trying to delete, opens new modal instead of using the native confirm.
+var _itemToDelete = null; 
 
-  // Confirm with the admin before permanently deleting
-  if (!confirm('Are you sure you want to delete unit ' + unitId + '?\n\n⚠️ Warning: This will permanently remove it from the Building database.')) {
-    return;
+function openDeleteModal(unitId) {
+  _itemToDelete = unitId; // Store the ID
+  document.getElementById('del-modal-target').textContent = 'Unit ' + unitId;
+  
+  // Wire up the red confirm button to actually execute the deletion
+  var confirmBtn = document.getElementById('del-modal-confirm-btn');
+  confirmBtn.onclick = function() { executeDeleteUnit(); };
+  confirmBtn.textContent = 'حذف / Delete';
+  confirmBtn.disabled = false;
+
+  // Show the modal
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  document.getElementById('delete-modal').style.display = 'none';
+  _itemToDelete = null;
+}
+
+// This is called when the admin clicks the red button IN the modal
+function executeDeleteUnit() {
+  if (!sessionValid() || !_itemToDelete) return;
+  
+  var unitId = _itemToDelete;
+  var mainBtn = document.getElementById('us-delete-btn'); // The button on the main form
+  var modalBtn = document.getElementById('del-modal-confirm-btn'); // The button in the modal
+  
+  modalBtn.disabled = true;
+  modalBtn.textContent = 'جاري الحذف...';
+  if (mainBtn) {
+    mainBtn.disabled = true;
+    mainBtn.textContent = 'جاري الحذف... / Deleting...';
   }
+
+  gasPost({ action: 'deleteUnit', payload: { unitId: unitId }, token: _session.token })
+    .then(function(msg) {
+      toast('✅ ' + (msg.message || msg || 'Unit deleted'), 'ok');
+      closeDeleteModal(); // Hide the modal
+      closeUnitSheet();   // Close the unit form
+      loadUnits();        // Refresh the list
+      if (mainBtn) {
+        mainBtn.disabled = false;
+        mainBtn.textContent = '🗑️ حذف الوحدة / Delete Unit';
+      }
+    })
+    .catch(function(e) {
+      closeDeleteModal();
+      showUnitErr('❌ ' + (e.message || 'Delete failed'));
+      if (mainBtn) {
+        mainBtn.disabled = false;
+        mainBtn.textContent = '🗑️ حذف الوحدة / Delete Unit';
+      }
+    });
+}
 
   var btn = document.getElementById('us-delete-btn');
   btn.disabled = true;
@@ -4865,7 +4912,7 @@ function escHtml(s) {
       <button class="cs-submit" id="us-submit" onclick="submitUnit()">إضافة الوحدة / Add Unit</button>
       <button class="cs-cancel" onclick="closeUnitSheet()">إلغاء</button>
     </div>
-      <button id="us-delete-btn" class="stg-danger-btn" style="display:none; margin-top:16px;" onclick="deleteUnit()">
+      <button id="us-delete-btn" class="stg-danger-btn" style="display:none; margin-top:16px;" onclick="openDeleteModal(document.getElementById('us-unit-id').value)">
       🗑️ حذف الوحدة / Delete Unit
       </button>  </div>
 </div>
@@ -5120,5 +5167,36 @@ function escHtml(s) {
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     Custom HTML Modal: create a branded "Confirm Delete" modal!
+══════════════════════════════════════════════ -->  
+<div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(27,42,74,0.55); z-index:9900; align-items:flex-end; backdrop-filter:blur(3px);">
+  <div style="background:var(--surf); border-radius:24px 24px 0 0; width:100%; padding:32px 24px calc(36px + env(safe-area-inset-bottom)); animation:shup 0.3s ease; text-align:center;">
+    
+    <div style="font-size:42px; margin-bottom:12px; line-height:1;">⚠️</div>
+    
+    <div style="font-size:18px; font-weight:700; color:var(--navy); margin-bottom:8px; direction:rtl;">
+      تأكيد الحذف / Confirm Deletion
+    </div>
+    
+    <div style="font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.5; direction:ltr;">
+      Are you sure you want to permanently delete <br>
+      <strong id="del-modal-target" style="color:var(--burg); font-family:var(--mono); font-size:15px;">—</strong>?
+      <br><br>
+      <span style="font-size:11px; opacity:0.8;">This action cannot be undone.</span>
+    </div>
+
+    <div style="display:flex; gap:12px;">
+      <button id="del-modal-confirm-btn" style="flex:1; height:50px; background:var(--burg); color:#fff; border:none; border-radius:12px; font-family:var(--font); font-size:15px; font-weight:700; cursor:pointer; transition:opacity 0.2s;">
+        حذف / Delete
+      </button>
+      <button onclick="closeDeleteModal()" style="flex:1; height:50px; background:var(--bg); color:var(--navy); border:1px solid var(--bdr); border-radius:12px; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer;">
+        إلغاء / Cancel
+      </button>
+    </div>
+    
+  </div>
+</div>  
+  
 </body>
 </html>

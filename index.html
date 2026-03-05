@@ -4400,9 +4400,34 @@ function escHtml(s) {
           </select></div>
         <div class="stg-field"><div class="stg-field-lbl">Opening Cash / النقد الافتتاحي</div>
           <input class="inp" id="stg-opening-cash" type="number" step="0.01" placeholder="0.00"></div>
-          
-        <div class="stg-field"><div class="stg-field-lbl">Timezone / المنطقة الزمنية</div>
-          <input class="inp" id="stg-timezone" type="text" placeholder="e.g. Asia/Beirut" style="direction:ltr;"></div>
+        
+        <!-- TIMEZONE Hardcoded here for performance reasons. To revisit when organizing the html file -->  
+        <div class="stg-field">
+          <div class="stg-field-lbl">Timezone / المنطقة الزمنية</div>
+          <select class="inp" id="stg-timezone" style="direction:ltr; font-family:var(--mono); font-size:14px;">
+            <optgroup label="Middle East">
+              <option value="Asia/Beirut">Asia/Beirut</option>
+              <option value="Asia/Dubai">Asia/Dubai</option>
+              <option value="Asia/Riyadh">Asia/Riyadh</option>
+              <option value="Asia/Amman">Asia/Amman</option>
+              <option value="Asia/Damascus">Asia/Damascus</option>
+              <option value="Asia/Kuwait">Asia/Kuwait</option>
+              <option value="Asia/Qatar">Asia/Qatar</option>
+              <option value="Asia/Bahrain">Asia/Bahrain</option>
+              <option value="Asia/Muscat">Asia/Muscat</option>
+              <option value="Asia/Jerusalem">Asia/Jerusalem</option>
+            </optgroup>
+            <optgroup label="Africa">
+              <option value="Africa/Cairo">Africa/Cairo</option>
+            </optgroup>
+            <optgroup label="Global">
+              <option value="UTC">UTC (Coordinated Universal Time)</option>
+              <option value="Europe/London">Europe/London</option>
+              <option value="Europe/Paris">Europe/Paris</option>
+              <option value="America/New_York">America/New_York</option>
+            </optgroup>
+          </select>
+        </div>
         
         <button class="stg-save" onclick="saveSection('building')">حفظ / Save</button>
       </div>

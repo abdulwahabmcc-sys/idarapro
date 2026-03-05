@@ -3718,16 +3718,44 @@ function loadYearEnd() {
 
 // ── Save actions ──────────────────────────────────────────────────────────────
 // --- Update 2: Saving the data ---
+// ── Save actions ──────────────────────────────────────────────────────────────
 function saveSection(name) {
   if (!sessionValid()) return;
+  
   if (name === 'building') {
-    stgSave('saveSettingsBuilding', {
-      buildingName: document.getElementById('stg-bld-name').value.trim(),
-      address:      document.getElementById('stg-bld-addr').value.trim(),
-      fiscalMonth:  document.getElementById('stg-fiscal-month').value,
-      openingCash:  document.getElementById('stg-opening-cash').value,
-      timezone:     document.getElementById('stg-timezone').value.trim() // ADDED
-    }, 'Building profile saved ✅');
+    // 1. Safely grab elements
+    var nameEl     = document.getElementById('stg-bld-name');
+    var addrEl     = document.getElementById('stg-bld-addr');
+    var monthEl    = document.getElementById('stg-fiscal-month');
+    var cashEl     = document.getElementById('stg-opening-cash');
+    var timezoneEl = document.getElementById('stg-timezone');
+
+    // 2. Disable the button visually so the user knows it's working
+    var btn = document.querySelector('#stg-building .stg-save');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'جاري الحفظ... / Saving...';
+    }
+
+    // 3. Extract values safely without assuming strict string types
+    var payload = {
+      buildingName: nameEl     ? String(nameEl.value || '').trim() : '',
+      address:      addrEl     ? String(addrEl.value || '').trim() : '',
+      fiscalMonth:  monthEl    ? String(monthEl.value || '1') : '1',
+      openingCash:  cashEl     ? String(cashEl.value || '0') : '0',
+      timezone:     timezoneEl ? String(timezoneEl.value || '').trim() : 'Asia/Beirut'
+    };
+
+    // 4. Send to backend
+    gasPost({ action: 'saveSettingsBuilding', payload: payload, token: _session.token })
+      .then(function(r) { 
+        toast('✅ Building profile saved', 'ok'); 
+        if (btn) { btn.disabled = false; btn.textContent = 'حفظ / Save'; }
+      })
+      .catch(function(e) { 
+        toast('❌ ' + (e.message || String(e)), 'fail'); 
+        if (btn) { btn.disabled = false; btn.textContent = 'حفظ / Save'; }
+      });
   }
 }
 

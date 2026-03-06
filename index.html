@@ -2163,26 +2163,23 @@
 
 <div id="dt-main">
   <div id="dt-sidebar">
-    <div class="dt-sidebar-label">Overview</div>
-    <div class="dash-card" id="dt-dash">
-      <div class="d-top">
-        <div>
-          <div class="d-lbl-en">CASH ON HAND</div>
-          <div class="d-lbl-ar">النقد المتوفر</div>
-        </div>
-        <div class="d-heart" onclick="refreshDash()">
-          <span class="d-heart-ico" id="dt-heart">💚</span>
-          <span class="d-heart-pct" id="dt-hpct">—%</span>
-        </div>
-      </div>
-      <div class="d-amount" id="dt-cashAmt">Loading...</div>
-      <div class="d-line"></div>
-      <div class="d-foot">
-        <div class="d-time" id="dt-dashTime">—</div>
-        <button class="d-refresh" id="dt-rBtn" onclick="refreshDash()">↻</button>
-      </div>
-    </div>
+    ...dashboard card...
   </div>
+
+  <div id="dt-content">
+    <div id="dt-tabs">...</div>
+    
+    <!-- MOVE THESE TWO HERE: -->
+    <div id="scroll">
+      ...all the form content...
+    </div><!-- /scroll -->
+    
+    <nav id="nav">
+      ...
+    </nav>
+    
+  </div><!-- /dt-content -->
+</div><!-- /dt-main -->
 
   <div id="dt-content">
     <div id="dt-tabs">
@@ -2252,6 +2249,14 @@ function gasPost(body) {
 // ══════════════════════════════════════════════════════════════════════════════
 
   window.onload = function() {
+  // On desktop: move #scroll into #dt-content immediately on load
+  if (window.innerWidth >= 769) {
+    var dtContent = document.getElementById('dt-content');
+    var scroll    = document.getElementById('scroll');
+    if (dtContent && scroll && !dtContent.contains(scroll)) {
+      dtContent.appendChild(scroll);
+    }
+  }
   showLoginScreen();
   hideLo();
   watchNet();
@@ -2580,14 +2585,6 @@ function launchApp(auth) {
   refreshDash();
   _rtimer = setInterval(refreshDash, 30000);
 
-  // On desktop: move #scroll into #dt-content
-  if (window.innerWidth >= 769) {
-    var dtContent = document.getElementById('dt-content');
-    var scroll    = document.getElementById('scroll');
-    if (dtContent && scroll && !dtContent.contains(scroll)) {
-      dtContent.appendChild(scroll);
-    }
-  }
 }
 
 function applyPermissionUI(auth) {

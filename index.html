@@ -2249,19 +2249,22 @@ function gasPost(body) {
 // ══════════════════════════════════════════════════════════════════════════════
 
   window.onload = function() {
-  // On desktop: move #scroll into #dt-content immediately on load
   if (window.innerWidth >= 769) {
     var dtContent = document.getElementById('dt-content');
     var scroll    = document.getElementById('scroll');
+    var nav       = document.getElementById('nav');
     if (dtContent && scroll && !dtContent.contains(scroll)) {
       dtContent.appendChild(scroll);
+    }
+    if (dtContent && nav && !dtContent.contains(nav)) {
+      dtContent.appendChild(nav);
     }
   }
   showLoginScreen();
   hideLo();
   watchNet();
 };
-
+  
 function hideLo() {
   var lo = document.getElementById('loader');
   if (!lo) return;

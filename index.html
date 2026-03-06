@@ -3082,18 +3082,56 @@ function stgError(el) {
 }
 
 // ── ①  Building Profile ───────────────────────────────────────────────────────
-// --- Update 1: Loading the data ---
-// ── ① Update 2: Building Profile ───────────────────────────────────────────────────────
 function loadBuildingProfile() {
+  // Disable fields and show loading state
+  var fields = ['stg-bld-name', 'stg-bld-addr', 'stg-fiscal-month', 'stg-opening-cash', 'stg-timezone'];
+  fields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.disabled = true; el.style.opacity = '0.4'; }
+  });
+  var saveBtn = document.querySelector('#stg-building .stg-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; }
+
+  // Show loading indicator
+  var body = document.querySelector('#stg-building .stg-sec-body');
+  var loader = document.createElement('div');
+  loader.id = 'bld-loader';
+  loader.className = 'stg-loading';
+  loader.innerHTML =
+    '<div class="stg-loading-wave"><span></span><span></span><span></span><span></span><span></span></div>' +
+    '<div class="stg-loading-txt">Loading profile...</div>';
+  body.insertBefore(loader, body.firstChild);
+
   gasGet('getSettingsBuilding', _session && _session.token)
     .then(function(d) {
+      // Remove loader
+      var l = document.getElementById('bld-loader');
+      if (l) l.remove();
+
+      // Re-enable fields
+      fields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.disabled = false; el.style.opacity = '1'; }
+      });
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+
       if (!d) return;
       document.getElementById('stg-bld-name').value     = d.buildingName || '';
       document.getElementById('stg-bld-addr').value     = d.address      || '';
-      document.getElementById('stg-fiscal-month').value = d.fiscalStart  || '1/1'; // Uses exact date now
+      document.getElementById('stg-fiscal-month').value = d.fiscalStart  || '1/1';
       document.getElementById('stg-opening-cash').value = d.openingCash  || '';
       document.getElementById('stg-timezone').value     = d.timezone     || 'Asia/Beirut';
-    }).catch(function(err) { stgError(stgListEl('stg-building'), err); });
+    })
+    .catch(function() {
+      var l = document.getElementById('bld-loader');
+      if (l) l.remove();
+      fields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.disabled = false; el.style.opacity = '1'; }
+      });
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+      toast('⚠️ Failed to load building profile', 'fail');
+    });
 }
 
 // ── ②  Units ─────────────────────────────────────────────────────────────────

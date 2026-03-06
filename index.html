@@ -2163,23 +2163,26 @@
 
 <div id="dt-main">
   <div id="dt-sidebar">
-    ...dashboard card...
+  <div class="dt-sidebar-label">Overview</div>
+  <div class="dash-card" id="dt-dash">
+    <div class="d-top">
+      <div>
+        <div class="d-lbl-en">CASH ON HAND</div>
+        <div class="d-lbl-ar">النقد المتوفر</div>
+      </div>
+      <div class="d-heart" onclick="refreshDash()">
+        <span class="d-heart-ico" id="dt-heart">💚</span>
+        <span class="d-heart-pct" id="dt-hpct">—%</span>
+      </div>
+    </div>
+    <div class="d-amount" id="dt-cashAmt">Loading...</div>
+    <div class="d-line"></div>
+    <div class="d-foot">
+      <div class="d-time" id="dt-dashTime">—</div>
+      <button class="d-refresh" id="dt-rBtn" onclick="refreshDash()">↻</button>
+    </div>
   </div>
-
-  <div id="dt-content">
-    <div id="dt-tabs">...</div>
-    
-    <!-- MOVE THESE TWO HERE: -->
-    <div id="scroll">
-      ...all the form content...
-    </div><!-- /scroll -->
-    
-    <nav id="nav">
-      ...
-    </nav>
-    
-  </div><!-- /dt-content -->
-</div><!-- /dt-main -->
+</div>
 
   <div id="dt-content">
     <div id="dt-tabs">

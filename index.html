@@ -3686,7 +3686,7 @@ function loadYearCash() {
         '<div class="stg-yc-hdr">EXP</div>' +
         '<div class="stg-yc-hdr"></div>' +
       '</div>';
-      html += rows.map(function(r) {
+      html += rows.map(function(r, i) {
         var isOpen = !r.closing || r.closing == 0;
         return '<div class="stg-yc-row">' +
           '<div class="stg-yc-val">'  + (r.year || '—') + '</div>' +
@@ -3696,7 +3696,7 @@ function loadYearCash() {
           '</div>' +
           '<div class="stg-yc-cnt">' + (r.incCount || '—') + '</div>' +
           '<div class="stg-yc-cnt">' + (r.expCount || '—') + '</div>' +
-          '<div class="stg-yc-cnt"><button class="stg-user-btn" onclick="openYearCashForm(' + JSON.stringify(r) + ')">✏️</button></div>' +
+          '<div class="stg-yc-cnt"><button class="stg-user-btn" onclick="openYearCashForm(' + i + ')">✏️</button></div>' +
         '</div>';
       }).join('');
       el.innerHTML = html;
@@ -3705,9 +3705,11 @@ function loadYearCash() {
 
 function openYearCashForm(row) {
   var isEdit = !!row;
+  var r = (typeof row === 'number') ? _yearCashCache[row] : row;
+  isEdit = !!r;
   document.getElementById('yc-title').textContent = isEdit ? 'تعديل السنة / Edit Year' : 'إضافة سنة / Add Year';
-  document.getElementById('yc-year').value   = isEdit ? (row.year   || '') : new Date().getFullYear();
-  document.getElementById('yc-opening').value = isEdit ? (row.opening || '') : '';
+  document.getElementById('yc-year').value    = isEdit ? (r.year    || '') : new Date().getFullYear();
+  document.getElementById('yc-opening').value = isEdit ? (r.opening || '') : '';
   document.getElementById('yc-year').readOnly = isEdit;
   document.getElementById('yc-year').style.opacity = isEdit ? '0.6' : '1';
   var btn = document.getElementById('yc-submit');
@@ -3717,7 +3719,7 @@ function openYearCashForm(row) {
   if (err) err.style.display = 'none';
   document.getElementById('yearcash-sheet-wrap').classList.add('open');
 }
-
+  
 function closeYearCashSheet() {
   document.getElementById('yearcash-sheet-wrap').classList.remove('open');
 }

@@ -1091,6 +1091,17 @@
       animation: shup 0.3s ease;
     }
 
+    @media (min-width: 768px) {
+      #unit-sheet, #fee-sheet, #contract-sheet,
+      #yearcash-sheet, #bal-sheet, #user-sheet {
+        width: 520px;
+        border-radius: 16px;
+        margin: auto;
+        margin-bottom: 0;
+        max-height: 88vh;
+      }
+    }
+
     #unit-sheet::-webkit-scrollbar { display: none; }
 
     @media (min-width: 769px) {

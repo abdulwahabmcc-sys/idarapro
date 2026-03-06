@@ -2217,6 +2217,7 @@ var _fiscal = null;
 var _rtimer = null;
 var _ttimer = null;
 var _sessionTimer = null;
+var _settingsCache = null;
 
 // Login state
 var _pinBuffer    = '';
@@ -3007,10 +3008,33 @@ function openSettings() {
   if (!sessionValid()) return;
   if (_session.role !== 'Admin') return;
   document.getElementById('settings-panel').classList.add('open');
+
+  // Preload all settings data in one batch call if not already cached
+  if (!_settingsCache) {
+    _settingsCache = 'loading'; // prevent duplicate calls
+    gasGet('getSettingsAll', _session.token)
+      .then(function(d) {
+        _settingsCache = d;
+      })
+      .catch(function() {
+        _settingsCache = null; // reset so retry is possible
+        toast('⚠️ Could not preload settings data', 'fail');
+      });
+  }
 }
 
 function closeSettings() {
   document.getElementById('settings-panel').classList.remove('open');
+}
+
+function invalidateCache(key) {
+  if (_settingsCache && _settingsCache !== 'loading') {
+    if (key) {
+      _settingsCache[key] = null;
+    } else {
+      _settingsCache = null;
+    }
+  }
 }
 
 function toggleSection(id) {
@@ -3063,6 +3087,14 @@ function stgLoad(name) {
   if (fn[name]) fn[name]();
 }
 
+function stgFromCache(key, fallbackAction, el) {
+  if (_settingsCache && _settingsCache !== 'loading' && _settingsCache[key]) {
+    return Promise.resolve(_settingsCache[key]);
+  }
+  // Cache not ready yet — fall back to individual GAS call
+  return gasGet(fallbackAction, _session.token);
+}
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function stgListEl(id) { return document.getElementById(id); }
 
@@ -3083,55 +3115,53 @@ function stgError(el) {
 
 // ── ①  Building Profile ───────────────────────────────────────────────────────
 function loadBuildingProfile() {
-  // Disable fields and show loading state
-  var fields = ['stg-bld-name', 'stg-bld-addr', 'stg-fiscal-month', 'stg-opening-cash', 'stg-timezone'];
+  var fields  = ['stg-bld-name','stg-bld-addr','stg-fiscal-month','stg-opening-cash','stg-timezone'];
+  var saveBtn = document.querySelector('#stg-building .stg-save');
+
   fields.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) { el.disabled = true; el.style.opacity = '0.4'; }
   });
-  var saveBtn = document.querySelector('#stg-building .stg-save');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; }
 
-  // Show loading indicator
-  var body = document.querySelector('#stg-building .stg-sec-body');
+  var body   = document.querySelector('#stg-building .stg-sec-body');
   var loader = document.createElement('div');
-  loader.id = 'bld-loader';
+  loader.id  = 'bld-loader';
   loader.className = 'stg-loading';
   loader.innerHTML =
     '<div class="stg-loading-wave"><span></span><span></span><span></span><span></span><span></span></div>' +
     '<div class="stg-loading-txt">Loading profile...</div>';
   body.insertBefore(loader, body.firstChild);
 
-  gasGet('getSettingsBuilding', _session && _session.token)
-    .then(function(d) {
-      // Remove loader
-      var l = document.getElementById('bld-loader');
-      if (l) l.remove();
-
-      // Re-enable fields
-      fields.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.disabled = false; el.style.opacity = '1'; }
-      });
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
-
-      if (!d) return;
-      document.getElementById('stg-bld-name').value     = d.buildingName || '';
-      document.getElementById('stg-bld-addr').value     = d.address      || '';
-      document.getElementById('stg-fiscal-month').value = d.fiscalStart  || '1/1';
-      document.getElementById('stg-opening-cash').value = d.openingCash  || '';
-      document.getElementById('stg-timezone').value     = d.timezone     || 'Asia/Beirut';
-    })
-    .catch(function() {
-      var l = document.getElementById('bld-loader');
-      if (l) l.remove();
-      fields.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.disabled = false; el.style.opacity = '1'; }
-      });
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
-      toast('⚠️ Failed to load building profile', 'fail');
+  function applyData(d) {
+    var l = document.getElementById('bld-loader');
+    if (l) l.remove();
+    fields.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.disabled = false; el.style.opacity = '1'; }
     });
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    if (!d) return;
+    document.getElementById('stg-bld-name').value     = d.buildingName || '';
+    document.getElementById('stg-bld-addr').value     = d.address      || '';
+    document.getElementById('stg-fiscal-month').value = d.fiscalStart  || '1/1';
+    document.getElementById('stg-opening-cash').value = d.openingCash  || '';
+    document.getElementById('stg-timezone').value     = d.timezone     || 'Asia/Beirut';
+  }
+
+  function onErr() {
+    var l = document.getElementById('bld-loader');
+    if (l) l.remove();
+    fields.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.disabled = false; el.style.opacity = '1'; }
+    });
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    toast('⚠️ Failed to load building profile', 'fail');
+  }
+
+  stgFromCache('building', 'getSettingsBuilding', null)
+    .then(applyData).catch(onErr);
 }
 
 // ── ②  Units ─────────────────────────────────────────────────────────────────
@@ -3139,7 +3169,7 @@ var _unitsCache = [];
 
 function loadUnits() {
   var el = stgListEl('stg-units-list'); stgLoading(el);
-  gasGet('getSettingsUnits', _session && _session.token)
+  stgFromCache('units', 'getSettingsUnits', el)
     .then(function(rows) {
       _unitsCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد وحدات / No units found'); return; }
@@ -3186,7 +3216,7 @@ function loadOccupancy() {
   var btn = document.getElementById('occ-toggle');
   if (btn) btn.textContent = 'عرض الكل / Show All';
 
-  gasGet('getSettingsOccupancy', _session && _session.token)
+  stgFromCache('occupancy', 'getSettingsOccupancy', el)
     .then(function(rows) {
       _occAllRows = rows || [];
       renderOccupancy();
@@ -3236,11 +3266,11 @@ function renderOccupancy() {
 // ── ④  Contacts ───────────────────────────────────────────────────────────────
 function loadContacts() {
   var el = stgListEl('stg-contacts-list'); stgLoading(el);
-  gasGet('getSettingsContacts', _session && _session.token)
+  stgFromCache('contacts', 'getSettingsContacts', el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد جهات اتصال / No contacts'); return; }
       el.innerHTML = rows.map(function(c) {
-        var isActive = String(c.status).toLowerCase() === 'active';
+        var isActive   = String(c.status).toLowerCase() === 'active';
         var badgeColor = isActive ? 'var(--forest)' : 'var(--burg)';
         return '<div class="stg-user-row">' +
           '<div class="stg-user-avatar" style="font-size:10px;background:var(--navy);">' + escHtml((c.name || '?')[0]) + '</div>' +
@@ -3259,13 +3289,13 @@ function loadContacts() {
       }).join('');
     }).catch(function() { stgError(el); });
 }
-
+  
 // ── ⑤  Fee Rules ─────────────────────────────────────────────────────────────
 var _feesCache = [];
 
 function loadFees() {
   var el = stgListEl('stg-fees-list'); stgLoading(el);
-  gasGet('getSettingsFees', _session && _session.token)
+  stgFromCache('fees', 'getSettingsFees', el)
     .then(function(rows) {
       _feesCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد رسوم / No fees configured'); return; }
@@ -3312,7 +3342,7 @@ function renderFeeCards(el, rows) {
 // ── ⑥  Unit Fee Overrides ────────────────────────────────────────────────────
 function loadOverrides() {
   var el = stgListEl('stg-overrides-list'); stgLoading(el);
-  gasGet('getSettingsOverrides', _session && _session.token)
+  stgFromCache('overrides', 'getSettingsOverrides', el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد استثناءات / No overrides configured'); return; }
       el.innerHTML = rows.map(function(o) {
@@ -3322,7 +3352,7 @@ function loadOverrides() {
             '<div class="stg-user-name">' + escHtml(o.unitId || '—') + ' — ' + escHtml(o.overrideType || '') + '</div>' +
             '<div class="stg-user-meta">' + (o.appliesTo || '') + (o.reason ? ' · ' + o.reason : '') + (o.startDate ? ' · ' + o.startDate : '') + (o.endDate ? ' → ' + o.endDate : '') + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--burg);flex-shrink:0;">$' + (o.value || '0') + '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--burg);flex-shrink:0;">' + fmtMoney(o.value) + '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
@@ -3331,7 +3361,7 @@ function loadOverrides() {
 // ── ⑦  Utility Master ────────────────────────────────────────────────────────
 function loadUtility() {
   var el = stgListEl('stg-utility-list'); stgLoading(el);
-  gasGet('getSettingsUtility', _session && _session.token)
+  stgFromCache('utility', 'getSettingsUtility', el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد خدمات / No utilities configured'); return; }
       el.innerHTML = rows.map(function(u) {
@@ -3346,11 +3376,11 @@ function loadUtility() {
       }).join('');
     }).catch(function() { stgError(el); });
 }
-
+  
 // ── ⑧  Meter Readings ────────────────────────────────────────────────────────
 function loadMeters() {
   var el = stgListEl('stg-meters-list'); stgLoading(el);
-  gasGet('getSettingsMeters', _session && _session.token)
+  stgFromCache('meters', 'getSettingsMeters', el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد قراءات / No readings found'); return; }
       el.innerHTML = rows.map(function(r) {
@@ -3368,14 +3398,15 @@ function loadMeters() {
       }).join('');
     }).catch(function() { stgError(el); });
 }
-
+  
 // ── ⑨ + ⑩  Categories (income / expense) ────────────────────────────────────
 function loadCategories(type) {
-  var elId  = type === 'income' ? 'stg-incat-list' : 'stg-excat-list';
-  var gasAct = type === 'income' ? 'getSettingsIncomeCategories' : 'getSettingsExpenseCategories';
-  var el    = stgListEl(elId); stgLoading(el);
+  var elId       = type === 'income' ? 'stg-incat-list' : 'stg-excat-list';
+  var el         = stgListEl(elId); stgLoading(el);
+  var cacheKey   = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+  var fallbackAct = type === 'income' ? 'getSettingsIncomeCategories' : 'getSettingsExpenseCategories';
 
-  gasGet(gasAct, _session && _session.token)
+  stgFromCache(cacheKey, fallbackAct, el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
       el.innerHTML = rows.map(function(c) {
@@ -3400,15 +3431,15 @@ function loadCategories(type) {
       }).join('');
     }).catch(function() { stgError(el); });
 }
-
+  
 // ── ⑪  Opening Balances ──────────────────────────────────────────────────────
 function loadBalances() {
   var el = stgListEl('stg-bal-list'); stgLoading(el);
-  gasGet('getSettingsBalances', _session && _session.token)
+  stgFromCache('balances', 'getSettingsBalances', el)
     .then(function(rows) {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد أرصدة / No balances'); return; }
       el.innerHTML = rows.map(function(r) {
-        var bal = parseFloat(r.balance) || 0;
+        var bal   = parseFloat(String(r.balance).replace(/[^\d.\-]/g, '')) || 0;
         var color = bal < 0 ? 'var(--burg)' : bal > 0 ? 'var(--forest)' : 'var(--muted)';
         var typeLabel = String(r.type || '').trim();
         return '<div class="stg-user-row">' +
@@ -3416,7 +3447,7 @@ function loadBalances() {
             '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
             '<div class="stg-user-meta">' + (r.year || '') + ' · ' + escHtml(r.contractId || '') + ' · ' + escHtml(typeLabel) + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">' + (bal >= 0 ? '+' : '') + '$' + bal.toFixed(2) + '</div>' +
+          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">' + fmtMoney(r.balance) + '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
@@ -3481,6 +3512,7 @@ function submitBalance() {
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
         showBalErr(msg); btn.disabled = false; btn.textContent = 'إضافة / Add Balance'; return;
       }
+      invalidateCache('balances');
       toast('✅ ' + (msg || 'Balance added'), 'ok');
       closeBalSheet(); loadBalances();
     })
@@ -3495,7 +3527,7 @@ var _usersCache = [];
 
 function loadUsers() {
   var el = stgListEl('stg-users-list'); stgLoading(el);
-  gasGet('getSettingsUsers', _session && _session.token)
+  stgFromCache('users', 'getSettingsUsers', el)
     .then(function(users) {
       _usersCache = users || [];
       if (!users || !users.length) { stgEmpty(el, 'لا يوجد مستخدمون / No users found'); return; }
@@ -3610,6 +3642,7 @@ function submitUser() {
         showUserErr(msg); btn.disabled = false;
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User'; return;
       }
+      invalidateCache('users');
       toast('✅ ' + (msg || 'User saved'), 'ok');
       closeUserSheet(); loadUsers();
     })
@@ -3624,7 +3657,7 @@ var _yearCashCache = [];
 
 function loadYearCash() {
   var el = stgListEl('stg-yearcash-list'); stgLoading(el);
-  gasGet('getSettingsYearCash', _session && _session.token)
+  stgFromCache('yearCash', 'getSettingsYearCash', el)
     .then(function(rows) {
       _yearCashCache = rows || [];
       if (!rows || !rows.length) {
@@ -3641,13 +3674,13 @@ function loadYearCash() {
         '<div class="stg-yc-hdr"></div>' +
       '</div>';
       html += rows.map(function(r) {
-        var open  = parseFloat(r.opening) || 0;
-        var close = parseFloat(r.closing) || 0;
         var isOpen = !r.closing || r.closing == 0;
         return '<div class="stg-yc-row">' +
-          '<div class="stg-yc-val">' + (r.year || '—') + '</div>' +
-          '<div class="stg-yc-val">$' + open.toFixed(2) + '</div>' +
-          '<div class="stg-yc-val" style="color:' + (isOpen ? 'var(--muted)' : close >= 0 ? 'var(--forest)' : 'var(--burg)') + ';">' + (isOpen ? '—' : '$' + close.toFixed(2)) + '</div>' +
+          '<div class="stg-yc-val">'  + (r.year || '—') + '</div>' +
+          '<div class="stg-yc-val">'  + fmtMoney(r.opening) + '</div>' +
+          '<div class="stg-yc-val" style="color:' + (isOpen ? 'var(--muted)' : parseFloat(r.closing) >= 0 ? 'var(--forest)' : 'var(--burg)') + ';">' +
+            (isOpen ? '—' : fmtMoney(r.closing)) +
+          '</div>' +
           '<div class="stg-yc-cnt">' + (r.incCount || '—') + '</div>' +
           '<div class="stg-yc-cnt">' + (r.expCount || '—') + '</div>' +
           '<div class="stg-yc-cnt"><button class="stg-user-btn" onclick="openYearCashForm(' + JSON.stringify(r) + ')">✏️</button></div>' +
@@ -3706,6 +3739,7 @@ function submitYearCash() {
         btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
         return;
       }
+      invalidateCache('yearCash');
       toast('✅ ' + (msg || 'Saved'), 'ok');
       closeYearCashSheet();
       loadYearCash();
@@ -3746,9 +3780,9 @@ function loadYearEnd() {
         var h = '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Year History</div>';
         h += d.history.map(function(row) {
           return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;">' +
-            '<span style="font-family:var(--mono);">' + (row.year || '—') + '</span>' +
-            '<span style="color:var(--muted);">Opening: $' + (row.openingCash || '—') + '</span>' +
-            '<span style="color:var(--forest);">Closing: $' + (row.closingCash || '—') + '</span>' +
+            '<span style="font-family:var(--mono);">'      + (row.year || '—')          + '</span>' +
+            '<span style="color:var(--muted);">Opening: '  + fmtMoney(row.openingCash)  + '</span>' +
+            '<span style="color:var(--forest);">Closing: ' + fmtMoney(row.closingCash)  + '</span>' +
           '</div>';
         }).join('');
         historyEl.innerHTML = h;
@@ -3757,7 +3791,7 @@ function loadYearEnd() {
       statusEl.innerHTML = '<strong>⚠️ Failed to load year-end status</strong>';
     });
 }
-
+  
 // ── Save actions ──────────────────────────────────────────────────────────────
 // --- Update 2: Saving the data ---
 // ── Save actions ──────────────────────────────────────────────────────────────
@@ -3784,6 +3818,7 @@ function saveSection(name) {
 
     gasPost({ action: 'saveSettingsBuilding', payload: payload, token: _session.token })
       .then(function(r) { 
+        invalidateCache('building');
         toast('✅ Building profile saved', 'ok'); 
         if (btn) { btn.disabled = false; btn.textContent = 'حفظ / Save'; }
       })
@@ -3807,7 +3842,7 @@ function toggleContact(id, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' contact ' + id + '?')) return;
   gasPost({ action: 'setContactStatus', payload: { contactId: id, active: activate }, token: _session.token })
-    .then(function() { toast('✅ Contact updated', 'ok'); loadContacts(); })
+    .then(function() { invalidateCache('contacts'); toast('✅ Contact updated', 'ok'); loadContacts(); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
@@ -3818,7 +3853,7 @@ function toggleCategory(type, code, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' category ' + code + '?')) return;
   gasPost({ action: 'setCategoryStatus', payload: { type: type, code: code, active: activate }, token: _session.token })
-    .then(function() { toast('✅ Category updated', 'ok'); loadCategories(type); })
+    .then(function() { invalidateCache(type === 'income' ? 'incomeCategories' : 'expenseCategories'); toast('✅ Category updated', 'ok'); loadCategories(type); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
@@ -3836,7 +3871,7 @@ function toggleUserStatus(name, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' user ' + name + '?')) return;
   gasPost({ action: 'setUserStatus', payload: { name: name, active: activate }, token: _session.token })
-    .then(function() { toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok'); loadUsers(); })
+    .then(function() { invalidateCache('users'); toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok'); loadUsers(); })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
@@ -4090,6 +4125,7 @@ function submitContract() {
 
   gasPost({ action: 'addOccupancyContract', payload: payload, token: _session.token })
     .then(function(msg) {
+      invalidateCache('occupancy');
       toast('✅ ' + (msg || 'Contract saved'), 'ok');
       closeContractSheet();
       loadOccupancy(); // refresh the list
@@ -4259,6 +4295,7 @@ function submitUnit() {
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
         return;
       }
+      invalidateCache('units');
       toast('✅ ' + (msg || 'Unit saved'), 'ok');
       closeUnitSheet();
       loadUnits();
@@ -4309,6 +4346,7 @@ function executeDeleteUnit() {
 
   gasPost({ action: 'deleteUnit', payload: { unitId: unitId }, token: _session.token })
     .then(function(msg) {
+      invalidateCache('units');
       toast('✅ ' + (msg.message || msg || 'Unit deleted'), 'ok');
       closeDeleteModal(); // Hide the modal
       closeUnitSheet();   // Close the unit form
@@ -4433,6 +4471,7 @@ function submitFee() {
         btn.textContent = 'حفظ الرسم / Save Fee Rule';
         return;
       }
+      invalidateCache('fees');
       toast('✅ ' + (msg || 'Fee saved'), 'ok');
       closeFeeSheet();
       loadFees();
@@ -4459,6 +4498,18 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtMoney(val) {
+  var s = String(val == null ? '0' : val)
+    .replace(/[٠-٩]/g, function(d) { return d.charCodeAt(0) - 0x0660; })
+    .replace(/[^\d.\-]/g, '');
+  var n = parseFloat(s) || 0;
+  return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+}
+  
 </script>
 <!-- ══════════════════════════════════════════════
      SETTINGS PANEL (Admin only — 14 sections)

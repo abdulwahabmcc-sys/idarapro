@@ -3574,13 +3574,19 @@ function openUserSheet(name) {
   var isEdit = !!name;
   var u = isEdit ? _usersCache.find(function(x){ return x.name === name; }) : null;
   document.getElementById('usr-title').textContent = isEdit ? 'تعديل مستخدم / Edit User' : 'إضافة مستخدم / Add User';
-  document.getElementById('usr-name').value   = isEdit ? (u.name  || '') : '';
-  document.getElementById('usr-email').value  = isEdit ? (u.email || '') : '';
-  document.getElementById('usr-role').value   = isEdit ? (u.role  || '') : '';
-  document.getElementById('usr-status').value = isEdit ? (u.active ? 'Active' : 'Inactive') : 'Active';
-  document.getElementById('usr-pin').value    = '';
-  document.getElementById('usr-name').readOnly   = isEdit;
-  document.getElementById('usr-name').style.opacity = isEdit ? '0.6' : '1';
+  document.getElementById('usr-name').value        = isEdit ? (u.name       || '') : '';
+  document.getElementById('usr-email').value       = isEdit ? (u.email      || '') : '';
+  document.getElementById('usr-role').value        = isEdit ? (u.role       || '') : '';
+  document.getElementById('usr-status').value      = isEdit ? (u.active ? 'Active' : 'Inactive') : 'Active';
+  document.getElementById('usr-phone').value       = isEdit ? (u.phone      || '') : '';
+  document.getElementById('usr-whatsapp').value    = isEdit ? (u.whatsapp   || '') : '';
+  document.getElementById('usr-active-date').value   = isEdit ? (u.activeDate   || '') : '';
+  document.getElementById('usr-inactive-date').value = isEdit ? (u.inactiveDate || '') : '';
+  document.getElementById('usr-hashed-pin').value  = isEdit ? (u.hashedPin  || '') : '';
+  document.getElementById('usr-pin').value         = '';
+  document.getElementById('usr-name').readOnly        = isEdit;
+  document.getElementById('usr-name').style.opacity   = isEdit ? '0.6' : '1';
+
   // Permissions
   if (isEdit && u.perms) {
     document.getElementById('usr-perm-inc').checked = !!u.perms.INC;
@@ -3590,8 +3596,10 @@ function openUserSheet(name) {
     document.getElementById('usr-perm-lst').checked = !!u.perms.REP_LST;
     document.getElementById('usr-perm-jrn').checked = !!u.perms.REP_JRN;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn'].forEach(function(id){ document.getElementById(id).checked = false; });
+    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn']
+      .forEach(function(id){ document.getElementById(id).checked = false; });
   }
+
   var btn = document.getElementById('usr-submit');
   btn.disabled = false;
   btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
@@ -3599,7 +3607,7 @@ function openUserSheet(name) {
   if (err) err.style.display = 'none';
   document.getElementById('user-sheet-wrap').classList.add('open');
 }
-
+  
 function closeUserSheet() {
   document.getElementById('user-sheet-wrap').classList.remove('open');
 }
@@ -3619,13 +3627,17 @@ function showUserErr(msg) {
 
 function submitUser() {
   if (!sessionValid()) return;
-  var name   = document.getElementById('usr-name').value.trim();
-  var email  = document.getElementById('usr-email').value.trim();
-  var role   = document.getElementById('usr-role').value;
-  var status = document.getElementById('usr-status').value;
-  var pin    = document.getElementById('usr-pin').value.trim();
-  var isEdit = document.getElementById('usr-name').readOnly;
-  var perms  = {
+  var name         = document.getElementById('usr-name').value.trim();
+  var email        = document.getElementById('usr-email').value.trim();
+  var role         = document.getElementById('usr-role').value;
+  var status       = document.getElementById('usr-status').value;
+  var pin          = document.getElementById('usr-pin').value.trim();
+  var phone        = document.getElementById('usr-phone').value.trim();
+  var whatsapp     = document.getElementById('usr-whatsapp').value.trim();
+  var activeDate   = document.getElementById('usr-active-date').value;
+  var inactiveDate = document.getElementById('usr-inactive-date').value;
+  var isEdit       = document.getElementById('usr-name').readOnly;
+  var perms = {
     INC:     document.getElementById('usr-perm-inc').checked,
     EXP:     document.getElementById('usr-perm-exp').checked,
     REP_YTD: document.getElementById('usr-perm-ytd').checked,
@@ -3637,8 +3649,8 @@ function submitUser() {
   var errEl = document.getElementById('usr-inline-err');
   if (errEl) errEl.style.display = 'none';
 
-  if (!name)  { showUserErr('❌ Name is required'); return; }
-  if (!role)  { showUserErr('❌ Role is required'); return; }
+  if (!name) { showUserErr('❌ Name is required'); return; }
+  if (!role) { showUserErr('❌ Role is required'); return; }
   if (!isEdit && (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin))) {
     showUserErr('❌ PIN must be exactly 4 digits for new users'); return;
   }
@@ -3649,7 +3661,16 @@ function submitUser() {
   var btn = document.getElementById('usr-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
-  gasPost({ action: 'saveUser', payload: { name: name, email: email, role: role, status: status, pin: pin, perms: perms, isEdit: isEdit }, token: _session.token })
+  gasPost({
+    action: 'saveUser',
+    payload: {
+      name: name, email: email, role: role, status: status,
+      pin: pin, phone: phone, whatsapp: whatsapp,
+      activeDate: activeDate, inactiveDate: inactiveDate,
+      perms: perms, isEdit: isEdit
+    },
+    token: _session.token
+  })
     .then(function(msg) {
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
         showUserErr(msg); btn.disabled = false;
@@ -3661,10 +3682,11 @@ function submitUser() {
     })
     .catch(function(e) {
       showUserErr('❌ ' + (e.message || 'Save failed'));
-      btn.disabled = false; btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
     });
 }
-
+  
 // ── ⑬  YearCash ──────────────────────────────────────────────────────────────
 var _yearCashCache = [];
 
@@ -5195,7 +5217,7 @@ function fmtMoney(val) {
      USER ADD/EDIT SHEET
 ══════════════════════════════════════════════ -->
 <div id="user-sheet-wrap">
-  <div id="user-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+<div id="user-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
     <div class="cs-title" id="usr-title">إضافة مستخدم / Add User</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
@@ -5228,9 +5250,36 @@ function fmtMoney(val) {
       <input class="inp" type="email" id="usr-email" placeholder="user@example.com">
     </div>
 
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Phone / الهاتف</div>
+        <input class="inp" type="tel" id="usr-phone" placeholder="+961 xx xxx xxx" style="direction:ltr;">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">WhatsApp API Code</div>
+        <input class="inp" type="text" id="usr-whatsapp" placeholder="Optional" style="direction:ltr;">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Active Date</div>
+        <input class="inp" type="date" id="usr-active-date">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Inactive Date</div>
+        <input class="inp" type="date" id="usr-inactive-date">
+      </div>
+    </div>
+
     <div class="cs-field">
       <div class="cs-lbl">PIN <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(4 digits)</span></div>
       <input class="inp" type="password" id="usr-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Hashed PIN <span style="font-weight:400;color:var(--muted);">(future use — read only)</span></div>
+      <input class="inp" type="text" id="usr-hashed-pin" placeholder="—" style="opacity:0.5;" readonly>
     </div>
 
     <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Permissions</div>
@@ -5248,6 +5297,7 @@ function fmtMoney(val) {
       <button class="cs-cancel" onclick="closeUserSheet()">إلغاء</button>
     </div>
   </div>
+  
 </div>
 
 <!-- ══════════════════════════════════════════════

@@ -4733,28 +4733,32 @@ function openOverrideSheet(ov, idx) {
   document.getElementById('ov-row-index').value  = isEdit ? idx : '';
 
   // Populate contract dropdown from occupancy cache
-  var contractSel = document.getElementById('ov-contract');
-  contractSel.innerHTML = '<option value="" disabled>Select contract...</option>';
-  var contracts = (_settingsCache && _settingsCache.occupancy) ? _settingsCache.occupancy : [];
-  contracts.forEach(function(c) {
-    var opt = document.createElement('option');
-    opt.value = c.contractId || c.id || '';
-    opt.textContent = (c.contractId || c.id || '') + (c.unit ? ' — ' + c.unit : '') + (c.tenant ? ' · ' + c.tenant : '');
-    if (isEdit && ov.contractId === opt.value) opt.selected = true;
-    contractSel.appendChild(opt);
-  });
+  try {
+    var contractSel = document.getElementById('ov-contract');
+    contractSel.innerHTML = '<option value="" disabled>Select contract...</option>';
+    var contracts = (_settingsCache && _settingsCache.occupancy) ? _settingsCache.occupancy : [];
+    contracts.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.contractId || '';
+      opt.textContent = (c.contractId || '') + (c.unitId ? ' — ' + c.unitId : '') + (c.name ? ' · ' + c.name : '');
+      if (isEdit && ov && ov.contractId === opt.value) opt.selected = true;
+      contractSel.appendChild(opt);
+    });
+  } catch(e) { console.error('Contract dropdown error:', e); }
 
   // Populate applies-to dropdown from fees cache
-  var appliesSel = document.getElementById('ov-applies');
-  appliesSel.innerHTML = '<option value="All">All</option>';
-  var fees = (_settingsCache && _settingsCache.fees) ? _settingsCache.fees : [];
-  fees.forEach(function(f) {
-    var opt = document.createElement('option');
-    opt.value = f.name || f.feeName || '';
-    opt.textContent = f.name || f.feeName || '';
-    if (isEdit && ov.appliesTo === opt.value) opt.selected = true;
-    appliesSel.appendChild(opt);
-  });
+  try {
+    var appliesSel = document.getElementById('ov-applies');
+    appliesSel.innerHTML = '<option value="All">All</option>';
+    var fees = (_settingsCache && _settingsCache.fees) ? _settingsCache.fees : [];
+    fees.forEach(function(f) {
+      var opt = document.createElement('option');
+      opt.value = f.name || '';
+      opt.textContent = f.name || '';
+      if (isEdit && ov && ov.appliesTo === opt.value) opt.selected = true;
+      appliesSel.appendChild(opt);
+    });
+  } catch(e) { console.error('Fees dropdown error:', e); }
 
   document.getElementById('ov-type').value     = isEdit ? (ov.type       || '') : '';
   document.getElementById('ov-value').value    = isEdit ? (ov.value      || '') : '';

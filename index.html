@@ -4395,7 +4395,9 @@ function addUnit() {
 }
 
 function editUnit(unitId) {
+  console.log('editUnit called:', unitId, '_unitsCache length:', _unitsCache.length);
   var unit = _unitsCache.find(function(u) { return u.unitId === unitId; }) || null;
+  console.log('found unit:', unit);
   openUnitSheet(unit);
 }
 

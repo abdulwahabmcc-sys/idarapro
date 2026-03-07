@@ -1069,7 +1069,8 @@
     #bal-sheet-wrap,
     #user-sheet-wrap,
     #contact-sheet-wrap,
-    #category-sheet-wrap {
+    #category-sheet-wrap,
+    #override-sheet-wrap {
       display: none;
       position: fixed;
       inset: 0;
@@ -1104,7 +1105,8 @@
       max-height: 88vh;
       }
       #unit-sheet-wrap, #fee-sheet-wrap, #contract-sheet-wrap,
-      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap, #category-sheet-wrap {
+      #unit-sheet-wrap, #fee-sheet-wrap, #contract-sheet-wrap,
+      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap, #category-sheet-wrap, #override-sheet-wrap {
       align-items: center;
       }
     }
@@ -3376,20 +3378,24 @@ function loadOverrides() {
   var el = stgListEl('stg-overrides-list'); stgLoading(el);
   stgFromCache('overrides', 'getSettingsOverrides', el)
     .then(function(rows) {
+      _overridesCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد استثناءات / No overrides configured'); return; }
-      el.innerHTML = rows.map(function(o) {
+      el.innerHTML = rows.map(function(o, i) {
         return '<div class="stg-user-row">' +
-          '<div class="stg-user-avatar" style="background:var(--gold);color:var(--navy);font-size:10px;">' + escHtml(o.unitId || '—') + '</div>' +
+          '<div class="stg-user-avatar" style="background:var(--gold);color:var(--navy);font-size:10px;">' + escHtml(o.contractId || '—') + '</div>' +
           '<div class="stg-user-info">' +
-            '<div class="stg-user-name">' + escHtml(o.unitId || '—') + ' — ' + escHtml(o.overrideType || '') + '</div>' +
-            '<div class="stg-user-meta">' + (o.appliesTo || '') + (o.reason ? ' · ' + o.reason : '') + (o.startDate ? ' · ' + o.startDate : '') + (o.endDate ? ' → ' + o.endDate : '') + '</div>' +
+            '<div class="stg-user-name">' + escHtml(o.contractId || '—') + ' — ' + escHtml(o.type || '') + '</div>' +
+            '<div class="stg-user-meta">' + (o.appliesTo || '') + (o.reason ? ' · ' + o.reason : '') + (o.start ? ' · ' + o.start : '') + (o.end ? ' → ' + o.end : '') + '</div>' +
           '</div>' +
           '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--burg);flex-shrink:0;">' + fmtMoney(o.value) + '</div>' +
+          '<div class="stg-user-actions">' +
+            '<button class="stg-user-btn" onclick="editOverride(' + i + ')">تعديل</button>' +
+          '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
 }
-
+  
 // ── ⑦  Utility Master ────────────────────────────────────────────────────────
 function loadUtility() {
   var el = stgListEl('stg-utility-list'); stgLoading(el);
@@ -4711,7 +4717,113 @@ function submitFee() {
       btn.textContent = 'حفظ الرسم / Save Fee Rule';
     });
 }
-function addOverride()      { toast('ℹ️ Add override — coming soon', 'info'); }
+var _overridesCache = [];
+
+function addOverride() {
+  openOverrideSheet(null);
+}
+
+function editOverride(idx) {
+  openOverrideSheet(_overridesCache[idx] || null, idx);
+}
+
+function openOverrideSheet(ov, idx) {
+  var isEdit = ov !== null && ov !== undefined;
+  document.getElementById('ov-title').textContent = isEdit ? 'تعديل استثناء / Edit Override' : 'إضافة استثناء / Add Override';
+  document.getElementById('ov-row-index').value  = isEdit ? idx : '';
+
+  // Populate contract dropdown from occupancy cache
+  var contractSel = document.getElementById('ov-contract');
+  contractSel.innerHTML = '<option value="" disabled>Select contract...</option>';
+  var contracts = (_settingsCache && _settingsCache.occupancy) ? _settingsCache.occupancy : [];
+  contracts.forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c.contractId || c.id || '';
+    opt.textContent = (c.contractId || c.id || '') + (c.unit ? ' — ' + c.unit : '') + (c.tenant ? ' · ' + c.tenant : '');
+    if (isEdit && ov.contractId === opt.value) opt.selected = true;
+    contractSel.appendChild(opt);
+  });
+
+  // Populate applies-to dropdown from fees cache
+  var appliesSel = document.getElementById('ov-applies');
+  appliesSel.innerHTML = '<option value="All">All</option>';
+  var fees = (_settingsCache && _settingsCache.fees) ? _settingsCache.fees : [];
+  fees.forEach(function(f) {
+    var opt = document.createElement('option');
+    opt.value = f.name || f.feeName || '';
+    opt.textContent = f.name || f.feeName || '';
+    if (isEdit && ov.appliesTo === opt.value) opt.selected = true;
+    appliesSel.appendChild(opt);
+  });
+
+  document.getElementById('ov-type').value     = isEdit ? (ov.type       || '') : '';
+  document.getElementById('ov-value').value    = isEdit ? (ov.value      || '') : '';
+  document.getElementById('ov-reason').value   = isEdit ? (ov.reason     || '') : '';
+  document.getElementById('ov-start').value    = isEdit ? (ov.start      || '') : '';
+  document.getElementById('ov-end').value      = isEdit ? (ov.end        || '') : '';
+  document.getElementById('ov-approved').value = isEdit ? (ov.approvedBy || '') : '';
+  document.getElementById('ov-notes').value    = isEdit ? (ov.notes      || '') : '';
+  if (!isEdit) document.getElementById('ov-applies').value = 'All';
+
+  var btn = document.getElementById('ov-submit');
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Override';
+  var err = document.getElementById('ov-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('override-sheet-wrap').classList.add('open');
+}
+
+function closeOverrideSheet() {
+  document.getElementById('override-sheet-wrap').classList.remove('open');
+}
+
+function showOverrideErr(msg) {
+  var el = document.getElementById('ov-inline-err');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function submitOverride() {
+  if (!sessionValid()) return;
+  var contractId = document.getElementById('ov-contract').value;
+  var type       = document.getElementById('ov-type').value;
+  var value      = document.getElementById('ov-value').value.trim();
+  var appliesTo  = document.getElementById('ov-applies').value;
+  var reason     = document.getElementById('ov-reason').value.trim();
+  var start      = document.getElementById('ov-start').value;
+  var end        = document.getElementById('ov-end').value;
+  var approvedBy = document.getElementById('ov-approved').value.trim();
+  var notes      = document.getElementById('ov-notes').value.trim();
+  var rowIndex   = document.getElementById('ov-row-index').value;
+  var isEdit     = rowIndex !== '';
+
+  if (!contractId) { showOverrideErr('❌ Contract ID is required'); return; }
+  if (!type)       { showOverrideErr('❌ Override type is required'); return; }
+
+  var btn = document.getElementById('ov-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  gasPost({
+    action: 'saveOverride',
+    payload: { contractId: contractId, type: type, value: value, appliesTo: appliesTo, reason: reason, start: start, end: end, approvedBy: approvedBy, notes: notes, isEdit: isEdit, rowIndex: rowIndex },
+    token: _session.token
+  })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showOverrideErr(msg); btn.disabled = false;
+        btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Override'; return;
+      }
+      invalidateCache('overrides');
+      if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['overrides'] = null;
+      toast('✅ ' + (msg || 'Override saved'), 'ok');
+      closeOverrideSheet(); loadOverrides();
+    })
+    .catch(function(e) {
+      showOverrideErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Override';
+    });
+}
+  
 function addMeterReading()  { toast('ℹ️ Add meter reading — coming soon', 'info'); }
 
 // ── Gear visibility ───────────────────────────────────────────────────────────
@@ -5596,6 +5708,81 @@ function fmtMoney(val) {
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════
+     OVERRIDE ADD/EDIT SHEET
+══════════════════════════════════════════════ -->
+<div id="override-sheet-wrap">
+  <div id="override-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+    <div class="cs-title" id="ov-title">إضافة استثناء / Add Override</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <input type="hidden" id="ov-row-index">
+
+    <div class="cs-field">
+      <div class="cs-lbl">Contract ID <span class="req">*</span></div>
+      <select class="inp" id="ov-contract">
+        <option value="" disabled selected>Select contract...</option>
+      </select>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Override Type <span class="req">*</span></div>
+      <select class="inp" id="ov-type">
+        <option value="" disabled selected>Select type...</option>
+        <option value="Exempt">Exempt</option>
+        <option value="Custom-Rate">Custom-Rate</option>
+        <option value="Discount-Percent">Discount-Percent</option>
+        <option value="Deduction">Deduction</option>
+      </select>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Override Value</div>
+      <input class="inp" type="number" id="ov-value" placeholder="0.00" step="0.01">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Applies To Fee</div>
+      <select class="inp" id="ov-applies">
+        <option value="All">All</option>
+      </select>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Reason</div>
+      <input class="inp" type="text" id="ov-reason" placeholder="Optional">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Start Date</div>
+        <input class="inp" type="date" id="ov-start">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">End Date</div>
+        <input class="inp" type="date" id="ov-end">
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Approved By</div>
+      <input class="inp" type="text" id="ov-approved" placeholder="Optional">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Notes</div>
+      <input class="inp" type="text" id="ov-notes" placeholder="Optional">
+    </div>
+
+    <div id="ov-inline-err" style="display:none;color:var(--burg);font-size:12px;margin:6px 0;"></div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="ov-submit" onclick="submitOverride()">إضافة / Add Override</button>
+      <button class="cs-cancel" onclick="closeOverrideSheet()">إلغاء</button>
+    </div>
+  </div>
+</div>  
 
 <!-- ══════════════════════════════════════════════
      Custom HTML Modal: create a branded "Confirm Delete" modal!

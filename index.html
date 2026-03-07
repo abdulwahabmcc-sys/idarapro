@@ -4072,7 +4072,17 @@ function toggleCategory(type, code, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' category ' + code + '?')) return;
   gasPost({ action: 'setCategoryStatus', payload: { type: type, code: code, active: activate }, token: _session.token })
-    .then(function() { invalidateCache(type === 'income' ? 'incomeCategories' : 'expenseCategories'); toast('✅ Category updated', 'ok'); loadCategories(type); })
+    .then(function(res) {
+      var cacheKey = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+      invalidateCache(cacheKey);
+      if (_settingsCache && typeof _settingsCache === 'object') {
+        _settingsCache[cacheKey] = null;
+      }
+      if (type === 'income') _incomeCatCache = [];
+      else _expenseCatCache = [];
+      toast('✅ Category updated', 'ok');
+      loadCategories(type);
+    })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 

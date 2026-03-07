@@ -4320,11 +4320,11 @@ function openEditContractSheet(c) {
   unitSel.disabled = true;
   contactSel.innerHTML = '<option value="' + escHtml(c.contactId) + '">' + escHtml(c.name || c.contactId) + '</option>';
   contactSel.disabled = true;
-  startInp.value = c.startDate || '';
+  startInp.value = formatDateForInput(c.startDate || '');
   startInp.readOnly = true;
   startInp.style.opacity = '0.6';
   document.getElementById('cs-role').value = c.role || '';
-  document.getElementById('cs-end').value  = c.endDate || '';
+  document.getElementById('cs-end').value  = formatDateForInput(c.endDate || '');
   var balField = document.getElementById('cs-balance');
   if (balField && balField.closest('.cs-field')) balField.closest('.cs-field').style.display = 'none';
   var confirmField = document.getElementById('cs-confirm-chk');
@@ -4437,6 +4437,15 @@ function todayStr() {
   return d.getFullYear() + '-' +
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
+}
+
+function formatDateForInput(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  var month = String(d.getMonth() + 1).padStart(2, '0');
+  var day   = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + month + '-' + day;
 }
 
 function dateMinus1(dateStr) {

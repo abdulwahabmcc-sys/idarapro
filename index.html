@@ -3287,6 +3287,9 @@ function renderOccupancy() {
         '</div>' +
       '</div>' +
       dot +
+      '<div class="stg-user-actions">' +
+        '<button class="stg-user-btn" onclick="editContract(\'' + escHtml(c.contractId) + '\')">تعديل</button>' +
+      '</div>' +
     '</div>';
   }).join('');
 }

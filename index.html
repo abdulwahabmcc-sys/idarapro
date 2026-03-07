@@ -4720,7 +4720,14 @@ function submitFee() {
 var _overridesCache = [];
 
 function addOverride() {
-  openOverrideSheet(null);
+  console.log('addOverride called');
+  console.log('_settingsCache:', _settingsCache);
+  try {
+    openOverrideSheet(null);
+    console.log('openOverrideSheet completed');
+  } catch(e) {
+    console.error('openOverrideSheet error:', e);
+  }
 }
 
 function editOverride(idx) {

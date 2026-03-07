@@ -1068,7 +1068,8 @@
     #yearcash-sheet-wrap,
     #bal-sheet-wrap,
     #user-sheet-wrap,
-    #contact-sheet-wrap {
+    #contact-sheet-wrap,
+    #category-sheet-wrap {
       display: none;
       position: fixed;
       inset: 0;
@@ -1077,11 +1078,11 @@
       align-items: flex-end;
       backdrop-filter: blur(3px);
     }
-
     #yearcash-sheet-wrap.open,
     #bal-sheet-wrap.open,
     #user-sheet-wrap.open,
-    #contact-sheet-wrap.open { display: flex; }
+    #contact-sheet-wrap.open,
+    #category-sheet-wrap.open { display: flex; }
     
     #unit-sheet {
       background: var(--surf);
@@ -1095,7 +1096,7 @@
 
     @media (min-width: 768px) {
     #unit-sheet, #fee-sheet, #contract-sheet,
-    #yearcash-sheet, #bal-sheet, #user-sheet, #contact-sheet {
+    #yearcash-sheet, #bal-sheet, #user-sheet, #contact-sheet, #category-sheet {
       width: 520px !important;
       border-radius: 16px !important;
       margin: auto !important;
@@ -1103,7 +1104,7 @@
       max-height: 88vh;
       }
       #unit-sheet-wrap, #fee-sheet-wrap, #contract-sheet-wrap,
-      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap {
+      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap, #category-sheet-wrap {
       align-items: center;
       }
     }
@@ -3439,6 +3440,8 @@ function loadCategories(type) {
 
   stgFromCache(cacheKey, fallbackAct, el)
     .then(function(rows) {
+      if (type === 'income') _incomeCatCache = rows || [];
+      else _expenseCatCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
       el.innerHTML = rows.map(function(c) {
         var isActive = String(c.status).toLowerCase() === 'active';
@@ -3971,8 +3974,100 @@ function toggleContact(id, activate) {
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 // ── Category actions ──────────────────────────────────────────────────────────
-function editCategory(type, code)  { toast('ℹ️ Edit category: ' + code, 'info'); }
-function addCategory(type)         { toast('ℹ️ Add ' + type + ' category — coming soon', 'info'); }
+var _incomeCatCache  = [];
+var _expenseCatCache = [];
+
+function addCategory(type) {
+  openCategorySheet(type, null);
+}
+
+function editCategory(type, code) {
+  var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
+  var c = cache.find(function(x){ return x.code === code; });
+  openCategorySheet(type, c || null);
+}
+
+function openCategorySheet(type, cat) {
+  var isEdit = !!cat;
+  document.getElementById('cat-type').value    = type;
+  document.getElementById('cat-title').textContent = isEdit
+    ? (type === 'income' ? 'تعديل فئة دخل / Edit Income Category' : 'تعديل فئة مصروف / Edit Expense Category')
+    : (type === 'income' ? 'إضافة فئة دخل / Add Income Category'  : 'إضافة فئة مصروف / Add Expense Category');
+  document.getElementById('cat-code').value     = isEdit ? (cat.code   || '') : '';
+  document.getElementById('cat-name-ar').value  = isEdit ? (cat.nameAr || '') : '';
+  document.getElementById('cat-name-en').value  = isEdit ? (cat.nameEn || '') : '';
+  document.getElementById('cat-desc').value     = isEdit ? (cat.desc   || '') : '';
+  document.getElementById('cat-notes').value    = isEdit ? (cat.notes  || '') : '';
+  document.getElementById('cat-status').value   = isEdit ? (cat.status || 'Active') : 'Active';
+
+  // Populate parent dropdown from same cache
+  var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
+  var parentSel = document.getElementById('cat-parent');
+  parentSel.innerHTML = '<option value="">— None —</option>';
+  cache.forEach(function(x) {
+    if (isEdit && x.code === cat.code) return; // skip self
+    var opt = document.createElement('option');
+    opt.value = x.nameEn;
+    opt.textContent = x.nameEn;
+    if (isEdit && cat.parent === x.nameEn) opt.selected = true;
+    parentSel.appendChild(opt);
+  });
+
+  var btn = document.getElementById('cat-submit');
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category';
+  var err = document.getElementById('cat-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('category-sheet-wrap').classList.add('open');
+}
+
+function closeCategorySheet() {
+  document.getElementById('category-sheet-wrap').classList.remove('open');
+}
+
+function showCategoryErr(msg) {
+  var el = document.getElementById('cat-inline-err');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function submitCategory() {
+  if (!sessionValid()) return;
+  var type   = document.getElementById('cat-type').value;
+  var code   = document.getElementById('cat-code').value.trim();
+  var nameAr = document.getElementById('cat-name-ar').value.trim();
+  var nameEn = document.getElementById('cat-name-en').value.trim();
+  var parent = document.getElementById('cat-parent').value;
+  var desc   = document.getElementById('cat-desc').value.trim();
+  var notes  = document.getElementById('cat-notes').value.trim();
+  var status = document.getElementById('cat-status').value;
+  var isEdit = !!code;
+
+  if (!nameAr) { showCategoryErr('❌ Arabic name is required'); return; }
+  if (!nameEn) { showCategoryErr('❌ English name is required'); return; }
+
+  var btn = document.getElementById('cat-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  gasPost({
+    action: 'saveCategory',
+    payload: { type: type, code: code, nameAr: nameAr, nameEn: nameEn, parent: parent, desc: desc, notes: notes, status: status, isEdit: isEdit },
+    token: _session.token
+  })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showCategoryErr(msg); btn.disabled = false;
+        btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category'; return;
+      }
+      invalidateCache(type === 'income' ? 'incomeCategories' : 'expenseCategories');
+      toast('✅ ' + (msg || 'Category saved'), 'ok');
+      closeCategorySheet(); loadCategories(type);
+    })
+    .catch(function(e) {
+      showCategoryErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category';
+    });
+}
 function toggleCategory(type, code, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' category ' + code + '?')) return;
@@ -5429,6 +5524,65 @@ function fmtMoney(val) {
     <div class="cs-btns">
       <button class="cs-submit" id="ct-submit" onclick="submitContact()">إضافة / Add Contact</button>
       <button class="cs-cancel" onclick="closeContactSheet()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CATEGORY ADD/EDIT SHEET
+══════════════════════════════════════════════ -->
+<div id="category-sheet-wrap">
+  <div id="category-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
+    <div class="cs-title" id="cat-title">إضافة فئة / Add Category</div>
+    <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
+
+    <input type="hidden" id="cat-type">
+
+    <div class="cs-field">
+      <div class="cs-lbl">Code</div>
+      <input class="inp" type="text" id="cat-code" placeholder="Auto-generated" readonly style="opacity:0.5;">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Category Name Arabic / اسم الفئة <span class="req">*</span></div>
+      <input class="inp" type="text" id="cat-name-ar" placeholder="اسم الفئة بالعربية" style="direction:rtl;">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Category Name English <span class="req">*</span></div>
+      <input class="inp" type="text" id="cat-name-en" placeholder="Category name in English">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Parent Category</div>
+      <select class="inp" id="cat-parent">
+        <option value="">— None —</option>
+      </select>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Description</div>
+      <input class="inp" type="text" id="cat-desc" placeholder="Optional">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Notes</div>
+      <input class="inp" type="text" id="cat-notes" placeholder="Optional">
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Status</div>
+      <select class="inp" id="cat-status">
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </div>
+
+    <div id="cat-inline-err" style="display:none;color:var(--burg);font-size:12px;margin:6px 0;"></div>
+
+    <div class="cs-btns">
+      <button class="cs-submit" id="cat-submit" onclick="submitCategory()">إضافة / Add Category</button>
+      <button class="cs-cancel" onclick="closeCategorySheet()">إلغاء</button>
     </div>
   </div>
 </div>

@@ -4191,6 +4191,21 @@ function addContract() {
 
 function closeContractSheet() {
   document.getElementById('contract-sheet-wrap').classList.remove('open');
+  // Reset fields that may have been locked during edit mode
+  var unitSel    = document.getElementById('cs-unit');
+  var contactSel = document.getElementById('cs-contact');
+  var startInp   = document.getElementById('cs-start');
+  if (unitSel)    { unitSel.disabled    = false; }
+  if (contactSel) { contactSel.disabled = false; }
+  if (startInp)   { startInp.readOnly   = false; startInp.style.opacity = '1'; }
+  // Reset submit button onclick to original
+  var btn = document.getElementById('cs-submit');
+  if (btn) { btn.onclick = function() { submitContract(); }; }
+  var hiddenId = document.getElementById('cs-contract-id-hidden');
+  if (hiddenId) hiddenId.value = '';
+  // Reset title
+  var title = document.getElementById('cs-title');
+  if (title) title.textContent = 'إضافة عقد / Add Contract';
 }
 
 function onContractUnitChange() {
@@ -4255,6 +4270,9 @@ function onContractDateChange() {
 }
 
 function onContractFieldChange() {
+  // Skip preview generation in edit mode
+  if (document.getElementById('cs-contract-id-hidden').value) return;
+
   // Update Contract ID preview
   var unitSel    = document.getElementById('cs-unit');
   var contactSel = document.getElementById('cs-contact');
@@ -4266,7 +4284,6 @@ function onContractFieldChange() {
 
   if (unitId && contactId && startVal) {
     var year   = startVal.substring(0, 4);
-    // Sequence: count existing contracts for this unit + 1
     var seq = (_occAllRows.filter(function(c) { return c.unitId === unitId; }).length + 1);
     var seqStr = String(seq).padStart(3, '0');
     var contractId = unitId + '-' + contactId + '-' + year + '-' + seqStr;

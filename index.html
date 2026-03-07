@@ -4759,11 +4759,15 @@ function openOverrideSheet(ov, idx) {
     var appliesSel = document.getElementById('ov-applies');
     appliesSel.innerHTML = '<option value="All">All</option>';
     var fees = (_settingsCache && _settingsCache.fees) ? _settingsCache.fees : [];
+    var seenFees = {};
     fees.forEach(function(f) {
+      var fname = f.name || '';
+      if (!fname || seenFees[fname]) return;
+      seenFees[fname] = true;
       var opt = document.createElement('option');
-      opt.value = f.name || '';
-      opt.textContent = f.name || '';
-      if (isEdit && ov && ov.appliesTo === opt.value) opt.selected = true;
+      opt.value = fname;
+      opt.textContent = fname;
+      if (isEdit && ov && ov.appliesTo === fname) opt.selected = true;
       appliesSel.appendChild(opt);
     });
   } catch(e) { console.error('Fees dropdown error:', e); }

@@ -1056,15 +1056,7 @@
     }
 
     /* ── Unit form sheet ── */
-    #unit-sheet-wrap {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(27,42,74,0.55);
-      z-index: 9600;
-      align-items: flex-end;
-      backdrop-filter: blur(3px);
-    }
+    #unit-sheet-wrap,
     #yearcash-sheet-wrap,
     #bal-sheet-wrap,
     #user-sheet-wrap,
@@ -1080,6 +1072,7 @@
       align-items: flex-end;
       backdrop-filter: blur(3px);
     }
+    #unit-sheet-wrap.open,
     #yearcash-sheet-wrap.open,
     #bal-sheet-wrap.open,
     #user-sheet-wrap.open,

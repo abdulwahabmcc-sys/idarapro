@@ -4305,6 +4305,66 @@ function updateContractSubmit() {
   btn.disabled = !valid;
 }
 
+function editContract(contractId) {
+  var c = _occAllRows.find(function(x){ return x.contractId === contractId; });
+  if (!c) { toast('❌ Contract not found', 'fail'); return; }
+  openEditContractSheet(c);
+}
+
+function openEditContractSheet(c) {
+  document.getElementById('cs-title').textContent = 'تعديل عقد / Edit Contract';
+  var unitSel    = document.getElementById('cs-unit');
+  var contactSel = document.getElementById('cs-contact');
+  var startInp   = document.getElementById('cs-start');
+  unitSel.innerHTML = '<option value="' + escHtml(c.unitId) + '">' + escHtml(c.unitId) + ' — ' + escHtml(c.section || '') + '</option>';
+  unitSel.disabled = true;
+  contactSel.innerHTML = '<option value="' + escHtml(c.contactId) + '">' + escHtml(c.name || c.contactId) + '</option>';
+  contactSel.disabled = true;
+  startInp.value = c.startDate || '';
+  startInp.readOnly = true;
+  startInp.style.opacity = '0.6';
+  document.getElementById('cs-role').value = c.role || '';
+  document.getElementById('cs-end').value  = c.endDate || '';
+  var balField = document.getElementById('cs-balance');
+  if (balField && balField.closest('.cs-field')) balField.closest('.cs-field').style.display = 'none';
+  var confirmField = document.getElementById('cs-confirm-chk');
+  if (confirmField && confirmField.closest('.cs-field')) confirmField.closest('.cs-field').style.display = 'none';
+  document.getElementById('cs-contract-id-hidden').value = c.contractId;
+  var btn = document.getElementById('cs-submit');
+  btn.disabled = false;
+  btn.textContent = 'حفظ التعديل / Save Changes';
+  btn.onclick = function() { submitContractEdit(c.contractId); };
+  var err = document.getElementById('cs-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('contract-sheet-wrap').classList.add('open');
+}
+
+function submitContractEdit(contractId) {
+  if (!sessionValid()) return;
+  var role   = document.getElementById('cs-role').value;
+  var endVal = document.getElementById('cs-end').value;
+  if (!role) { toast('❌ Role is required', 'fail'); return; }
+  var btn = document.getElementById('cs-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  gasPost({
+    action: 'editOccupancyContract',
+    payload: { contractId: contractId, role: role, endDate: endVal || '' },
+    token: _session.token
+  })
+    .then(function(msg) {
+      invalidateCache('occupancy');
+      if (_settingsCache) _settingsCache['occupancy'] = null;
+      toast('✅ ' + (msg || 'Contract updated'), 'ok');
+      document.getElementById('cs-submit').onclick = function() { submitContract(); };
+      closeContractSheet();
+      loadOccupancy();
+    })
+    .catch(function(e) {
+      toast('❌ ' + (e.message || 'Update failed'), 'fail');
+      btn.disabled = false; btn.textContent = 'حفظ التعديل / Save Changes';
+    });
+}
+
 function submitContract() {
   if (!sessionValid()) return;
 
@@ -5321,6 +5381,8 @@ function fmtMoney(val) {
       <div class="cs-status-pill empty" id="cs-status-pill">— fill dates —</div>
     </div>
 
+    <input type="hidden" id="cs-contract-id-hidden">
+    
     <!-- Buttons -->
     <div class="cs-btns">
       <button class="cs-submit" id="cs-submit" onclick="submitContract()" disabled>

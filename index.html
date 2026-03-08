@@ -4776,7 +4776,7 @@ function openFeeSheet(f) {
   document.getElementById('fs-name').value         = isEdit ? (f.name        || '') : '';
   document.getElementById('fs-frequency').value    = isEdit ? (f.frequency   || '') : '';
   document.getElementById('fs-status').value       = isEdit ? (f.status      || 'Active') : 'Active';
-  document.getElementById('fs-target-type').value  = isEdit ? (f.targetType  || '') : '';
+  document.getElementById('fs-target-type').value  = isEdit ? (f.targetType === 'All' ? '' : (f.targetType || '')) : '';
   document.getElementById('fs-target-val').value   = isEdit ? (f.targetValue || '') : '';
   document.getElementById('fs-fee-type').value     = isEdit ? (f.feeType     || 'Fixed') : 'Fixed';
   document.getElementById('fs-rate').value         = isEdit ? (f.baseRate    || '') : '';
@@ -5581,6 +5581,7 @@ function fmtMoney(val) {
         <select class="inp" id="fs-status">
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
+          <option value="Expired">Expired</option>
         </select>
       </div>
     </div>

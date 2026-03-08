@@ -4763,14 +4763,120 @@ function showFeeErr(msg) {
   sheet.scrollTop = sheet.scrollHeight;
 }
 
+function loadFeeLookups(callback) {
+  if (_feeLookupsCache) { callback(_feeLookupsCache); return; }
+  gasPost({ action: 'getFeeLookups', payload: {}, token: _session.token })
+    .then(function(data) {
+      _feeLookupsCache = data;
+      callback(data);
+    })
+    .catch(function() { toast('❌ Failed to load fee lookups', 'fail'); });
+}
+
+function onFeeTargetTypeChange() {
+  var type = document.getElementById('fs-target-type').value;
+  var sel  = document.getElementById('fs-target-val-sel');
+  var txt  = document.getElementById('fs-target-val-txt');
+  sel.style.display = 'none';
+  txt.style.display = 'none';
+  sel.innerHTML = '<option value="" disabled selected>Select...</option>';
+  if (type === 'Category' && _feeLookupsCache) {
+    _feeLookupsCache.unitCategories.forEach(function(c) {
+      sel.innerHTML += '<option value="' + escHtml(c) + '">' + escHtml(c) + '</option>';
+    });
+    sel.style.display = '';
+  } else if (type === 'Occupancy Specific' && _feeLookupsCache) {
+    _feeLookupsCache.contracts.forEach(function(c) {
+      sel.innerHTML += '<option value="' + escHtml(c.value) + '">' + escHtml(c.label) + '</option>';
+    });
+    sel.style.display = '';
+  }
+}
+
+function onFeeTypeChange() {
+  var feeType       = document.getElementById('fs-fee-type').value;
+  var prorationWrap = document.getElementById('fs-proration-wrap');
+  if (feeType === 'Fixed') {
+    prorationWrap.style.display = '';
+  } else {
+    prorationWrap.style.display = 'none';
+    document.getElementById('fs-proration').value = 'None';
+  }
+}
+
 function editFee(feeId) {
   var f = _feesCache.find(function(x){ return x.feeId === feeId; });
   if (!f) { toast('❌ Fee not found', 'fail'); return; }
-  openFeeSheet(f);
+  loadFeeLookups(function() { openFeeSheet(f); });
 }
 
 function openFeeSheet(f) {
   var isEdit = !!f;
+<<<<<<< HEAD
+  loadFeeLookups(function(lookups) {
+    document.getElementById('fs-title').textContent = isEdit ? 'تعديل رسم / Edit Fee Rule' : 'إضافة رسم / Add Fee Rule';
+    document.getElementById('fs-edit-feeid').value  = isEdit ? (f.feeId || '') : '';
+
+    // Charge Name dropdown
+    var nameSel = document.getElementById('fs-name');
+    nameSel.innerHTML = '<option value="" disabled>اختر الرسم / Select charge...</option>';
+    lookups.chargeNames.forEach(function(c) {
+      var label = c.nameAr + (c.nameEn ? ' / ' + c.nameEn : '');
+      nameSel.innerHTML += '<option value="' + escHtml(c.nameAr) + '">' + escHtml(label) + '</option>';
+    });
+    nameSel.value         = isEdit ? (f.name || '') : '';
+    nameSel.disabled      = isEdit;
+    nameSel.style.opacity = isEdit ? '0.6' : '1';
+
+    // Simple fields
+    document.getElementById('fs-frequency').value = isEdit ? (f.frequency || '') : '';
+    document.getElementById('fs-status').value    = isEdit ? (f.status    || 'Active') : 'Active';
+    document.getElementById('fs-fee-type').value  = isEdit ? (f.feeType   || 'Fixed')  : 'Fixed';
+    document.getElementById('fs-rate').value      = isEdit ? (f.baseRate  || '')        : '';
+    document.getElementById('fs-start').value     = isEdit ? formatDateForInput(f.startDate || '') : '';
+    document.getElementById('fs-end').value       = isEdit ? formatDateForInput(f.endDate   || '') : '';
+    document.getElementById('fs-category').value  = isEdit ? (f.category  || '') : '';
+    document.getElementById('fs-notes').value     = isEdit ? (f.notes     || '') : '';
+
+    // Target Type
+    var targetType = isEdit ? (f.targetType || 'All') : 'All';
+    document.getElementById('fs-target-type').value = targetType;
+
+    // Target Value dropdown
+    var sel = document.getElementById('fs-target-val-sel');
+    var txt = document.getElementById('fs-target-val-txt');
+    sel.style.display = 'none';
+    txt.style.display = 'none';
+    sel.innerHTML = '<option value="" disabled selected>Select...</option>';
+
+    if (targetType === 'Category') {
+      lookups.unitCategories.forEach(function(c) {
+        sel.innerHTML += '<option value="' + escHtml(c) + '">' + escHtml(c) + '</option>';
+      });
+      sel.style.display = '';
+      sel.value = isEdit ? (f.targetValue || '') : '';
+    } else if (targetType === 'Occupancy Specific') {
+      lookups.contracts.forEach(function(c) {
+        sel.innerHTML += '<option value="' + escHtml(c.value) + '">' + escHtml(c.label) + '</option>';
+      });
+      sel.style.display = '';
+      sel.value = isEdit ? (f.targetValue || '') : '';
+    }
+
+    // Proration visibility
+    onFeeTypeChange();
+    if (isEdit) document.getElementById('fs-proration').value = f.proration || 'Full-Month';
+
+    var btn = document.getElementById('fs-submit');
+    btn.disabled    = false;
+    btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+
+    var err = document.getElementById('fs-inline-err');
+    if (err) err.style.display = 'none';
+
+    document.getElementById('fee-sheet-wrap').classList.add('open');
+  });
+=======
   document.getElementById('fs-title').textContent = isEdit ? 'تعديل رسم / Edit Fee Rule' : 'إضافة رسم / Add Fee Rule';
   document.getElementById('fs-edit-feeid').value   = isEdit ? (f.feeId || '') : '';
   document.getElementById('fs-name').value         = isEdit ? (f.name        || '') : '';
@@ -4791,17 +4897,20 @@ function openFeeSheet(f) {
   btn.disabled = false;
   btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
   document.getElementById('fee-sheet-wrap').classList.add('open');
+>>>>>>> 5baab1ed961c223c710195a6f4615d6755187e24
 }
 
 function submitFee() {
   if (!sessionValid()) return;
 
   var feeId       = document.getElementById('fs-edit-feeid').value;
-  var name        = document.getElementById('fs-name').value.trim();
+  var name        = document.getElementById('fs-name').value;
   var frequency   = document.getElementById('fs-frequency').value;
   var status      = document.getElementById('fs-status').value;
   var targetType  = document.getElementById('fs-target-type').value;
-  var targetVal   = document.getElementById('fs-target-val').value.trim();
+  var targetVal   = (targetType === 'Category' || targetType === 'Occupancy Specific')
+                    ? document.getElementById('fs-target-val-sel').value
+                    : '';
   var feeType     = document.getElementById('fs-fee-type').value;
   var rate        = document.getElementById('fs-rate').value.trim();
   var startDate   = document.getElementById('fs-start').value;
@@ -4848,7 +4957,7 @@ function submitFee() {
     .catch(function(e) {
       showFeeErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
-      btn.textContent = editName ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+      btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
     });
 }
 
@@ -5556,13 +5665,17 @@ function fmtMoney(val) {
 ══════════════════════════════════════════════ -->
 <div id="fee-sheet-wrap">
   <div id="fee-sheet">
-
     <div class="cs-title" id="fs-title">إضافة رسم / Add Fee Rule</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
+    <input type="hidden" id="fs-edit-feeid">
+
+    <!-- Charge Name -->
     <div class="cs-field">
       <div class="cs-lbl">Charge Name / اسم الرسم <span class="req">*</span></div>
-      <input class="inp" type="text" id="fs-name" placeholder="e.g. سلفة عن تكاليف الاقسام" style="direction:rtl;">
+      <select class="inp" id="fs-name" style="direction:rtl;">
+        <option value="" disabled selected>اختر الرسم / Select charge...</option>
+      </select>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -5581,7 +5694,12 @@ function fmtMoney(val) {
         <select class="inp" id="fs-status">
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
+<<<<<<< HEAD
           <option value="Expired">Expired</option>
+          <option value="Suspended">Suspended</option>
+=======
+          <option value="Expired">Expired</option>
+>>>>>>> 5baab1ed961c223c710195a6f4615d6755187e24
         </select>
       </div>
     </div>
@@ -5589,29 +5707,34 @@ function fmtMoney(val) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Target Type</div>
-        <select class="inp" id="fs-target-type">
-          <option value="">All</option>
+        <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
+          <option value="All">All</option>
           <option value="Category">Category</option>
-          <option value="Unit">Unit</option>
+          <option value="Occupancy Specific">Occupancy Specific</option>
+          <option value="Others">Others</option>
         </select>
       </div>
-      <div class="cs-field">
+      <div class="cs-field" id="fs-target-val-wrap">
         <div class="cs-lbl">Target Value</div>
-        <input class="inp" type="text" id="fs-target-val" placeholder="e.g. Residential">
+        <select class="inp" id="fs-target-val-sel" style="display:none;">
+          <option value="" disabled selected>Select...</option>
+        </select>
+        <input class="inp" type="text" id="fs-target-val-txt" placeholder="—" style="display:none;" readonly>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Fee Type</div>
-        <select class="inp" id="fs-fee-type">
+        <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
           <option value="Fixed">Fixed</option>
-          <option value="Variable">Variable</option>
           <option value="Per-SqM">Per-SqM</option>
+          <option value="Per-Ampere">Per-Ampere</option>
+          <option value="Variable">Variable</option>
         </select>
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Base Rate ($) <span class="req">*</span></div>
+        <div class="cs-lbl">Base Rate <span class="req">*</span></div>
         <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
       </div>
     </div>
@@ -5628,7 +5751,7 @@ function fmtMoney(val) {
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
+      <div class="cs-field" id="fs-proration-wrap">
         <div class="cs-lbl">Proration Rule</div>
         <select class="inp" id="fs-proration">
           <option value="Full-Month">Full-Month</option>
@@ -5647,13 +5770,12 @@ function fmtMoney(val) {
       <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
     </div>
 
-    <input type="hidden" id="fs-edit-feeid">
-    
+    <div id="fs-inline-err" style="display:none;color:var(--burg);font-size:13px;padding:6px 0;"></div>
+
     <div class="cs-btns">
       <button class="cs-submit" id="fs-submit" onclick="submitFee()">حفظ الرسم / Save Fee Rule</button>
       <button class="cs-cancel" onclick="closeFeeSheet()">إلغاء</button>
     </div>
-
   </div>
 </div>
 

@@ -4812,7 +4812,6 @@ function editFee(feeId) {
 
 function openFeeSheet(f) {
   var isEdit = !!f;
-<<<<<<< HEAD
   loadFeeLookups(function(lookups) {
     document.getElementById('fs-title').textContent = isEdit ? 'تعديل رسم / Edit Fee Rule' : 'إضافة رسم / Add Fee Rule';
     document.getElementById('fs-edit-feeid').value  = isEdit ? (f.feeId || '') : '';
@@ -4876,29 +4875,7 @@ function openFeeSheet(f) {
 
     document.getElementById('fee-sheet-wrap').classList.add('open');
   });
-=======
-  document.getElementById('fs-title').textContent = isEdit ? 'تعديل رسم / Edit Fee Rule' : 'إضافة رسم / Add Fee Rule';
-  document.getElementById('fs-edit-feeid').value   = isEdit ? (f.feeId || '') : '';
-  document.getElementById('fs-name').value         = isEdit ? (f.name        || '') : '';
-  document.getElementById('fs-frequency').value    = isEdit ? (f.frequency   || '') : '';
-  document.getElementById('fs-status').value       = isEdit ? (f.status      || 'Active') : 'Active';
-  document.getElementById('fs-target-type').value  = isEdit ? (f.targetType === 'All' ? '' : (f.targetType || '')) : '';
-  document.getElementById('fs-target-val').value   = isEdit ? (f.targetValue || '') : '';
-  document.getElementById('fs-fee-type').value     = isEdit ? (f.feeType     || 'Fixed') : 'Fixed';
-  document.getElementById('fs-rate').value         = isEdit ? (f.baseRate    || '') : '';
-  document.getElementById('fs-start').value        = isEdit ? formatDateForInput(f.startDate || '') : '';
-  document.getElementById('fs-end').value          = isEdit ? formatDateForInput(f.endDate   || '') : '';
-  document.getElementById('fs-proration').value    = isEdit ? (f.proration   || 'Full-Month') : 'Full-Month';
-  document.getElementById('fs-category').value     = isEdit ? (f.category    || '') : '';
-  document.getElementById('fs-notes').value        = isEdit ? (f.notes       || '') : '';
-  document.getElementById('fs-name').readOnly      = isEdit;
-  document.getElementById('fs-name').style.opacity = isEdit ? '0.6' : '1';
-  var btn = document.getElementById('fs-submit');
-  btn.disabled = false;
-  btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
-  document.getElementById('fee-sheet-wrap').classList.add('open');
->>>>>>> 5baab1ed961c223c710195a6f4615d6755187e24
-}
+  
 
 function submitFee() {
   if (!sessionValid()) return;

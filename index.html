@@ -3368,7 +3368,7 @@ function renderFeeCards(el, rows) {
       '<div class="fee-card-dates">' + dates + '</div>' +
       notes +
       '<div class="stg-user-actions" style="margin-top:8px;">' +
-        '<button class="stg-user-btn" onclick="editFee(\'' + escHtml(f.name) + '\')">تعديل</button>' +
+        '<button class="stg-user-btn" onclick="editFee(\'' + escHtml(f.feeId) + '\')">تعديل</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -4739,7 +4739,7 @@ function applyFees() {
 function closeFeeSheet() {
   document.getElementById('fee-sheet-wrap').classList.remove('open');
   document.getElementById('fs-title').textContent = 'إضافة رسم / Add Fee Rule';
-  document.getElementById('fs-edit-name').value = '';
+  document.getElementById('fs-edit-feeid').value = '';
   document.getElementById('fs-name').readOnly = false;
   document.getElementById('fs-name').style.opacity = '1';
   var btn = document.getElementById('fs-submit');
@@ -4763,8 +4763,8 @@ function showFeeErr(msg) {
   sheet.scrollTop = sheet.scrollHeight;
 }
 
-function editFee(name) {
-  var f = _feesCache.find(function(x){ return x.name === name; });
+function editFee(feeId) {
+  var f = _feesCache.find(function(x){ return x.feeId === feeId; });
   if (!f) { toast('❌ Fee not found', 'fail'); return; }
   openFeeSheet(f);
 }
@@ -4772,7 +4772,7 @@ function editFee(name) {
 function openFeeSheet(f) {
   var isEdit = !!f;
   document.getElementById('fs-title').textContent = isEdit ? 'تعديل رسم / Edit Fee Rule' : 'إضافة رسم / Add Fee Rule';
-  document.getElementById('fs-edit-name').value    = isEdit ? (f.name || '') : '';
+  document.getElementById('fs-edit-feeid').value   = isEdit ? (f.feeId || '') : '';
   document.getElementById('fs-name').value         = isEdit ? (f.name        || '') : '';
   document.getElementById('fs-frequency').value    = isEdit ? (f.frequency   || '') : '';
   document.getElementById('fs-status').value       = isEdit ? (f.status      || 'Active') : 'Active';
@@ -4780,8 +4780,8 @@ function openFeeSheet(f) {
   document.getElementById('fs-target-val').value   = isEdit ? (f.targetValue || '') : '';
   document.getElementById('fs-fee-type').value     = isEdit ? (f.feeType     || 'Fixed') : 'Fixed';
   document.getElementById('fs-rate').value         = isEdit ? (f.baseRate    || '') : '';
-  document.getElementById('fs-start').value        = isEdit ? formatDateForInput(f.start || '') : '';
-  document.getElementById('fs-end').value          = isEdit ? formatDateForInput(f.end   || '') : '';
+  document.getElementById('fs-start').value        = isEdit ? formatDateForInput(f.startDate || '') : '';
+  document.getElementById('fs-end').value          = isEdit ? formatDateForInput(f.endDate   || '') : '';
   document.getElementById('fs-proration').value    = isEdit ? (f.proration   || 'Full-Month') : 'Full-Month';
   document.getElementById('fs-category').value     = isEdit ? (f.category    || '') : '';
   document.getElementById('fs-notes').value        = isEdit ? (f.notes       || '') : '';
@@ -4796,7 +4796,7 @@ function openFeeSheet(f) {
 function submitFee() {
   if (!sessionValid()) return;
 
-  var editName    = document.getElementById('fs-edit-name').value;
+  var feeId       = document.getElementById('fs-edit-feeid').value;
   var name        = document.getElementById('fs-name').value.trim();
   var frequency   = document.getElementById('fs-frequency').value;
   var status      = document.getElementById('fs-status').value;
@@ -4820,7 +4820,7 @@ function submitFee() {
   if (endDate && endDate < startDate) { showFeeErr('❌ End Date must be on or after Start Date'); return; }
 
   var payload = {
-    editName: editName || '',
+    feeId: feeId || '',
     name: name, frequency: frequency, status: status,
     targetType: targetType, target: targetVal, feeType: feeType,
     baseRate: parseFloat(rate) || 0, startDate: startDate,
@@ -4837,7 +4837,7 @@ function submitFee() {
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
         showFeeErr(msg);
         btn.disabled = false;
-        btn.textContent = editName ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+        btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
         return;
       }
       invalidateCache('fees');
@@ -5646,7 +5646,7 @@ function fmtMoney(val) {
       <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
     </div>
 
-    <input type="hidden" id="fs-edit-name">
+    <input type="hidden" id="fs-edit-feeid">
     
     <div class="cs-btns">
       <button class="cs-submit" id="fs-submit" onclick="submitFee()">حفظ الرسم / Save Fee Rule</button>

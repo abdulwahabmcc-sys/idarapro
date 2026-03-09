@@ -4812,14 +4812,28 @@ function openFeeSheet(f) {
     nameSel.disabled      = isEdit;
     nameSel.style.opacity = isEdit ? '0.6' : '1';
 
+    // Fee Types dropdown
+    var feeTypeSel = document.getElementById('fs-fee-type');
+    feeTypeSel.innerHTML = '<option value="" disabled>Select...</option>';
+    (lookups.feeTypes || ['Fixed','Per-SqM','Per-Ampere','Variable']).forEach(function(ft) {
+      feeTypeSel.innerHTML += '<option value="' + escHtml(ft) + '">' + escHtml(ft) + '</option>';
+    });
+
+    // Classification dropdown
+    var classSel = document.getElementById('fs-category');
+    classSel.innerHTML = '<option value="">— None —</option>';
+    (lookups.classifications || []).forEach(function(cl) {
+      classSel.innerHTML += '<option value="' + escHtml(cl) + '">' + escHtml(cl) + '</option>';
+    });
+
     // Simple fields
     document.getElementById('fs-frequency').value = isEdit ? (f.frequency || '') : '';
     document.getElementById('fs-status').value    = isEdit ? (f.status    || 'Active') : 'Active';
-    document.getElementById('fs-fee-type').value  = isEdit ? (f.feeType   || 'Fixed')  : 'Fixed';
-    document.getElementById('fs-rate').value      = isEdit ? (f.baseRate  || '')        : '';
+    feeTypeSel.value                              = isEdit ? (f.feeType   || 'Fixed')  : 'Fixed';
+    document.getElementById('fs-rate').value      = isEdit ? (f.baseRate  || '')       : '';
     document.getElementById('fs-start').value     = isEdit ? formatDateForInput(f.startDate || '') : '';
     document.getElementById('fs-end').value       = isEdit ? formatDateForInput(f.endDate   || '') : '';
-    document.getElementById('fs-category').value  = isEdit ? (f.category  || '') : '';
+    classSel.value                                = isEdit ? (f.category  || '') : '';
     document.getElementById('fs-notes').value     = isEdit ? (f.notes     || '') : '';
 
     // Target Type
@@ -4851,9 +4865,21 @@ function openFeeSheet(f) {
     onFeeTypeChange();
     if (isEdit) document.getElementById('fs-proration').value = f.proration || 'Full-Month';
 
+    // Save button — disable in edit mode until changes made
     var btn = document.getElementById('fs-submit');
-    btn.disabled    = false;
+    btn.disabled    = isEdit;
     btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+
+    // Enable save button on any change
+    if (isEdit) {
+      var fields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
+                    'fs-start','fs-end','fs-proration','fs-category',
+                    'fs-notes','fs-target-type','fs-target-val-sel'];
+      fields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', function() { btn.disabled = false; }, { once: false });
+      });
+    }
 
     var err = document.getElementById('fs-inline-err');
     if (err) err.style.display = 'none';
@@ -4878,7 +4904,7 @@ function submitFee() {
   var startDate   = document.getElementById('fs-start').value;
   var endDate     = document.getElementById('fs-end').value;
   var proration   = document.getElementById('fs-proration').value;
-  var category    = document.getElementById('fs-category').value.trim();
+  var category    = document.getElementById('fs-category').value;
   var notes       = document.getElementById('fs-notes').value.trim();
 
   var errEl = document.getElementById('fs-inline-err');
@@ -4912,6 +4938,7 @@ function submitFee() {
         return;
       }
       invalidateCache('fees');
+      _feeLookupsCache = null;
       toast('✅ ' + (msg || 'Fee saved'), 'ok');
       closeFeeSheet();
       loadFees();
@@ -5684,10 +5711,7 @@ function fmtMoney(val) {
       <div class="cs-field">
         <div class="cs-lbl">Fee Type</div>
         <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
-          <option value="Fixed">Fixed</option>
-          <option value="Per-SqM">Per-SqM</option>
-          <option value="Per-Ampere">Per-Ampere</option>
-          <option value="Variable">Variable</option>
+          <option value="" disabled selected>Select...</option>
         </select>
       </div>
       <div class="cs-field">
@@ -5717,8 +5741,10 @@ function fmtMoney(val) {
         </select>
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Category</div>
-        <input class="inp" type="text" id="fs-category" placeholder="e.g. Common Areas">
+        <div class="cs-lbl">Classification</div>
+        <select class="inp" id="fs-category">
+          <option value="" disabled selected>Select...</option>
+        </select>
       </div>
     </div>
 

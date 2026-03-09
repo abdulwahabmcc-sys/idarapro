@@ -4703,27 +4703,7 @@ function executeDeleteUnit() {
 
   
 function addFee() {
-  // Reset form
-  ['fs-name','fs-start','fs-end','fs-rate','fs-notes'].forEach(function(id){
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('fs-frequency').value = '';
-  document.getElementById('fs-status').value = 'Active';
-  document.getElementById('fs-target-type').value = '';
-  document.getElementById('fs-target-val').value = '';
-  document.getElementById('fs-fee-type').value = 'Fixed';
-  document.getElementById('fs-proration').value = 'Full-Month';
-  document.getElementById('fs-category').value = '';
-  // Set start date default = today
-  document.getElementById('fs-start').value = todayStr();
-  // Reset submit btn
-  var btn = document.getElementById('fs-submit');
-  btn.disabled = false;
-  btn.textContent = 'حفظ الرسم / Save Fee Rule';
-  // Clear error
-  var err = document.getElementById('fs-inline-err');
-  if (err) err.style.display = 'none';
-  document.getElementById('fee-sheet-wrap').classList.add('open');
+  loadFeeLookups(function() { openFeeSheet(null); });
 }
 
 function applyFees() {
@@ -4743,9 +4723,9 @@ function applyFees() {
 function closeFeeSheet() {
   document.getElementById('fee-sheet-wrap').classList.remove('open');
   document.getElementById('fs-title').textContent = 'إضافة رسم / Add Fee Rule';
-  document.getElementById('fs-edit-feeid').value = '';
-  document.getElementById('fs-name').readOnly = false;
-  document.getElementById('fs-name').style.opacity = '1';
+  document.getElementById('fs-edit-feeid').value  = '';
+  var nameSel = document.getElementById('fs-name');
+  if (nameSel) { nameSel.disabled = false; nameSel.style.opacity = '1'; }
   var btn = document.getElementById('fs-submit');
   if (btn) btn.textContent = 'حفظ الرسم / Save Fee Rule';
 }
@@ -5307,9 +5287,7 @@ function fmtMoney(val) {
       </div>
       <div class="stg-sec-body">
         <div id="stg-fees-list" class="stg-list-wrap"></div>
-<button class="stg-save" onclick="applyFees()" style="background:var(--forest);margin-bottom:8px;">
-  ⚡ تطبيق الرسوم / Apply Fees
-</button>
+
 <button class="stg-add-btn" onclick="addFee()">＋ إضافة رسم / Add Fee Rule</button>
       </div>
     </div>

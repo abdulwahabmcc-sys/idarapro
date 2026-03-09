@@ -2873,14 +2873,26 @@ function doSubmit() {
 
   var tmout = setTimeout(function() {
     onFail({ message: 'Timed out. Try again.' });
-  }, 30000);
+  }, 90000);
 
   if (type === 'Report') {
-    gasPost({
-      action: 'sendReport',
-      reportType: document.getElementById('sel-rep').value,
-      token: _session.token
-    })
+    var reportType = document.getElementById('sel-rep').value;
+    // Check dirty flag first — run fee engine if needed before report
+    gasGet('checkDirtyFlag', _session.token)
+      .then(function(flagResult) {
+        if (flagResult && flagResult.dirty) {
+          toast('⏳ تحديث الرسوم... / Updating fees, please wait...', 'info');
+          return gasGet('runApplyFees', _session.token);
+        }
+        return Promise.resolve({ ok: true });
+      })
+      .then(function() {
+        return gasPost({
+          action: 'sendReport',
+          reportType: reportType,
+          token: _session.token
+        });
+      })
       .then(function(r) {
         clearTimeout(tmout);
         onOk(r.msg || r);

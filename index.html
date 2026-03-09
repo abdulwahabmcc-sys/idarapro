@@ -4968,6 +4968,19 @@ function submitFee() {
       }
       invalidateCache('fees');
       _feeLookupsCache = null;
+      // Update cache entry immediately so suspended state is reflected at once
+      if (feeId) {
+        var cached = _feesCache.find(function(x){ return x.feeId === feeId; });
+        if (cached) {
+          cached.status = payload.status;
+          // Auto-set expired if end date in past
+          if (payload.endDate) {
+            var ed = new Date(payload.endDate);
+            var td = new Date(); td.setHours(0,0,0,0);
+            if (ed < td) cached.status = 'Expired';
+          }
+        }
+      }
       toast('✅ ' + (msg || 'Fee saved'), 'ok');
       closeFeeSheet();
       loadFees();

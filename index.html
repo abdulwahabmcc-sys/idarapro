@@ -4733,6 +4733,13 @@ function closeFeeSheet() {
   document.getElementById('fs-edit-feeid').value  = '';
   var nameSel = document.getElementById('fs-name');
   if (nameSel) { nameSel.disabled = false; nameSel.style.opacity = '1'; }
+  var editableFields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
+                        'fs-start','fs-end','fs-proration','fs-category',
+                        'fs-notes','fs-target-type','fs-target-val-sel'];
+  editableFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.disabled = false; el.style.opacity = '1'; }
+  });
   var btn = document.getElementById('fs-submit');
   if (btn) btn.textContent = 'حفظ الرسم / Save Fee Rule';
 }
@@ -4871,20 +4878,36 @@ function openFeeSheet(f) {
     onFeeTypeChange();
     if (isEdit) document.getElementById('fs-proration').value = f.proration || 'Full-Month';
 
-    // Save button — disable in edit mode until changes made
     var btn = document.getElementById('fs-submit');
-    btn.disabled    = isEdit;
-    btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+    var isSuspended = isEdit && String(f.status || '').toLowerCase() === 'suspended';
 
-    // Enable save button on any change
-    if (isEdit) {
-      var fields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
-                    'fs-start','fs-end','fs-proration','fs-category',
-                    'fs-notes','fs-target-type','fs-target-val-sel'];
-      fields.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('change', function() { btn.disabled = false; }, { once: false });
-      });
+    // Lock all fields if suspended
+    var editableFields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
+                          'fs-start','fs-end','fs-proration','fs-category',
+                          'fs-notes','fs-target-type','fs-target-val-sel'];
+    editableFields.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.disabled = isSuspended;
+      el.style.opacity = isSuspended ? '0.5' : '1';
+    });
+    // Also lock name and target value
+    nameSel.disabled      = isEdit; // always locked in edit
+    nameSel.style.opacity = isEdit ? '0.6' : '1';
+
+    if (isSuspended) {
+      btn.disabled    = true;
+      btn.textContent = '🔒 Suspended / معلق';
+    } else {
+      btn.disabled    = isEdit;
+      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+      // Enable save button on any change
+      if (isEdit) {
+        editableFields.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.addEventListener('change', function() { btn.disabled = false; }, { once: false });
+        });
+      }
     }
 
     var err = document.getElementById('fs-inline-err');

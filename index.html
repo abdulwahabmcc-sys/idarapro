@@ -5673,7 +5673,7 @@ function fmtMoney(val) {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Frequency <span class="req">*</span></div>
+        <div class="cs-lbl">Frequency / التكرار <span class="req">*</span></div>
         <select class="inp" id="fs-frequency">
           <option value="" disabled selected>Select...</option>
           <option value="Monthly">Monthly</option>
@@ -5683,20 +5683,18 @@ function fmtMoney(val) {
         </select>
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Status</div>
+        <div class="cs-lbl">Status / الحالة</div>
         <select class="inp" id="fs-status">
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Expired">Expired</option>
-          <option value="Suspended">Suspended</option>
-
+          <option value="Active">Active / فعال</option>
+          <option value="Expired">Expired / منتهي</option>
+          <option value="Suspended">Suspended / معلق</option>
         </select>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Target Type</div>
+        <div class="cs-lbl">Target Fee Type /  نوع هدف الرسم</div>
         <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
           <option value="All">All</option>
           <option value="Category">Category</option>
@@ -5705,7 +5703,7 @@ function fmtMoney(val) {
         </select>
       </div>
       <div class="cs-field" id="fs-target-val-wrap">
-        <div class="cs-lbl">Target Value</div>
+        <div class="cs-lbl">Target Value / وجهة الرسم الهدف</div>
         <select class="inp" id="fs-target-val-sel" style="display:none;">
           <option value="" disabled selected>Select...</option>
         </select>
@@ -5715,13 +5713,13 @@ function fmtMoney(val) {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Fee Type</div>
+        <div class="cs-lbl">Fee Type / نوع الرسم</div>
         <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
           <option value="" disabled selected>Select...</option>
         </select>
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Base Rate <span class="req">*</span></div>
+        <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>
         <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
       </div>
     </div>
@@ -5732,7 +5730,7 @@ function fmtMoney(val) {
         <input class="inp" type="date" id="fs-start">
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">End Date <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <div class="cs-lbl">End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
         <input class="inp" type="date" id="fs-end">
       </div>
     </div>

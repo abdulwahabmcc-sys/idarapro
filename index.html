@@ -4815,7 +4815,7 @@ function openFeeSheet(f) {
     // Fee Types dropdown
     var feeTypeSel = document.getElementById('fs-fee-type');
     feeTypeSel.innerHTML = '<option value="" disabled>Select...</option>';
-    (lookups.feeTypes || ['Fixed','Per-SqM','Per-Ampere','Variable']).forEach(function(ft) {
+    (lookups.feeTypes || []).forEach(function(ft) {
       feeTypeSel.innerHTML += '<option value="' + escHtml(ft) + '">' + escHtml(ft) + '</option>';
     });
 

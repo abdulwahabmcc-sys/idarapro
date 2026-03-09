@@ -4750,7 +4750,7 @@ function showFeeErr(msg) {
 
 function loadFeeLookups(callback) {
   if (_feeLookupsCache) { callback(_feeLookupsCache); return; }
-  gasPost({ action: 'getFeeLookups', payload: {}, token: _session.token })
+  gasGet('getFeeLookups', _session.token)
     .then(function(data) {
       _feeLookupsCache = data;
       callback(data);

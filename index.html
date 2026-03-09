@@ -3332,6 +3332,12 @@ var _feeLookupsCache = null;
 
 function loadFees() {
   var el = stgListEl('stg-fees-list'); stgLoading(el);
+  // Preload lookups in background so form opens instantly
+  if (!_feeLookupsCache) {
+    gasGet('getFeeLookups', _session.token)
+      .then(function(data) { _feeLookupsCache = data; })
+      .catch(function() {});
+  }
   stgFromCache('fees', 'getSettingsFees', el)
     .then(function(rows) {
       _feesCache = rows || [];

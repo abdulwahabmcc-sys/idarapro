@@ -3328,6 +3328,7 @@ function loadContacts() {
   
 // ── ⑤  Fee Rules ─────────────────────────────────────────────────────────────
 var _feesCache = [];
+var _feeLookupsCache = null;
 
 function loadFees() {
   var el = stgListEl('stg-fees-list'); stgLoading(el);

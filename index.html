@@ -2634,35 +2634,43 @@ function applyPermissionUI(auth) {
   var tInc = document.getElementById('t-inc');
   var tExp = document.getElementById('t-exp');
   var tRep = document.getElementById('t-rep');
+  var tMtr = document.getElementById('t-mtr');
+  var tSet = document.getElementById('t-set');
 
   // Desktop tabs
   var dtInc = document.getElementById('dt-t-inc');
   var dtExp = document.getElementById('dt-t-exp');
   var dtRep = document.getElementById('dt-t-rep');
+  var dtMtr = document.getElementById('dt-t-mtr');
+  var dtSet = document.getElementById('dt-t-set');
 
-  // For Admin — show everything (no changes needed)
+  // Admin — show everything, no changes needed
   if (role === 'Admin') return;
 
-  // For Management — hide tabs the user has no permissions for
-  // (hide income tab if no INC permission AND no EXP permission, etc.)
-  // Only hide a tab if the user has NO relevant permissions at all
+  // All other roles — hide tabs based on permissions
   var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
 
-  if (!perms.INC) { tInc.classList.add('hide'); if(dtInc) dtInc.classList.add('hide'); }
-  if (!perms.EXP) { tExp.classList.add('hide'); if(dtExp) dtExp.classList.add('hide'); }
-  if (!hasAnyReport) { tRep.classList.add('hide'); if(dtRep) dtRep.classList.add('hide'); }
+  if (!perms.INC)      { tInc.classList.add('hide'); if (dtInc) dtInc.classList.add('hide'); }
+  if (!perms.EXP)      { tExp.classList.add('hide'); if (dtExp) dtExp.classList.add('hide'); }
+  if (!hasAnyReport)   { tRep.classList.add('hide'); if (dtRep) dtRep.classList.add('hide'); }
+  if (!perms.MTR_RED)  { if (tMtr) tMtr.classList.add('hide'); if (dtMtr) dtMtr.classList.add('hide'); }
 
-  // If income tab hidden, default to first visible tab
+  // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
+  if (tSet) tSet.classList.add('hide');
+  if (dtSet) dtSet.classList.add('hide');
+
+  // Default to first visible tab if Income is hidden
   if (!perms.INC) {
     if (perms.EXP) setTab('Expense');
     else if (hasAnyReport) setTab('Report');
+    else if (perms.MTR_RED) setTab('Meter');
   }
 
   // Hide report type options the user can't access
-  if (!perms.REP_YTD)  document.querySelector('[value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display    = 'none');
-  if (!perms.REP_CUR)  document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
-  if (!perms.REP_LST)  document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
-  if (!perms.REP_JRN)  document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
+  if (!perms.REP_YTD) document.querySelector('#sel-rep [value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display          = 'none');
+  if (!perms.REP_CUR) document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
+  if (!perms.REP_LST) document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
+  if (!perms.REP_JRN) document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3659,7 +3667,37 @@ function openUserSheet(name) {
   if (err) err.style.display = 'none';
   document.getElementById('user-sheet-wrap').classList.add('open');
 }
-  
+
+// ── Role default permissions ──────────────────────────────
+var ROLE_DEFAULTS = {
+  'Admin':               { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:true  },
+  'Management':          { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
+  'Reader':              { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:true,  hidePerms:false },
+  'Billing':             { inc:false, exp:false, ytd:true,  cur:true,  lst:true,  jrn:true,  mtr:false, hidePerms:false },
+  'Accounts Payable':    { inc:false, exp:true,  ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
+  'Accounts Receivable': { inc:true,  exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
+  'Porter':              { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
+  'Occupant':            { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:true  }
+};
+
+function onRoleChange(role) {
+  var defaults = ROLE_DEFAULTS[role];
+  if (!defaults) return;
+
+  // Show or hide permissions section
+  var section = document.getElementById('usr-perms-section');
+  section.style.display = defaults.hidePerms ? 'none' : 'block';
+
+  // Auto-populate checkboxes with role defaults
+  document.getElementById('usr-perm-inc').checked = defaults.inc;
+  document.getElementById('usr-perm-exp').checked = defaults.exp;
+  document.getElementById('usr-perm-ytd').checked = defaults.ytd;
+  document.getElementById('usr-perm-cur').checked = defaults.cur;
+  document.getElementById('usr-perm-lst').checked = defaults.lst;
+  document.getElementById('usr-perm-jrn').checked = defaults.jrn;
+  document.getElementById('usr-perm-mtr').checked = defaults.mtr;
+}
+
 function closeUserSheet() {
   document.getElementById('user-sheet-wrap').classList.remove('open');
 }
@@ -3695,7 +3733,8 @@ function submitUser() {
     REP_YTD: document.getElementById('usr-perm-ytd').checked,
     REP_CUR: document.getElementById('usr-perm-cur').checked,
     REP_LST: document.getElementById('usr-perm-lst').checked,
-    REP_JRN: document.getElementById('usr-perm-jrn').checked
+    REP_JRN: document.getElementById('usr-perm-jrn').checked,
+    MTR_RED: document.getElementById('usr-perm-mtr').checked
   };
 
   var errEl = document.getElementById('usr-inline-err');
@@ -5917,10 +5956,15 @@ function fmtMoney(val) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Role <span class="req">*</span></div>
-        <select class="inp" id="usr-role">
+        <select class="inp" id="usr-role" onchange="onRoleChange(this.value)">
           <option value="" disabled selected>Select...</option>
           <option value="Admin">Admin</option>
           <option value="Management">Management</option>
+          <option value="Reader">Reader</option>
+          <option value="Billing">Billing</option>
+          <option value="Accounts Payable">Accounts Payable</option>
+          <option value="Accounts Receivable">Accounts Receivable</option>
+          <option value="Porter">Porter</option>
           <option value="Occupant">Occupant</option>
         </select>
       </div>
@@ -5970,14 +6014,17 @@ function fmtMoney(val) {
       <input class="inp" type="text" id="usr-hashed-pin" placeholder="—" style="opacity:0.5;" readonly>
     </div>
 
-    <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Permissions</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:14px;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-inc"> Income (INC)</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-exp"> Expenses (EXP)</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-ytd"> Report YTD</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-cur"> Report Current</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-lst"> Report Last</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-jrn"> Report Journal</label>
+    <div id="usr-perms-section">
+      <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Permissions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:14px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-inc"> Income (INC)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-exp"> Expenses (EXP)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-ytd"> Report YTD</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-cur"> Report Current</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-lst"> Report Last</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-jrn"> Report Journal</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-mtr"> Meter Reading (MTR)</label>
+      </div>
     </div>
 
     <div class="cs-btns">

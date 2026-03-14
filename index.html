@@ -3661,9 +3661,9 @@ function openUserSheet(name) {
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
-  // Show or hide permissions section based on role
-  onRoleChange(u.role || '');
-  
+  // Show or hide permissions section based on role — do NOT overwrite saved values
+  _applyRoleVisibility(u ? (u.role || '') : '');
+
   var btn = document.getElementById('usr-submit');
   btn.disabled = false;
   btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
@@ -3684,15 +3684,12 @@ var ROLE_DEFAULTS = {
   'Occupant':            { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:true  }
 };
 
+// Called on role dropdown change — updates visibility AND populates defaults
 function onRoleChange(role) {
   var defaults = ROLE_DEFAULTS[role];
   if (!defaults) return;
-
-  // Show or hide permissions section
-  var section = document.getElementById('usr-perms-section');
-  section.style.display = defaults.hidePerms ? 'none' : 'block';
-
-  // Auto-populate checkboxes with role defaults
+  _applyRoleVisibility(role);
+  // Only auto-populate defaults when user manually changes role
   document.getElementById('usr-perm-inc').checked = defaults.inc;
   document.getElementById('usr-perm-exp').checked = defaults.exp;
   document.getElementById('usr-perm-ytd').checked = defaults.ytd;
@@ -3700,6 +3697,14 @@ function onRoleChange(role) {
   document.getElementById('usr-perm-lst').checked = defaults.lst;
   document.getElementById('usr-perm-jrn').checked = defaults.jrn;
   document.getElementById('usr-perm-mtr').checked = defaults.mtr;
+}
+
+// Called when form loads — only controls visibility, never overwrites saved values
+function _applyRoleVisibility(role) {
+  var defaults = ROLE_DEFAULTS[role];
+  if (!defaults) return;
+  var section = document.getElementById('usr-perms-section');
+  section.style.display = defaults.hidePerms ? 'none' : 'block';
 }
 
 function closeUserSheet() {

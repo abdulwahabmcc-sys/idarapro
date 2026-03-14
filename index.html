@@ -5018,36 +5018,95 @@ function openFeeSheet(f) {
     }
 
     var btn = document.getElementById('fs-submit');
-    var isSuspended = isEdit && String(f.status || '').toLowerCase() === 'suspended';
+    var feeStatus = isEdit ? String(f.status || '').toLowerCase() : '';
+    var isSuspended = feeStatus === 'suspended';
+    var isExpired   = feeStatus === 'expired';
+    var isActive    = feeStatus === 'active';
 
-    // Lock all fields if suspended
-    var editableFields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
-                          'fs-start','fs-end','fs-proration','fs-category',
-                          'fs-notes','fs-target-type','fs-target-val-sel',
-                          'fs-distribution','fs-meter-ref','fs-markup','fs-show-markup'];
-    editableFields.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.disabled = isSuspended;
-      el.style.opacity = isSuspended ? '0.5' : '1';
-    });
-    // Also lock name and target value
-    nameSel.disabled      = isEdit; // always locked in edit
-    nameSel.style.opacity = isEdit ? '0.6' : '1';
+    // All core fields — locked for all edit states
+    var coreFields = [
+      'fs-frequency', 'fs-fee-type', 'fs-rate',
+      'fs-start', 'fs-proration', 'fs-target-type',
+      'fs-target-val-sel', 'fs-distribution',
+      'fs-meter-ref', 'fs-markup', 'fs-show-markup'
+    ];
 
-    if (isSuspended) {
-      btn.disabled    = true;
-      btn.textContent = '🔒 Suspended / معلق';
-    } else {
-      btn.disabled    = isEdit;
-      btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
-      // Enable save button on any change
-      if (isEdit) {
-        editableFields.forEach(function(id) {
+    // Reference fields — editable for Active and Expired, locked for Suspended
+    var referenceFields = ['fs-category', 'fs-notes'];
+
+    // Active-only fields — editable for Active only
+    var activeOnlyFields = ['fs-status', 'fs-end'];
+
+    if (isEdit) {
+      // Lock all core fields always
+      coreFields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = true;
+        el.style.opacity = '0.5';
+      });
+
+      // Lock charge name always in edit
+      nameSel.disabled      = true;
+      nameSel.style.opacity = '0.6';
+
+      if (isSuspended) {
+        // Lock everything including reference and active-only fields
+        referenceFields.concat(activeOnlyFields).forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.disabled = true;
+          el.style.opacity = '0.5';
+        });
+        btn.disabled    = true;
+        btn.textContent = '🔒 Suspended / معلق';
+
+      } else if (isExpired) {
+        // Lock active-only fields, keep reference editable
+        activeOnlyFields.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.disabled = true;
+          el.style.opacity = '0.5';
+        });
+        referenceFields.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.disabled = false;
+          el.style.opacity = '1';
+        });
+        btn.disabled    = false;
+        btn.textContent = 'حفظ التعديل / Save Changes';
+
+      } else if (isActive) {
+        // Keep active-only and reference fields editable
+        activeOnlyFields.concat(referenceFields).forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.disabled = false;
+          el.style.opacity = '1';
+        });
+        btn.disabled    = true;
+        btn.textContent = 'حفظ التعديل / Save Changes';
+        // Enable save button on any change to editable fields
+        activeOnlyFields.concat(referenceFields).forEach(function(id) {
           var el = document.getElementById(id);
           if (el) el.addEventListener('change', function() { btn.disabled = false; }, { once: false });
         });
       }
+
+    } else {
+      // New fee — all fields editable
+      coreFields.concat(referenceFields).concat(activeOnlyFields).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = false;
+        el.style.opacity = '1';
+      });
+      nameSel.disabled      = false;
+      nameSel.style.opacity = '1';
+      btn.disabled    = false;
+      btn.textContent = 'حفظ الرسم / Save Fee Rule';
     }
 
     var err = document.getElementById('fs-inline-err');

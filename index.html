@@ -3586,7 +3586,7 @@ function submitBalance() {
         showBalErr(msg); btn.disabled = false; btn.textContent = 'إضافة / Add Balance'; return;
       }
       invalidateCache('balances');
-      toast('✅ ' + (msg || 'Balance added'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeBalSheet(); loadBalances();
     })
     .catch(function(e) {
@@ -4035,7 +4035,7 @@ function submitContact() {
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Contact'; return;
       }
       invalidateCache('contacts');
-      toast('✅ ' + (msg || 'Contact saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeContactSheet(); loadContacts();
     })
     .catch(function(e) {
@@ -4138,7 +4138,7 @@ function submitCategory() {
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category'; return;
       }
       invalidateCache(type === 'income' ? 'incomeCategories' : 'expenseCategories');
-      toast('✅ ' + (msg || 'Category saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeCategorySheet(); loadCategories(type);
     })
     .catch(function(e) {
@@ -4450,7 +4450,7 @@ function submitContractEdit(contractId) {
     .then(function(msg) {
       invalidateCache('occupancy');
       if (_settingsCache) _settingsCache['occupancy'] = null;
-      toast('✅ ' + (msg || 'Contract updated'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       document.getElementById('cs-submit').onclick = function() { submitContract(); };
       closeContractSheet();
       loadOccupancy();
@@ -4516,7 +4516,7 @@ function submitContract() {
   gasPost({ action: 'addOccupancyContract', payload: payload, token: _session.token })
     .then(function(msg) {
       invalidateCache('occupancy');
-      toast('✅ ' + (msg || 'Contract saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeContractSheet();
       loadOccupancy(); // refresh the list
     })
@@ -4698,7 +4698,7 @@ function submitUnit() {
         return;
       }
       invalidateCache('units');
-      toast('✅ ' + (msg || 'Unit saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeUnitSheet();
       loadUnits();
     })
@@ -5357,7 +5357,7 @@ function submitOverride() {
       }
       invalidateCache('overrides');
       if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['overrides'] = null;
-      toast('✅ ' + (msg || 'Override saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeOverrideSheet(); loadOverrides();
     })
     .catch(function(e) {
@@ -5429,7 +5429,7 @@ function submitUtility() {
       invalidateCache('utility');
       if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['utility'] = null;
       _utilityCache = [];
-      toast('✅ ' + (msg || 'Utility saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeUtilitySheet(); loadUtility();
     })
     .catch(function(e) {

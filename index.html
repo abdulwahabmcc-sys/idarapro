@@ -5142,52 +5142,6 @@ function doSaveFee(payload) {
     });
 }
 
-  var payload = {
-    feeId: feeId || '',
-    name: name, frequency: frequency, status: status,
-    targetType: targetType, target: targetVal, feeType: feeType,
-    baseRate: parseFloat(rate) || 0, startDate: startDate,
-    endDate: endDate || '', proration: proration,
-    category: category, notes: notes
-  };
-
-  var btn = document.getElementById('fs-submit');
-  btn.disabled = true;
-  btn.textContent = 'جاري الحفظ...';
-
-  gasPost({ action: 'saveFee', payload: payload, token: _session.token })
-    .then(function(msg) {
-      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
-        showFeeErr(msg);
-        btn.disabled = false;
-        btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
-        return;
-      }
-      invalidateCache('fees');
-      _feeLookupsCache = null;
-      // Update cache entry immediately so suspended state is reflected at once
-      if (feeId) {
-        var cached = _feesCache.find(function(x){ return x.feeId === feeId; });
-        if (cached) {
-          cached.status = payload.status;
-          // Auto-set expired if end date in past
-          if (payload.endDate) {
-            var ed = new Date(payload.endDate);
-            var td = new Date(); td.setHours(0,0,0,0);
-            if (ed < td) cached.status = 'Expired';
-          }
-        }
-      }
-      toast('✅ ' + (msg || 'Fee saved'), 'ok');
-      closeFeeSheet();
-      loadFees();
-    })
-    .catch(function(e) {
-      showFeeErr('❌ ' + (e.message || 'Save failed'));
-      btn.disabled = false;
-      btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
-    });
-}
 
 var _overridesCache = [];
 

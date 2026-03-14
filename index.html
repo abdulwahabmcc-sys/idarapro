@@ -6128,98 +6128,184 @@ function fmtMoney(val) {
 </div>
 
 <!-- ══════════════════════════════════════════════
-     USER ADD/EDIT SHEET
+     ADD FEE RULE SHEET
 ══════════════════════════════════════════════ -->
-<div id="user-sheet-wrap">
-<div id="user-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
-    <div class="cs-title" id="usr-title">إضافة مستخدم / Add User</div>
+<div id="fee-sheet-wrap">
+  <div id="fee-sheet">
+    <div class="cs-title" id="fs-title">إضافة رسم / Add Fee Rule</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
+    <input type="hidden" id="fs-edit-feeid">
+
+    <!-- ── BLOCK 1 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;direction:ltr;">
+      What is this charge? / <span style="direction:rtl;">ما هو هذا الرسم؟</span>
+    </div>
+
     <div class="cs-field">
-      <div class="cs-lbl">Name / الاسم <span class="req">*</span></div>
-      <input class="inp" type="text" id="usr-name" placeholder="Full name" style="direction:rtl;">
+      <div class="cs-lbl">Charge Name / اسم الرسم <span class="req">*</span></div>
+      <select class="inp" id="fs-name" style="direction:rtl;" onchange="onChargeNameChange()">
+        <option value="" disabled selected>اختر الرسم / Select charge...</option>
+      </select>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Role <span class="req">*</span></div>
-        <select class="inp" id="usr-role" onchange="onRoleChange(this.value)">
+        <div class="cs-lbl">Fee Type / نوع الرسم <span class="req">*</span></div>
+        <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
           <option value="" disabled selected>Select...</option>
-          <option value="Admin">Admin</option>
-          <option value="Management">Management</option>
-          <option value="Reader">Reader</option>
-          <option value="Billing">Billing</option>
-          <option value="Accounts Payable">Accounts Payable</option>
-          <option value="Accounts Receivable">Accounts Receivable</option>
-          <option value="Porter">Porter</option>
-          <option value="Occupant">Occupant</option>
         </select>
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Status</div>
-        <select class="inp" id="usr-status">
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
+        <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>
+        <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
       </div>
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">Email</div>
-      <input class="inp" type="email" id="usr-email" placeholder="user@example.com">
+      <div class="cs-lbl">Distribution Method / طريقة التوزيع</div>
+      <select class="inp" id="fs-distribution">
+        <option value="Individual">Individual / فردي</option>
+        <option value="Equal Split">Equal Split / توزيع متساوي</option>
+        <option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>
+      </select>
+    </div>
+
+    <!-- ── BLOCK 2 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;direction:ltr;">
+      Who does it apply to? / <span style="direction:rtl;">من يطبق عليه؟</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Phone / الهاتف</div>
-        <input class="inp" type="tel" id="usr-phone" placeholder="+961 xx xxx xxx" style="direction:ltr;">
+        <div class="cs-lbl">Target Type / نوع الهدف</div>
+        <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
+          <option value="All">All</option>
+          <option value="Category">Category</option>
+          <option value="Occupancy Specific">Occupancy Specific</option>
+          <option value="Others">Others</option>
+        </select>
       </div>
-      <div class="cs-field">
-        <div class="cs-lbl">WhatsApp API Code</div>
-        <input class="inp" type="text" id="usr-whatsapp" placeholder="Optional" style="direction:ltr;">
+      <div class="cs-field" id="fs-target-val-wrap">
+        <div class="cs-lbl">Target Value / وجهة الهدف</div>
+        <select class="inp" id="fs-target-val-sel" style="display:none;">
+          <option value="" disabled selected>Select...</option>
+        </select>
+        <input class="inp" type="text" id="fs-target-val-txt" placeholder="—" style="display:none;" readonly>
       </div>
+    </div>
+
+    <!-- ── BLOCK 3 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;direction:ltr;">
+      How is it billed? / <span style="direction:rtl;">كيف يُحتسب؟</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Active Date</div>
-        <input class="inp" type="date" id="usr-active-date">
+        <div class="cs-lbl">Frequency / التكرار <span class="req">*</span></div>
+        <select class="inp" id="fs-frequency">
+          <option value="" disabled selected>Select...</option>
+          <option value="Monthly">Monthly</option>
+          <option value="Quarterly">Quarterly</option>
+          <option value="Annual">Annual</option>
+          <option value="One-Time">One-Time</option>
+          <option value="Per Reading">Per Reading</option>
+        </select>
+      </div>
+      <div class="cs-field" id="fs-proration-wrap">
+        <div class="cs-lbl">Proration Rule</div>
+        <select class="inp" id="fs-proration">
+          <option value="Full-Month">Full-Month</option>
+          <option value="Daily">Daily</option>
+          <option value="None">None</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cs-field" id="fs-meter-ref-wrap" style="display:none;">
+      <div class="cs-lbl">Meter Reference / مرجع العداد</div>
+      <input class="inp" type="text" id="fs-meter-ref" readonly
+             style="opacity:0.7;cursor:default;"
+             placeholder="Auto-filled from Charge Name">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Markup % <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <input class="inp" type="number" id="fs-markup" placeholder="0.00" step="0.01" min="0">
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Inactive Date</div>
-        <input class="inp" type="date" id="usr-inactive-date">
+        <div class="cs-lbl">Show Markup in Reports</div>
+        <select class="inp" id="fs-show-markup">
+          <option value="FALSE">No — show total only</option>
+          <option value="TRUE">Yes — show breakdown</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── BLOCK 4 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;direction:ltr;">
+      When is it active? / <span style="direction:rtl;">متى يكون فعالاً؟</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Start Date / تاريخ البدء <span class="req">*</span></div>
+        <input class="inp" type="date" id="fs-start">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <input class="inp" type="date" id="fs-end">
       </div>
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">PIN <span class="req">*</span> <span style="font-weight:400;color:var(--muted);">(4 digits)</span></div>
-      <input class="inp" type="password" id="usr-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+      <div class="cs-lbl">Status / الحالة</div>
+      <select class="inp" id="fs-status">
+        <option value="Active">Active / فعال</option>
+        <option value="Expired">Expired / منتهي</option>
+        <option value="Suspended">Suspended / معلق</option>
+      </select>
     </div>
 
-    <div class="cs-field">
-      <div class="cs-lbl">Hashed PIN <span style="font-weight:400;color:var(--muted);">(future use — read only)</span></div>
-      <input class="inp" type="text" id="usr-hashed-pin" placeholder="—" style="opacity:0.5;" readonly>
+    <!-- ── BLOCK 5 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;direction:ltr;">
+      Reference / <span style="direction:rtl;">مرجع</span>
     </div>
 
-    <div id="usr-perms-section">
-      <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Permissions</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:14px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-inc"> Income (INC)</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-exp"> Expenses (EXP)</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-ytd"> Report YTD</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-cur"> Report Current</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-lst"> Report Last</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-jrn"> Report Journal</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><input type="checkbox" id="usr-perm-mtr"> Meter Reading (MTR)</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Classification</div>
+        <select class="inp" id="fs-category">
+          <option value="" disabled selected>Select...</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Notes</div>
+        <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
+      </div>
+    </div>
+
+    <div id="fs-inline-err" style="display:none;color:var(--burg);font-size:13px;padding:6px 0;"></div>
+
+    <!-- Suspended warning dialog -->
+    <div id="fs-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;">
+        <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Fee Rule? / تعليق الرسم؟</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;">This is permanent and cannot be undone. The fee will be removed from all future calculations and locked.</div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="closeSuspendDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
+          <button onclick="confirmSuspend()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Suspend / تعليق</button>
+        </div>
       </div>
     </div>
 
     <div class="cs-btns">
-      <button class="cs-submit" id="usr-submit" onclick="submitUser()">إضافة المستخدم / Add User</button>
-      <button class="cs-cancel" onclick="closeUserSheet()">إلغاء</button>
+      <button class="cs-submit" id="fs-submit" onclick="submitFee()">حفظ الرسم / Save Fee Rule</button>
+      <button class="cs-cancel" onclick="closeFeeSheet()">إلغاء</button>
     </div>
   </div>
-  
 </div>
 
 

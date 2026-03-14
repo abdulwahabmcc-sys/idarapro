@@ -5869,9 +5869,9 @@ function fmtMoney(val) {
 
     <input type="hidden" id="fs-edit-feeid">
 
-    <!-- ── BLOCK 1: WHAT IS THIS CHARGE? ── -->
-    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
-      ما هو هذا الرسم؟ / What is this charge?
+    <!-- ── BLOCK 1 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <span style="direction:rtl;">ما هو هذا الرسم؟</span> <span style="direction:ltr;">/ What is this charge?</span>
     </div>
 
     <div class="cs-field">
@@ -5903,9 +5903,9 @@ function fmtMoney(val) {
       </select>
     </div>
 
-    <!-- ── BLOCK 2: WHO DOES IT APPLY TO? ── -->
-    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
-      من يطبق عليه؟ / Who does it apply to?
+    <!-- ── BLOCK 2 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <span style="direction:rtl;">من يطبق عليه؟</span> <span style="direction:ltr;">/ Who does it apply to?</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -5927,9 +5927,9 @@ function fmtMoney(val) {
       </div>
     </div>
 
-    <!-- ── BLOCK 3: HOW IS IT BILLED? ── -->
-    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
-      كيف يُحتسب؟ / How is it billed?
+    <!-- ── BLOCK 3 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <span style="direction:rtl;">كيف يُحتسب؟</span> <span style="direction:ltr;">/ How is it billed?</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -5975,9 +5975,9 @@ function fmtMoney(val) {
       </div>
     </div>
 
-    <!-- ── BLOCK 4: WHEN IS IT ACTIVE? ── -->
-    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
-      متى يكون فعالاً؟ / When is it active?
+    <!-- ── BLOCK 4 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <span style="direction:rtl;">متى يكون فعالاً؟</span> <span style="direction:ltr;">/ When is it active?</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -6000,9 +6000,9 @@ function fmtMoney(val) {
       </select>
     </div>
 
-    <!-- ── BLOCK 5: REFERENCE ── -->
-    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
-      مرجع / Reference
+    <!-- ── BLOCK 5 ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <span style="direction:rtl;">مرجع</span> <span style="direction:ltr;">/ Reference</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -6024,7 +6024,7 @@ function fmtMoney(val) {
     <div id="fs-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
       <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;">
         <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
-        <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Fee Rule?</div>
+        <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Fee Rule? / تعليق الرسم؟</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;">This is permanent and cannot be undone. The fee will be removed from all future calculations and locked.</div>
         <div style="display:flex;gap:10px;">
           <button onclick="closeSuspendDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>

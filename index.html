@@ -3655,11 +3655,15 @@ function openUserSheet(name) {
     document.getElementById('usr-perm-cur').checked = !!u.perms.REP_CUR;
     document.getElementById('usr-perm-lst').checked = !!u.perms.REP_LST;
     document.getElementById('usr-perm-jrn').checked = !!u.perms.REP_JRN;
+    document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn','usr-perm-mtr']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
+  // Show or hide permissions section based on role
+  onRoleChange(u.role || '');
+  
   var btn = document.getElementById('usr-submit');
   btn.disabled = false;
   btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';

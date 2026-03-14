@@ -4868,8 +4868,9 @@ function onFeeTypeChange() {
     document.getElementById('fs-proration').value = 'None';
   }
 
-  // Meter Reference — only for meter-based fees
+  // Meter Reference — only for meter-based fees, auto-fill from charge name
   meterRefWrap.style.display = isMeter ? '' : 'none';
+  if (isMeter) onChargeNameChange();
 
   // Frequency — auto-set Per Reading for meter-based, restore Monthly for others
   if (isMeter) {
@@ -4890,6 +4891,22 @@ function onFeeTypeChange() {
     freqSel.disabled = false;
     freqSel.style.opacity = '1';
     if (freqSel.value === 'Per Reading') freqSel.value = 'Monthly';
+  }
+}
+
+function onChargeNameChange() {
+  var chargeName = document.getElementById('fs-name').value;
+  var feeType    = document.getElementById('fs-fee-type').value;
+  var isMeter    = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
+  if (isMeter) {
+    // Match charge name against utilities list
+    var utilities = window._feeUtilities || [];
+    var matched   = utilities.find(function(u) {
+      return u === chargeName ||
+             chargeName.indexOf(u) !== -1 ||
+             u.indexOf(chargeName) !== -1;
+    });
+    document.getElementById('fs-meter-ref').value = matched || chargeName;
   }
 }
 
@@ -4965,12 +4982,9 @@ function openFeeSheet(f) {
       sel.value = isEdit ? (f.targetValue || '') : '';
     }
 
-    // Populate Meter Reference dropdown from utilities
-    var meterSel = document.getElementById('fs-meter-ref');
-    meterSel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
-    (lookups.utilities || []).forEach(function(u) {
-      meterSel.innerHTML += '<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>';
-    });
+    // Meter Reference is auto-filled from Charge Name — no dropdown needed
+    // Store utilities in a variable for auto-fill logic
+    window._feeUtilities = lookups.utilities || [];
 
     // Distribution Method
     document.getElementById('fs-distribution').value = isEdit ? (f.distributionMethod || 'Individual') : 'Individual';
@@ -5047,7 +5061,12 @@ function submitFee() {
   if (!rate)      { showFeeErr('❌ Base Rate is required'); return; }
   if (!startDate) { showFeeErr('❌ Start Date is required'); return; }
   if (endDate && endDate < startDate) { showFeeErr('❌ End Date must be on or after Start Date'); return; }
-  if (isMeter && !meterRef) { showFeeErr('❌ Meter Reference is required for meter-based fees'); return; }
+  if (isMeter && !meterRef) {
+    // Auto-fill from charge name as fallback
+    var chargeName = document.getElementById('fs-name').value;
+    document.getElementById('fs-meter-ref').value = chargeName;
+    meterRef = chargeName;
+  }
 
   if (status === 'Suspended') {
     _pendingFeePayload = buildFeePayload();
@@ -5853,7 +5872,7 @@ function fmtMoney(val) {
     <!-- Charge Name -->
     <div class="cs-field">
       <div class="cs-lbl">Charge Name / اسم الرسم <span class="req">*</span></div>
-      <select class="inp" id="fs-name" style="direction:rtl;">
+      <select class="inp" id="fs-name" style="direction:rtl;" onchange="onChargeNameChange()">
         <option value="" disabled selected>اختر الرسم / Select charge...</option>
       </select>
     </div>
@@ -5950,12 +5969,12 @@ function fmtMoney(val) {
       </select>
     </div>
 
-    <!-- Meter Reference — shown only for meter-based fee types -->
+    <!-- Meter Reference — auto-filled from Charge Name for meter-based fees -->
     <div class="cs-field" id="fs-meter-ref-wrap" style="display:none;">
-      <div class="cs-lbl">Meter Reference / مرجع العداد <span class="req">*</span></div>
-      <select class="inp" id="fs-meter-ref">
-        <option value="" disabled selected>Select utility...</option>
-      </select>
+      <div class="cs-lbl">Meter Reference / مرجع العداد</div>
+      <input class="inp" type="text" id="fs-meter-ref" readonly
+             style="opacity:0.7;cursor:default;"
+             placeholder="Auto-filled from Charge Name">
     </div>
 
     <!-- Markup % and Show Markup -->
@@ -5981,7 +6000,7 @@ function fmtMoney(val) {
     <div id="fs-inline-err" style="display:none;color:var(--burg);font-size:13px;padding:6px 0;"></div>
 
     <!-- Suspended warning dialog -->
-    <div id="fs-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+    <div id="fs-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
       <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;">
         <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
         <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Fee Rule?</div>

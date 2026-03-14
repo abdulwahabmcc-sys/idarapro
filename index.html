@@ -4930,7 +4930,23 @@ function openFeeSheet(f) {
       var combined = c.nameEn + (c.nameAr ? ' / ' + c.nameAr : '');
       nameSel.innerHTML += '<option value="' + escHtml(combined) + '">' + escHtml(combined) + '</option>';
     });
-    nameSel.value         = isEdit ? (f.name || '') : '';
+    if (isEdit && f.name) {
+      // Try exact match first
+      var exactMatch = Array.from(nameSel.options).find(function(o) {
+        return o.value === f.name;
+      });
+      if (exactMatch) {
+        nameSel.value = f.name;
+      } else {
+        // Try partial match — stored name may be Arabic-only or combined
+        var partialMatch = Array.from(nameSel.options).find(function(o) {
+          return o.value.indexOf(f.name) !== -1 || f.name.indexOf(o.value) !== -1;
+        });
+        if (partialMatch) nameSel.value = partialMatch.value;
+      }
+    } else {
+      nameSel.value = '';
+    }
     nameSel.disabled      = isEdit;
     nameSel.style.opacity = isEdit ? '0.6' : '1';
 

@@ -4851,14 +4851,45 @@ function onFeeTargetTypeChange() {
   }
 }
 
+var METER_BASED_FEE_TYPES = ['Per-Kwh','Per-M³','Per-Liter','Per-Ton','Per-Kg','Per-Mbps','Per-Gbyte'];
+
 function onFeeTypeChange() {
   var feeType       = document.getElementById('fs-fee-type').value;
   var prorationWrap = document.getElementById('fs-proration-wrap');
+  var meterRefWrap  = document.getElementById('fs-meter-ref-wrap');
+  var freqSel       = document.getElementById('fs-frequency');
+  var isMeter       = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
+
+  // Proration — only for Fixed fees
   if (feeType === 'Fixed') {
     prorationWrap.style.display = '';
   } else {
     prorationWrap.style.display = 'none';
     document.getElementById('fs-proration').value = 'None';
+  }
+
+  // Meter Reference — only for meter-based fees
+  meterRefWrap.style.display = isMeter ? '' : 'none';
+
+  // Frequency — auto-set Per Reading for meter-based, restore Monthly for others
+  if (isMeter) {
+    // Add Per Reading option if not present, set it
+    var hasPerReading = false;
+    for (var i = 0; i < freqSel.options.length; i++) {
+      if (freqSel.options[i].value === 'Per Reading') { hasPerReading = true; break; }
+    }
+    if (!hasPerReading) {
+      var opt = document.createElement('option');
+      opt.value = 'Per Reading'; opt.textContent = 'Per Reading';
+      freqSel.appendChild(opt);
+    }
+    freqSel.value    = 'Per Reading';
+    freqSel.disabled = true;
+    freqSel.style.opacity = '0.6';
+  } else {
+    freqSel.disabled = false;
+    freqSel.style.opacity = '1';
+    if (freqSel.value === 'Per Reading') freqSel.value = 'Monthly';
   }
 }
 
@@ -4934,9 +4965,26 @@ function openFeeSheet(f) {
       sel.value = isEdit ? (f.targetValue || '') : '';
     }
 
-    // Proration visibility
+    // Populate Meter Reference dropdown from utilities
+    var meterSel = document.getElementById('fs-meter-ref');
+    meterSel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+    (lookups.utilities || []).forEach(function(u) {
+      meterSel.innerHTML += '<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>';
+    });
+
+    // Distribution Method
+    document.getElementById('fs-distribution').value = isEdit ? (f.distributionMethod || 'Individual') : 'Individual';
+
+    // Markup % and Show Markup
+    document.getElementById('fs-markup').value      = isEdit ? (f.markup    || '') : '';
+    document.getElementById('fs-show-markup').value = isEdit ? (f.showMarkup || 'FALSE') : 'FALSE';
+
+    // Proration + Meter Reference visibility — call after setting fee type
     onFeeTypeChange();
-    if (isEdit) document.getElementById('fs-proration').value = f.proration || 'Full-Month';
+    if (isEdit) {
+      document.getElementById('fs-proration').value = f.proration  || 'Full-Month';
+      document.getElementById('fs-meter-ref').value = f.meterRef   || '';
+    }
 
     var btn = document.getElementById('fs-submit');
     var isSuspended = isEdit && String(f.status || '').toLowerCase() === 'suspended';
@@ -4944,7 +4992,8 @@ function openFeeSheet(f) {
     // Lock all fields if suspended
     var editableFields = ['fs-frequency','fs-status','fs-fee-type','fs-rate',
                           'fs-start','fs-end','fs-proration','fs-category',
-                          'fs-notes','fs-target-type','fs-target-val-sel'];
+                          'fs-notes','fs-target-type','fs-target-val-sel',
+                          'fs-distribution','fs-meter-ref','fs-markup','fs-show-markup'];
     editableFields.forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
@@ -4980,21 +5029,15 @@ function openFeeSheet(f) {
 function submitFee() {
   if (!sessionValid()) return;
 
-  var feeId       = document.getElementById('fs-edit-feeid').value;
-  var name        = document.getElementById('fs-name').value;
-  var frequency   = document.getElementById('fs-frequency').value;
-  var status      = document.getElementById('fs-status').value;
-  var targetType  = document.getElementById('fs-target-type').value;
-  var targetVal   = (targetType === 'Category' || targetType === 'Occupancy Specific')
-                    ? document.getElementById('fs-target-val-sel').value
-                    : '';
-  var feeType     = document.getElementById('fs-fee-type').value;
-  var rate        = document.getElementById('fs-rate').value.trim();
-  var startDate   = document.getElementById('fs-start').value;
-  var endDate     = document.getElementById('fs-end').value;
-  var proration   = document.getElementById('fs-proration').value;
-  var category    = document.getElementById('fs-category').value;
-  var notes       = document.getElementById('fs-notes').value.trim();
+  var feeType   = document.getElementById('fs-fee-type').value;
+  var isMeter   = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
+  var name      = document.getElementById('fs-name').value;
+  var frequency = document.getElementById('fs-frequency').value;
+  var rate      = document.getElementById('fs-rate').value.trim();
+  var startDate = document.getElementById('fs-start').value;
+  var endDate   = document.getElementById('fs-end').value;
+  var meterRef  = document.getElementById('fs-meter-ref').value;
+  var status    = document.getElementById('fs-status').value;
 
   var errEl = document.getElementById('fs-inline-err');
   if (errEl) errEl.style.display = 'none';
@@ -5004,6 +5047,100 @@ function submitFee() {
   if (!rate)      { showFeeErr('❌ Base Rate is required'); return; }
   if (!startDate) { showFeeErr('❌ Start Date is required'); return; }
   if (endDate && endDate < startDate) { showFeeErr('❌ End Date must be on or after Start Date'); return; }
+  if (isMeter && !meterRef) { showFeeErr('❌ Meter Reference is required for meter-based fees'); return; }
+
+  if (status === 'Suspended') {
+    _pendingFeePayload = buildFeePayload();
+    showSuspendDialog();
+    return;
+  }
+
+  doSaveFee(buildFeePayload());
+}
+
+function buildFeePayload() {
+  var targetType = document.getElementById('fs-target-type').value;
+  var targetVal  = (targetType === 'Category' || targetType === 'Occupancy Specific')
+                   ? document.getElementById('fs-target-val-sel').value : '';
+  return {
+    feeId:              document.getElementById('fs-edit-feeid').value || '',
+    name:               document.getElementById('fs-name').value,
+    frequency:          document.getElementById('fs-frequency').value,
+    status:             document.getElementById('fs-status').value,
+    targetType:         targetType,
+    target:             targetVal,
+    feeType:            document.getElementById('fs-fee-type').value,
+    baseRate:           parseFloat(document.getElementById('fs-rate').value) || 0,
+    startDate:          document.getElementById('fs-start').value,
+    endDate:            document.getElementById('fs-end').value || '',
+    proration:          document.getElementById('fs-proration').value,
+    category:           document.getElementById('fs-category').value,
+    notes:              document.getElementById('fs-notes').value.trim(),
+    distributionMethod: document.getElementById('fs-distribution').value,
+    meterRef:           document.getElementById('fs-meter-ref').value,
+    markup:             parseFloat(document.getElementById('fs-markup').value) || 0,
+    showMarkup:         document.getElementById('fs-show-markup').value
+  };
+}
+
+var _pendingFeePayload = null;
+
+function showSuspendDialog() {
+  document.getElementById('fs-suspend-dialog').style.display = 'flex';
+}
+
+function closeSuspendDialog() {
+  document.getElementById('fs-suspend-dialog').style.display = 'none';
+  _pendingFeePayload = null;
+  document.getElementById('fs-status').value = 'Active';
+  var btn = document.getElementById('fs-submit');
+  btn.disabled    = false;
+  btn.textContent = document.getElementById('fs-edit-feeid').value
+    ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+}
+
+function confirmSuspend() {
+  document.getElementById('fs-suspend-dialog').style.display = 'none';
+  if (_pendingFeePayload) doSaveFee(_pendingFeePayload);
+}
+
+function doSaveFee(payload) {
+  var feeId = payload.feeId;
+  var btn   = document.getElementById('fs-submit');
+  btn.disabled    = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  gasPost({ action: 'saveFee', payload: payload, token: _session.token })
+    .then(function(msg) {
+      if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
+        showFeeErr(msg);
+        btn.disabled    = false;
+        btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+        return;
+      }
+      invalidateCache('fees');
+      _feeLookupsCache = null;
+      if (feeId) {
+        var cached = _feesCache.find(function(x){ return x.feeId === feeId; });
+        if (cached) {
+          cached.status = payload.status;
+          if (payload.endDate) {
+            var ed = new Date(payload.endDate);
+            var td = new Date(); td.setHours(0,0,0,0);
+            if (ed < td) cached.status = 'Expired';
+          }
+        }
+      }
+      toast('✅ ' + (msg || 'Fee saved'), 'ok');
+      closeFeeSheet();
+      loadFees();
+    })
+    .catch(function(e) {
+      showFeeErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled    = false;
+      btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+    });
+}
 
   var payload = {
     feeId: feeId || '',
@@ -5776,6 +5913,7 @@ function fmtMoney(val) {
           <option value="Quarterly">Quarterly</option>
           <option value="Annual">Annual</option>
           <option value="One-Time">One-Time</option>
+          <option value="Per Reading">Per Reading</option>
         </select>
       </div>
       <div class="cs-field">
@@ -5848,12 +5986,58 @@ function fmtMoney(val) {
       </div>
     </div>
 
+    <!-- Distribution Method -->
+    <div class="cs-field">
+      <div class="cs-lbl">Distribution Method / طريقة التوزيع</div>
+      <select class="inp" id="fs-distribution">
+        <option value="Individual">Individual / فردي</option>
+        <option value="Equal Split">Equal Split / توزيع متساوي</option>
+        <option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>
+      </select>
+    </div>
+
+    <!-- Meter Reference — shown only for meter-based fee types -->
+    <div class="cs-field" id="fs-meter-ref-wrap" style="display:none;">
+      <div class="cs-lbl">Meter Reference / مرجع العداد <span class="req">*</span></div>
+      <select class="inp" id="fs-meter-ref">
+        <option value="" disabled selected>Select utility...</option>
+      </select>
+    </div>
+
+    <!-- Markup % and Show Markup -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Markup % <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <input class="inp" type="number" id="fs-markup" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Show Markup in Reports</div>
+        <select class="inp" id="fs-show-markup">
+          <option value="FALSE">No — show total only</option>
+          <option value="TRUE">Yes — show breakdown</option>
+        </select>
+      </div>
+    </div>
+
     <div class="cs-field">
       <div class="cs-lbl">Notes</div>
       <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
     </div>
 
     <div id="fs-inline-err" style="display:none;color:var(--burg);font-size:13px;padding:6px 0;"></div>
+
+    <!-- Suspended warning dialog -->
+    <div id="fs-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+      <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;">
+        <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Fee Rule?</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;">This is permanent and cannot be undone. The fee will be removed from all future calculations and locked.</div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="closeSuspendDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
+          <button onclick="confirmSuspend()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Suspend / تعليق</button>
+        </div>
+      </div>
+    </div>
 
     <div class="cs-btns">
       <button class="cs-submit" id="fs-submit" onclick="submitFee()">حفظ الرسم / Save Fee Rule</button>

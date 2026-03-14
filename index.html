@@ -3777,7 +3777,7 @@ function submitUser() {
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User'; return;
       }
       invalidateCache('users');
-      toast('✅ ' + (msg || 'User saved'), 'ok');
+      toast('✅ User saved successfully / تم حفظ المستخدم بنجاح', 'ok');
       closeUserSheet(); loadUsers();
     })
     .catch(function(e) {
@@ -3877,7 +3877,7 @@ function submitYearCash() {
         return;
       }
       invalidateCache('yearCash');
-      toast('✅ ' + (msg || 'Saved'), 'ok');
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeYearCashSheet();
       loadYearCash();
     })
@@ -5233,7 +5233,7 @@ function doSaveFee(payload) {
           }
         }
       }
-      toast('✅ ' + (msg || 'Fee saved'), 'ok');
+      toast('✅ Fee rule saved successfully / تم حفظ الرسم بنجاح', 'ok');
       closeFeeSheet();
       loadFees();
     })

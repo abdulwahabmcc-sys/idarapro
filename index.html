@@ -5869,12 +5869,67 @@ function fmtMoney(val) {
 
     <input type="hidden" id="fs-edit-feeid">
 
-    <!-- Charge Name -->
+    <!-- ── BLOCK 1: WHAT IS THIS CHARGE? ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      ما هو هذا الرسم؟ / What is this charge?
+    </div>
+
     <div class="cs-field">
       <div class="cs-lbl">Charge Name / اسم الرسم <span class="req">*</span></div>
       <select class="inp" id="fs-name" style="direction:rtl;" onchange="onChargeNameChange()">
         <option value="" disabled selected>اختر الرسم / Select charge...</option>
       </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Fee Type / نوع الرسم <span class="req">*</span></div>
+        <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
+          <option value="" disabled selected>Select...</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>
+        <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="cs-field">
+      <div class="cs-lbl">Distribution Method / طريقة التوزيع</div>
+      <select class="inp" id="fs-distribution">
+        <option value="Individual">Individual / فردي</option>
+        <option value="Equal Split">Equal Split / توزيع متساوي</option>
+        <option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>
+      </select>
+    </div>
+
+    <!-- ── BLOCK 2: WHO DOES IT APPLY TO? ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      من يطبق عليه؟ / Who does it apply to?
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Target Type / نوع الهدف</div>
+        <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
+          <option value="All">All</option>
+          <option value="Category">Category</option>
+          <option value="Occupancy Specific">Occupancy Specific</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+      <div class="cs-field" id="fs-target-val-wrap">
+        <div class="cs-lbl">Target Value / وجهة الهدف</div>
+        <select class="inp" id="fs-target-val-sel" style="display:none;">
+          <option value="" disabled selected>Select...</option>
+        </select>
+        <input class="inp" type="text" id="fs-target-val-txt" placeholder="—" style="display:none;" readonly>
+      </div>
+    </div>
+
+    <!-- ── BLOCK 3: HOW IS IT BILLED? ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      كيف يُحتسب؟ / How is it billed?
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -5889,60 +5944,6 @@ function fmtMoney(val) {
           <option value="Per Reading">Per Reading</option>
         </select>
       </div>
-      <div class="cs-field">
-        <div class="cs-lbl">Status / الحالة</div>
-        <select class="inp" id="fs-status">
-          <option value="Active">Active / فعال</option>
-          <option value="Expired">Expired / منتهي</option>
-          <option value="Suspended">Suspended / معلق</option>
-        </select>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
-        <div class="cs-lbl">Target Fee Type /  نوع هدف الرسم</div>
-        <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
-          <option value="All">All</option>
-          <option value="Category">Category</option>
-          <option value="Occupancy Specific">Occupancy Specific</option>
-          <option value="Others">Others</option>
-        </select>
-      </div>
-      <div class="cs-field" id="fs-target-val-wrap">
-        <div class="cs-lbl">Target Value / وجهة الرسم الهدف</div>
-        <select class="inp" id="fs-target-val-sel" style="display:none;">
-          <option value="" disabled selected>Select...</option>
-        </select>
-        <input class="inp" type="text" id="fs-target-val-txt" placeholder="—" style="display:none;" readonly>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
-        <div class="cs-lbl">Fee Type / نوع الرسم</div>
-        <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
-          <option value="" disabled selected>Select...</option>
-        </select>
-      </div>
-      <div class="cs-field">
-        <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>
-        <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
-        <div class="cs-lbl">Start Date <span class="req">*</span></div>
-        <input class="inp" type="date" id="fs-start">
-      </div>
-      <div class="cs-field">
-        <div class="cs-lbl">End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
-        <input class="inp" type="date" id="fs-end">
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field" id="fs-proration-wrap">
         <div class="cs-lbl">Proration Rule</div>
         <select class="inp" id="fs-proration">
@@ -5951,25 +5952,8 @@ function fmtMoney(val) {
           <option value="None">None</option>
         </select>
       </div>
-      <div class="cs-field">
-        <div class="cs-lbl">Classification</div>
-        <select class="inp" id="fs-category">
-          <option value="" disabled selected>Select...</option>
-        </select>
-      </div>
     </div>
 
-    <!-- Distribution Method -->
-    <div class="cs-field">
-      <div class="cs-lbl">Distribution Method / طريقة التوزيع</div>
-      <select class="inp" id="fs-distribution">
-        <option value="Individual">Individual / فردي</option>
-        <option value="Equal Split">Equal Split / توزيع متساوي</option>
-        <option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>
-      </select>
-    </div>
-
-    <!-- Meter Reference — auto-filled from Charge Name for meter-based fees -->
     <div class="cs-field" id="fs-meter-ref-wrap" style="display:none;">
       <div class="cs-lbl">Meter Reference / مرجع العداد</div>
       <input class="inp" type="text" id="fs-meter-ref" readonly
@@ -5977,7 +5961,6 @@ function fmtMoney(val) {
              placeholder="Auto-filled from Charge Name">
     </div>
 
-    <!-- Markup % and Show Markup -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Markup % <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
@@ -5992,9 +5975,47 @@ function fmtMoney(val) {
       </div>
     </div>
 
+    <!-- ── BLOCK 4: WHEN IS IT ACTIVE? ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      متى يكون فعالاً؟ / When is it active?
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Start Date / تاريخ البدء <span class="req">*</span></div>
+        <input class="inp" type="date" id="fs-start">
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+        <input class="inp" type="date" id="fs-end">
+      </div>
+    </div>
+
     <div class="cs-field">
-      <div class="cs-lbl">Notes</div>
-      <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
+      <div class="cs-lbl">Status / الحالة</div>
+      <select class="inp" id="fs-status">
+        <option value="Active">Active / فعال</option>
+        <option value="Expired">Expired / منتهي</option>
+        <option value="Suspended">Suspended / معلق</option>
+      </select>
+    </div>
+
+    <!-- ── BLOCK 5: REFERENCE ── -->
+    <div style="margin:18px 0 10px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      مرجع / Reference
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Classification</div>
+        <select class="inp" id="fs-category">
+          <option value="" disabled selected>Select...</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Notes</div>
+        <input class="inp" type="text" id="fs-notes" placeholder="Optional notes...">
+      </div>
     </div>
 
     <div id="fs-inline-err" style="display:none;color:var(--burg);font-size:13px;padding:6px 0;"></div>

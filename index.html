@@ -4927,8 +4927,8 @@ function openFeeSheet(f) {
     var nameSel = document.getElementById('fs-name');
     nameSel.innerHTML = '<option value="" disabled>اختر الرسم / Select charge...</option>';
     lookups.chargeNames.forEach(function(c) {
-      var label = c.nameAr + (c.nameEn ? ' / ' + c.nameEn : '');
-      nameSel.innerHTML += '<option value="' + escHtml(c.nameAr) + '">' + escHtml(label) + '</option>';
+      var combined = c.nameEn + (c.nameAr ? ' / ' + c.nameAr : '');
+      nameSel.innerHTML += '<option value="' + escHtml(combined) + '">' + escHtml(combined) + '</option>';
     });
     nameSel.value         = isEdit ? (f.name || '') : '';
     nameSel.disabled      = isEdit;

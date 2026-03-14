@@ -5091,8 +5091,15 @@ function openFeeSheet(f) {
         // Enable save button on any change to editable fields
         activeOnlyFields.concat(referenceFields).forEach(function(id) {
           var el = document.getElementById(id);
-          if (el) el.addEventListener('change', function() { btn.disabled = false; }, { once: false });
+          if (el) el.addEventListener('change', function() {
+            btn.disabled = false;
+            // If status changed to Suspended, submitFee handles the dialog
+          }, { once: false });
         });
+        // Special handling — if status is Suspended, always enable save button
+        document.getElementById('fs-status').addEventListener('change', function() {
+          btn.disabled = false;
+        }, { once: false });
       }
 
     } else {

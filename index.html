@@ -3490,7 +3490,7 @@ function loadCategories(type) {
         var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
         return '<div class="stg-cat-row">' +
           '<div class="stg-cat-info">' +
-            '<div class="stg-cat-ar">' + escHtml(c.nameAr || '—') + '</div>' +
+            '<div class="stg-cat-ar">' + escHtml(c.combinedName || c.nameAr || '—') + '</div>' +
             '<div class="stg-cat-en">' + escHtml(c.nameEn || '') + '</div>' +
             '<div class="stg-cat-code">' + (c.code || '') + (c.parent ? ' · ' + c.parent : '') + '</div>' +
           '</div>' +

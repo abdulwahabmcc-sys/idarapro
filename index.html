@@ -5465,8 +5465,11 @@ function submitUtility() {
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Utility'; return;
       }
       invalidateCache('utility');
+      invalidateCache('fees');
       if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['utility'] = null;
+      if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['incomeCategories'] = null;
       _utilityCache = [];
+      _feeLookupsCache = null;
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeUtilitySheet(); loadUtility();
     })

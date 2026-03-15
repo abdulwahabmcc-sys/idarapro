@@ -5374,23 +5374,49 @@ function addUtility() {
 }
 
 function editUtility(name) {
-  var u = _utilityCache.find(function(x){ return x.name === name; });
+  var u = _utilityCache.find(function(x){ return x.combinedName === name || x.name === name; });
   openUtilitySheet(u || null);
+}
+
+function onUtilityNameChange() {
+  var en = document.getElementById('ut-name-en').value.trim();
+  var ar = document.getElementById('ut-name-ar').value.trim();
+  var combined = '';
+  if (en && ar) combined = en + ' / ' + ar;
+  else if (en)  combined = en;
+  else if (ar)  combined = ar;
+  document.getElementById('ut-combined').value = combined;
 }
 
 function openUtilitySheet(ut) {
   var isEdit = !!ut;
   document.getElementById('ut-title').textContent = isEdit ? 'تعديل خدمة / Edit Utility' : 'إضافة خدمة / Add Utility';
-  document.getElementById('ut-name').value  = isEdit ? (ut.name || '') : '';
-  document.getElementById('ut-unit').value  = isEdit ? (ut.unit || '') : '';
-  document.getElementById('ut-tag').value   = isEdit ? (ut.tag  || '') : '';
-  document.getElementById('ut-name').readOnly      = isEdit;
-  document.getElementById('ut-name').style.opacity = isEdit ? '0.6' : '1';
+
+  // Combined name — always read only
+  document.getElementById('ut-combined').value = isEdit ? (ut.combinedName || ut.name || '') : '';
+
+  // English and Arabic names — locked in edit mode
+  var enEl = document.getElementById('ut-name-en');
+  var arEl = document.getElementById('ut-name-ar');
+  enEl.value    = isEdit ? (ut.nameEn || '') : '';
+  arEl.value    = isEdit ? (ut.nameAr || '') : '';
+  enEl.readOnly = isEdit;
+  arEl.readOnly = isEdit;
+  enEl.style.opacity = isEdit ? '0.6' : '1';
+  arEl.style.opacity = isEdit ? '0.6' : '1';
+
+  // Always editable fields
+  document.getElementById('ut-status').value     = isEdit ? (ut.status    || 'Active')     : 'Active';
+  document.getElementById('ut-meter-type').value = isEdit ? (ut.meterType || 'Individual') : 'Individual';
+  document.getElementById('ut-tag').value        = isEdit ? (ut.tag       || '')            : '';
+
   var btn = document.getElementById('ut-submit');
-  btn.disabled = false;
+  btn.disabled    = false;
   btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Utility';
+
   var err = document.getElementById('ut-inline-err');
   if (err) err.style.display = 'none';
+
   document.getElementById('utility-sheet-wrap').classList.add('open');
 }
 
@@ -5405,20 +5431,29 @@ function showUtilityErr(msg) {
 
 function submitUtility() {
   if (!sessionValid()) return;
-  var name   = document.getElementById('ut-name').value.trim();
-  var unit   = document.getElementById('ut-unit').value;
-  var tag    = document.getElementById('ut-tag').value.trim();
-  var isEdit = document.getElementById('ut-name').readOnly;
 
-  if (!name) { showUtilityErr('❌ Utility name is required'); return; }
-  if (!unit) { showUtilityErr('❌ Unit of measure is required'); return; }
+  var nameEn    = document.getElementById('ut-name-en').value.trim();
+  var nameAr    = document.getElementById('ut-name-ar').value.trim();
+  var status    = document.getElementById('ut-status').value;
+  var meterType = document.getElementById('ut-meter-type').value;
+  var tag       = document.getElementById('ut-tag').value.trim();
+  var isEdit    = document.getElementById('ut-name-en').readOnly;
+  var combined  = document.getElementById('ut-combined').value.trim();
+
+  if (!nameEn) { showUtilityErr('❌ English name is required'); return; }
+  if (!combined) { showUtilityErr('❌ Utility name could not be generated'); return; }
 
   var btn = document.getElementById('ut-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
   gasPost({
     action: 'saveUtility',
-    payload: { name: name, unit: unit, tag: tag, isEdit: isEdit },
+    payload: {
+      nameEn: nameEn, nameAr: nameAr,
+      combinedName: combined,
+      status: status, meterType: meterType,
+      tag: tag, isEdit: isEdit
+    },
     token: _session.token
   })
     .then(function(msg) {
@@ -6555,28 +6590,47 @@ function fmtMoney(val) {
     <div class="cs-title" id="ut-title">إضافة خدمة / Add Utility</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
+    <!-- Combined Name — read only, auto-generated -->
     <div class="cs-field">
-      <div class="cs-lbl">Utility Name <span class="req">*</span></div>
-      <input class="inp" type="text" id="ut-name" placeholder="e.g. Electricity">
+      <div class="cs-lbl">Utility Name / اسم الخدمة</div>
+      <input class="inp" type="text" id="ut-combined" readonly
+             style="opacity:0.7;cursor:default;font-weight:600;"
+             placeholder="Auto-generated from English / Arabic names">
+    </div>
+
+    <!-- English Name -->
+    <div class="cs-field">
+      <div class="cs-lbl">English Name <span class="req">*</span></div>
+      <input class="inp" type="text" id="ut-name-en" placeholder="e.g. Water - External Filling"
+             oninput="onUtilityNameChange()">
+    </div>
+
+    <!-- Arabic Name -->
+    <div class="cs-field">
+      <div class="cs-lbl">Arabic Name / الاسم بالعربي</div>
+      <input class="inp" type="text" id="ut-name-ar" placeholder="مثال: مياه - تعبئة خارجية"
+             style="direction:rtl;" oninput="onUtilityNameChange()">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Status / الحالة</div>
+        <select class="inp" id="ut-status">
+          <option value="Active">Active / فعال</option>
+          <option value="Inactive">Inactive / غير فعال</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Meter Type / نوع العداد</div>
+        <select class="inp" id="ut-meter-type">
+          <option value="Individual">Individual / فردي</option>
+          <option value="Building">Building / مبنى</option>
+        </select>
+      </div>
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">Unit of Measure <span class="req">*</span></div>
-      <select class="inp" id="ut-unit">
-        <option value="" disabled selected>Select unit...</option>
-        <option value="Liters">Liters</option>
-        <option value="m³">m³</option>
-        <option value="Ton">Ton</option>
-        <option value="Kwh">Kwh</option>
-        <option value="Ampers">Ampers</option>
-        <option value="Kg">Kg</option>
-        <option value="Mbps">Mbps</option>
-        <option value="Gbyte">Gbyte</option>
-      </select>
-    </div>
-
-    <div class="cs-field">
-      <div class="cs-lbl">System Tag</div>
+      <div class="cs-lbl">System Tag <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
       <input class="inp" type="text" id="ut-tag" placeholder="e.g. ELEC, WATER">
     </div>
 

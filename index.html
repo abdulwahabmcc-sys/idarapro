@@ -5562,7 +5562,7 @@ function addMeterReading()  { toast('ℹ️ Add meter reading — coming soon', 
 // ── Utility Unit Prices ──────────────────────────────────────────────────────
 function loadUtilityUnitPrices() {
   var el = stgListEl('stg-uup-list'); stgLoading(el);
-  gasGet('getSettingsUtilityUnitPrices', _session.token)
+  gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
     .then(function(rows) {
       _uupCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'No prices configured / لا توجد أسعار'); return; }

@@ -3113,7 +3113,8 @@ function toggleSection(id) {
       'stg-balances':  'balances',
       'stg-users':     'users',
       'stg-yearcash':  'yearcash',
-      'stg-yearend':   'yearend'
+      'stg-yearend':   'yearend',
+      'stg-uup':       'uup'
     };
     if (map[id]) stgLoad(map[id]);
   }
@@ -3136,7 +3137,8 @@ function stgLoad(name) {
     balances:  loadBalances,
     users:     loadUsers,
     yearcash:  loadYearCash,
-    yearend:   loadYearEnd
+    yearend:   loadYearEnd,
+    uup:       loadUtilityUnitPrices
   };
   if (fn[name]) fn[name]();
 }

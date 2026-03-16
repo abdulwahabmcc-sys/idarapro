@@ -5636,7 +5636,7 @@ function addUtilityUnitPrice() {
   utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
 
   // Load utilities fresh from backend
-  gasPost({ action: 'getSettingsUtility', token: _session.token })
+  gasPost({ action: 'getSettingsUtility', payload: {}, token: _session.token })
     .then(function(rows) {
       utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
       (rows || []).forEach(function(u) {

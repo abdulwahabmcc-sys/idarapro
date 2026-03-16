@@ -5633,19 +5633,22 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-is-edit').value      = 'false';
 
   var utilitySel = document.getElementById('uup-utility');
-  utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
-  var meterBased = (_feeLookupsCache && _feeLookupsCache.utilities) ? _feeLookupsCache.utilities : [];
-  if (meterBased.length) {
-    meterBased.forEach(function(u) {
-      utilitySel.innerHTML += '<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>';
+  utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+
+  // Load utilities fresh from backend
+  gasPost({ action: 'getSettingsUtility', token: _session.token })
+    .then(function(rows) {
+      utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+      (rows || []).forEach(function(u) {
+        if (String(u.status).toLowerCase() === 'active') {
+          var name = u.combinedName || u.name || '';
+          utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
+        }
+      });
+    })
+    .catch(function() {
+      utilitySel.innerHTML = '<option value="" disabled selected>Failed to load utilities</option>';
     });
-  } else {
-    _utilityCache.forEach(function(u) {
-      if (String(u.status).toLowerCase() === 'active') {
-        utilitySel.innerHTML += '<option value="' + escHtml(u.combinedName) + '">' + escHtml(u.combinedName) + '</option>';
-      }
-    });
-  }
 
   var today = new Date();
   var todayStr = today.getFullYear() + '-' +

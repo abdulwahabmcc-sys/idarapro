@@ -3437,15 +3437,23 @@ function loadUtility() {
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد خدمات / No utilities configured'); return; }
       el.innerHTML = rows.map(function(u) {
         var displayName = u.combinedName || u.name || '—';
-        var statusBadge = u.status === 'Inactive'
-          ? '<span style="font-size:10px;color:var(--muted);margin-left:6px;">Inactive</span>' : '';
+        var isActive = String(u.status).toLowerCase() === 'active';
+        var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
         return '<div class="stg-user-row">' +
           '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
           '<div class="stg-user-info">' +
-            '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + statusBadge + '</div>' +
+            '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + '</div>' +
             '<div class="stg-user-meta">' + escHtml(u.meterType || '') + (u.tag ? ' · ' + escHtml(u.tag) : '') + '</div>' +
           '</div>' +
-          '<div class="stg-user-actions"><button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button></div>' +
+          '<div class="stg-user-actions">' +
+            '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (u.status || '') + '</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              '<button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button>' +
+              (isActive
+                ? '<button class="stg-user-btn danger" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',false)">إيقاف</button>'
+                : '<button class="stg-user-btn" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',true)">تفعيل</button>') +
+            '</div>' +
+          '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
@@ -5379,6 +5387,24 @@ function addUtility() {
 function editUtility(nameEn) {
   var u = _utilityCache.find(function(x){ return x.nameEn === nameEn; });
   openUtilitySheet(u || null);
+}
+
+function toggleUtility(nameEn, activate) {
+  if (!sessionValid()) return;
+  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' utility ' + nameEn + '?')) return;
+  gasPost({
+    action: 'saveUtility',
+    payload: { nameEn: nameEn, status: activate ? 'Active' : 'Inactive', isEdit: true },
+    token: _session.token
+  })
+    .then(function() {
+      invalidateCache('utility');
+      _utilityCache = [];
+      _feeLookupsCache = null;
+      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
+      loadUtility();
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
 function onUtilityNameChange() {

@@ -3502,7 +3502,6 @@ function loadCategories(type) {
         var isActive = String(c.status).toLowerCase() === 'active';
         var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
         var isUtilityLinked = type === 'income' && c.isUtilityLinked;
-console.log('DEBUG', c.nameEn, 'isUtilityLinked:', c.isUtilityLinked, 'type:', type);
         var toggleBtn = isUtilityLinked
           ? '<span style="font-size:9px;color:var(--muted);">🔒 Utility</span>'
           : (isActive

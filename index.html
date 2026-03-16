@@ -3503,7 +3503,7 @@ function loadCategories(type) {
         var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
         var isUtilityLinked = type === 'income' && c.isUtilityLinked;
         var toggleBtn = isUtilityLinked
-          ? '<span style="font-size:9px;color:var(--muted);">🔒 Utility</span>'
+          ? '<span style="font-size:9px;color:var(--muted);cursor:help;" title="Activation or Deactivation of Utility based income category must be done in Utility Master. تفعيل او الغاء فئات الدخل الخاصة بالخدمات يتم عبر الخدمات">🔒 Utility</span>'
           : (isActive
               ? '<button class="stg-user-btn danger" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',false)">إيقاف</button>'
               : '<button class="stg-user-btn" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',true)">تفعيل</button>');
@@ -4098,6 +4098,14 @@ function openCategorySheet(type, cat) {
   document.getElementById('cat-desc').value     = isEdit ? (cat.desc   || '') : '';
   document.getElementById('cat-notes').value    = isEdit ? (cat.notes  || '') : '';
   document.getElementById('cat-status').value   = isEdit ? (cat.status || 'Active') : 'Active';
+  // Lock status for utility-linked income categories
+  var isUtilityLinked = isEdit && cat.isUtilityLinked;
+  var statusEl = document.getElementById('cat-status');
+  statusEl.disabled = isUtilityLinked;
+  statusEl.style.opacity = isUtilityLinked ? '0.5' : '1';
+  // Show/hide utility lock message
+  var lockMsg = document.getElementById('cat-utility-lock-msg');
+  if (lockMsg) lockMsg.style.display = isUtilityLinked ? 'block' : 'none';
 
   // Populate parent dropdown from same cache
   var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
@@ -6558,6 +6566,10 @@ function fmtMoney(val) {
         <option value="Active">Active</option>
         <option value="Inactive">Inactive</option>
       </select>
+      <div id="cat-utility-lock-msg" style="display:none;font-size:11px;color:var(--burg);margin-top:4px;line-height:1.5;">
+        🔒 Activation or Deactivation of Utility based income category must be done in Utility Master.<br>
+        تفعيل او الغاء فئات الدخل الخاصة بالخدمات يتم عبر الخدمات
+      </div>
     </div>
 
     <div id="cat-inline-err" style="display:none;color:var(--burg);font-size:12px;margin:6px 0;"></div>

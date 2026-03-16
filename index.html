@@ -3442,7 +3442,7 @@ function loadUtility() {
         return '<div class="stg-user-row">' +
           '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
           '<div class="stg-user-info">' +
-            '<div class="stg-user-name">' + escHtml(displayName) + statusBadge + '</div>' +
+            '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + statusBadge + '</div>' +
             '<div class="stg-user-meta">' + escHtml(u.meterType || '') + (u.tag ? ' · ' + escHtml(u.tag) : '') + '</div>' +
           '</div>' +
           '<div class="stg-user-actions"><button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button></div>' +

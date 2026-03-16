@@ -5391,7 +5391,22 @@ function editUtility(nameEn) {
 
 function toggleUtility(nameEn, activate) {
   if (!sessionValid()) return;
-  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' utility ' + nameEn + '?')) return;
+
+  // Find the clicked button and show spinner
+  var buttons = document.querySelectorAll('.stg-user-btn');
+  var clickedBtn = null;
+  buttons.forEach(function(btn) {
+    if (btn.getAttribute('onclick') &&
+        btn.getAttribute('onclick').indexOf(nameEn) !== -1 &&
+        btn.getAttribute('onclick').indexOf('toggleUtility') !== -1) {
+      clickedBtn = btn;
+    }
+  });
+  if (clickedBtn) {
+    clickedBtn.disabled = true;
+    clickedBtn.textContent = '⏳';
+  }
+
   gasPost({
     action: 'setUtilityStatus',
     payload: { nameEn: nameEn, active: activate },
@@ -5404,7 +5419,13 @@ function toggleUtility(nameEn, activate) {
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       loadUtility();
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) {
+      toast('❌ ' + e.message, 'fail');
+      if (clickedBtn) {
+        clickedBtn.disabled = false;
+        clickedBtn.textContent = activate ? 'تفعيل' : 'إيقاف';
+      }
+    });
 }
 
 function onUtilityNameChange() {

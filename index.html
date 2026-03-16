@@ -3498,7 +3498,14 @@ function loadCategories(type) {
       if (type === 'income') _incomeCatCache = rows || [];
       else _expenseCatCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
-      el.innerHTML = rows.map(function(c) {
+      // Filter out inactive utility-linked entries for income type
+      var displayRows = type === 'income'
+        ? rows.filter(function(c) {
+            return !(c.isUtilityLinked && String(c.status).toLowerCase() === 'inactive');
+          })
+        : rows;
+      if (!displayRows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
+      el.innerHTML = displayRows.map(function(c) {
         var isActive = String(c.status).toLowerCase() === 'active';
         var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
         var isUtilityLinked = type === 'income' && c.isUtilityLinked;

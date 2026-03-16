@@ -5637,6 +5637,7 @@ function addUtilityUnitPrice() {
 
   gasGet('getSettingsUtility', _session.token)
     .then(function(rows) {
+      console.log('DEBUG utilities rows:', JSON.stringify(rows));
       _utilityCache = rows || [];
       utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
       (rows || []).forEach(function(u) {

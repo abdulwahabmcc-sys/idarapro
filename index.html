@@ -3496,6 +3496,12 @@ function loadCategories(type) {
       el.innerHTML = rows.map(function(c) {
         var isActive = String(c.status).toLowerCase() === 'active';
         var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+        var isUtilityLinked = type === 'income' && c.isUtilityLinked;
+        var toggleBtn = isUtilityLinked
+          ? '<span style="font-size:9px;color:var(--muted);">🔒 Utility</span>'
+          : (isActive
+              ? '<button class="stg-user-btn danger" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',false)">إيقاف</button>'
+              : '<button class="stg-user-btn" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',true)">تفعيل</button>');
         return '<div class="stg-cat-row">' +
           '<div class="stg-cat-info">' +
             '<div class="stg-cat-ar" style="direction:ltr;text-align:left;unicode-bidi:embed;">' + escHtml(c.combinedName || c.nameAr || '—') + '</div>' +
@@ -3506,9 +3512,7 @@ function loadCategories(type) {
             '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (c.status || '') + '</span>' +
             '<div style="display:flex;gap:4px;">' +
               '<button class="stg-user-btn" onclick="editCategory(\'' + type + '\',\'' + escHtml(c.code) + '\')">تعديل</button>' +
-              (isActive
-                ? '<button class="stg-user-btn danger" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',false)">إيقاف</button>'
-                : '<button class="stg-user-btn" onclick="toggleCategory(\'' + type + '\',\'' + escHtml(c.code) + '\',true)">تفعيل</button>') +
+              toggleBtn +
             '</div>' +
           '</div>' +
         '</div>';

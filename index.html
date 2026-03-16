@@ -5633,22 +5633,32 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-is-edit').value      = 'false';
 
   var utilitySel = document.getElementById('uup-utility');
-  utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+  utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
 
-  // Load utilities fresh from backend
-  gasPost({ action: 'getSettingsUtility', payload: {}, token: _session.token })
-    .then(function(rows) {
-      utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
-      (rows || []).forEach(function(u) {
-        if (String(u.status).toLowerCase() === 'active') {
-          var name = u.combinedName || u.name || '';
-          utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
-        }
-      });
-    })
-    .catch(function() {
-      utilitySel.innerHTML = '<option value="" disabled selected>Failed to load utilities</option>';
+  // Use utility cache if available, otherwise load via stgLoad
+  function populateUtilityDropdown(rows) {
+    utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+    (rows || []).forEach(function(u) {
+      if (String(u.status).toLowerCase() === 'active') {
+        var name = u.combinedName || u.name || '';
+        utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
+      }
     });
+  }
+
+  if (_utilityCache && _utilityCache.length) {
+    populateUtilityDropdown(_utilityCache);
+  } else {
+    // Load utility cache first
+    stgFromCache('utility', 'getSettingsUtility', null)
+      .then(function(rows) {
+        _utilityCache = rows || [];
+        populateUtilityDropdown(_utilityCache);
+      })
+      .catch(function() {
+        utilitySel.innerHTML = '<option value="" disabled selected>Failed to load utilities</option>';
+      });
+  }
 
   var today = new Date();
   var todayStr = today.getFullYear() + '-' +

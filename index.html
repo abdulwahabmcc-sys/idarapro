@@ -3483,6 +3483,11 @@ function loadMeters() {
   
 // ── ⑨ + ⑩  Categories (income / expense) ────────────────────────────────────
 function loadCategories(type) {
+  var cacheKey = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+  invalidateCache(cacheKey);
+  if (_settingsCache && typeof _settingsCache === 'object') _settingsCache[cacheKey] = null;
+  if (type === 'income') _incomeCatCache = [];
+  else _expenseCatCache = [];
   var elId       = type === 'income' ? 'stg-incat-list' : 'stg-excat-list';
   var el         = stgListEl(elId); stgLoading(el);
   var cacheKey   = type === 'income' ? 'incomeCategories' : 'expenseCategories';

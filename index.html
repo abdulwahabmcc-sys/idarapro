@@ -5393,8 +5393,8 @@ function toggleUtility(nameEn, activate) {
   if (!sessionValid()) return;
   if (!confirm((activate ? 'Activate' : 'Deactivate') + ' utility ' + nameEn + '?')) return;
   gasPost({
-    action: 'saveUtility',
-    payload: { nameEn: nameEn, status: activate ? 'Active' : 'Inactive', isEdit: true },
+    action: 'setUtilityStatus',
+    payload: { nameEn: nameEn, active: activate },
     token: _session.token
   })
     .then(function() {

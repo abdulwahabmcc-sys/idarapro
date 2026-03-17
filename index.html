@@ -5849,12 +5849,14 @@ function submitUtilityUnitPrice() {
     return;
   }
 
-  // Show edit warning dialog for price change (new entry creation)
-  if (isEdit && !status === 'Suspended') {
-    _uupPendingPayload = payload;
-    document.getElementById('uup-edit-dialog').style.display = 'flex';
+  // Edit mode — save directly (price is locked, only end date/notes/status can change)
+  if (isEdit) {
+    doSaveUtilityUnitPrice(payload);
     return;
   }
+
+  doSaveUtilityUnitPrice(payload);
+}
 
   doSaveUtilityUnitPrice(payload);
 }

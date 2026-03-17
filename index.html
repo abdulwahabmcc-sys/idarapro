@@ -2626,6 +2626,17 @@ function launchApp(auth) {
   refreshDash();
   _rtimer = setInterval(refreshDash, 30000);
 
+  // Silent background pre-load for faster settings experience
+  setTimeout(function() {
+    if (_session && _session.token) {
+      gasGet('getFeeLookups', _session.token)
+        .then(function(data) { if (data) _feeLookupsCache = data; })
+        .catch(function() {});
+      gasGet('getSettingsUtility', _session.token)
+        .then(function(data) { if (data) _utilityCache = data || []; })
+        .catch(function() {});
+    }
+  }, 2000);
 }
 
 function applyPermissionUI(auth) {

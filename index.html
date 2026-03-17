@@ -5672,6 +5672,23 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-utility').disabled      = false;
   document.getElementById('uup-utility').style.opacity = '1';
 
+  // Ensure all fields are unlocked for new entry
+  ['uup-price', 'uup-effective-date', 'uup-recorded-by'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.readOnly = false; el.disabled = false; el.style.opacity = '1'; }
+  });
+  var unitEl = document.getElementById('uup-unit');
+  unitEl.disabled = false;
+  unitEl.style.opacity = '1';
+  document.getElementById('uup-end-date').disabled  = false;
+  document.getElementById('uup-end-date').style.opacity = '1';
+  document.getElementById('uup-notes').readOnly     = false;
+  document.getElementById('uup-notes').style.opacity = '1';
+  var statusEl = document.getElementById('uup-status');
+  statusEl.value    = 'Active';
+  statusEl.disabled = false;
+  statusEl.style.opacity = '1';
+
   var btn = document.getElementById('uup-submit');
   btn.disabled    = false;
   btn.textContent = 'إضافة / Add Price';
@@ -5685,8 +5702,14 @@ function addUtilityUnitPrice() {
 function editUtilityUnitPrice(utilityName) {
   if (!sessionValid()) return;
   var active = _uupCache.find(function(r) {
-    return r.utilityName === utilityName && !r.endDate;
+    return r.utilityName === utilityName && r.status !== 'Expired' && r.status !== 'Suspended' && !r.endDate;
   });
+  // Fallback — find any entry for this utility that is active
+  if (!active) {
+    active = _uupCache.find(function(r) {
+      return r.utilityName === utilityName && r.status === 'Active';
+    });
+  }
   if (!active) { toast('❌ No active price found', 'fail'); return; }
 
   var utilitySel = document.getElementById('uup-utility');
@@ -5698,10 +5721,29 @@ function editUtilityUnitPrice(utilityName) {
   document.getElementById('uup-utility').value         = active.utilityName;
   document.getElementById('uup-utility').disabled      = true;
   document.getElementById('uup-utility').style.opacity = '0.6';
+
+  // Lock core fields
+  var lockedFields = ['uup-price', 'uup-effective-date', 'uup-recorded-by'];
+  lockedFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.readOnly = true; el.disabled = true; el.style.opacity = '0.6'; }
+  });
+
+  // Lock unit dropdown
+  var unitEl = document.getElementById('uup-unit');
+  unitEl.disabled = true;
+  unitEl.style.opacity = '0.6';
+
+  // Editable fields
+  document.getElementById('uup-end-date').disabled  = false;
+  document.getElementById('uup-end-date').style.opacity = '1';
+  document.getElementById('uup-notes').readOnly     = false;
+  document.getElementById('uup-notes').style.opacity = '1';
+
+  // Set values
   document.getElementById('uup-price').value           = active.pricePerUnit;
   var unitSel = document.getElementById('uup-unit');
   unitSel.value = active.unitOfMeasure;
-  // If no match found, add a temporary option with the saved value
   if (!unitSel.value && active.unitOfMeasure) {
     var opt = document.createElement('option');
     opt.value = active.unitOfMeasure;
@@ -5711,8 +5753,15 @@ function editUtilityUnitPrice(utilityName) {
   }
   document.getElementById('uup-effective-date').value  = formatDateForInput(active.effectiveDate);
   document.getElementById('uup-end-date').value        = formatDateForInput(active.endDate || '');
-  document.getElementById('uup-recorded-by').value     = _session ? (_session.name || '') : '';
+  document.getElementById('uup-recorded-by').value     = active.recordedBy || '';
   document.getElementById('uup-notes').value           = active.notes || '';
+
+  // Status — only Active can be changed, locked for Expired/Suspended
+  var statusEl = document.getElementById('uup-status');
+  statusEl.value = active.status || 'Active';
+  var isLocked = active.status === 'Expired' || active.status === 'Suspended';
+  statusEl.disabled = isLocked;
+  statusEl.style.opacity = isLocked ? '0.6' : '1';
 
   var btn = document.getElementById('uup-submit');
   btn.disabled    = false;
@@ -5737,39 +5786,80 @@ function submitUtilityUnitPrice() {
   if (!sessionValid()) return;
 
   var utilityName   = document.getElementById('uup-utility').value;
-  var pricePerUnit  = document.getElementById('uup-price').value.trim();
+  var pricePerUnit  = document.getElementById('uup-price').value;
   var unitOfMeasure = document.getElementById('uup-unit').value;
   var effectiveDate = document.getElementById('uup-effective-date').value;
   var endDate       = document.getElementById('uup-end-date').value;
   var recordedBy    = document.getElementById('uup-recorded-by').value.trim();
   var notes         = document.getElementById('uup-notes').value.trim();
+  var status        = document.getElementById('uup-status').value;
   var isEdit        = document.getElementById('uup-is-edit').value === 'true';
   var rowIndex      = document.getElementById('uup-row-index').value;
 
-  if (!utilityName)   { showUupErr('❌ Utility is required'); return; }
-  if (!pricePerUnit)  { showUupErr('❌ Price is required'); return; }
-  if (!unitOfMeasure) { showUupErr('❌ Unit of measure is required'); return; }
-  if (!effectiveDate) { showUupErr('❌ Effective date is required'); return; }
+  var errEl = document.getElementById('uup-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!isEdit) {
+    if (!utilityName)   { showUupErr('❌ Utility is required'); return; }
+    if (!pricePerUnit)  { showUupErr('❌ Price is required'); return; }
+    if (!unitOfMeasure) { showUupErr('❌ Unit of measure is required'); return; }
+    if (!effectiveDate) { showUupErr('❌ Effective date is required'); return; }
+  }
+
+  // Status validation for edit mode
+  if (isEdit && status === 'Expired') {
+    if (!endDate) {
+      showUupErr('❌ Please set an end date before expiring this price.');
+      return;
+    }
+    var endDateObj = new Date(endDate);
+    var today = new Date(); today.setHours(0,0,0,0);
+    endDateObj.setHours(0,0,0,0);
+    if (endDateObj > today) {
+      showUupErr('❌ End date is in the future. Change end date to today or a past date to expire this price.');
+      return;
+    }
+  }
 
   var payload = {
     utilityName:   utilityName,
-    pricePerUnit:  parseFloat(pricePerUnit),
+    pricePerUnit:  parseFloat(pricePerUnit) || 0,
     unitOfMeasure: unitOfMeasure,
     effectiveDate: effectiveDate,
     endDate:       endDate || '',
     recordedBy:    recordedBy,
     notes:         notes,
+    status:        status,
     isEdit:        isEdit,
     rowIndex:      rowIndex ? parseInt(rowIndex) : null
   };
 
-  if (isEdit) {
+  // Show suspended warning dialog
+  if (status === 'Suspended') {
+    _uupPendingPayload = payload;
+    document.getElementById('uup-suspend-dialog').style.display = 'flex';
+    return;
+  }
+
+  // Show edit warning dialog for price change (new entry creation)
+  if (isEdit && !status === 'Suspended') {
     _uupPendingPayload = payload;
     document.getElementById('uup-edit-dialog').style.display = 'flex';
     return;
   }
 
   doSaveUtilityUnitPrice(payload);
+}
+
+function closeUupSuspendDialog() {
+  document.getElementById('uup-suspend-dialog').style.display = 'none';
+  _uupPendingPayload = null;
+  document.getElementById('uup-status').value = 'Active';
+}
+
+function confirmUupSuspend() {
+  document.getElementById('uup-suspend-dialog').style.display = 'none';
+  if (_uupPendingPayload) doSaveUtilityUnitPrice(_uupPendingPayload);
 }
 
 function closeUupEditDialog() {
@@ -7089,9 +7179,19 @@ function fmtMoney(val) {
       </div>
     </div>
 
-    <div class="cs-field">
-      <div class="cs-lbl">Recorded by / سجّل بواسطة</div>
-      <input class="inp" type="text" id="uup-recorded-by" readonly style="opacity:0.6;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Status / الحالة</div>
+        <select class="inp" id="uup-status">
+          <option value="Active">Active / فعال</option>
+          <option value="Expired">Expired / منتهي</option>
+          <option value="Suspended">Suspended / معلق</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <div class="cs-lbl">Recorded by / سجّل بواسطة</div>
+        <input class="inp" type="text" id="uup-recorded-by" readonly style="opacity:0.6;">
+      </div>
     </div>
 
     <div class="cs-field">
@@ -7104,6 +7204,22 @@ function fmtMoney(val) {
     <div class="cs-btns">
       <button class="cs-submit" id="uup-submit" onclick="submitUtilityUnitPrice()">إضافة / Add Price</button>
       <button class="cs-cancel" onclick="closeUupSheet()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Utility Unit Price — Suspended Warning Dialog -->
+<div id="uup-suspend-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:340px;width:90%;text-align:center;">
+    <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+    <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Suspend Price / تعليق السعر</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;">
+      This price will be suspended and excluded from all billing calculations immediately. This action cannot be automatically reversed.<br><br>
+      سيتم تعليق هذا السعر واستثناؤه من جميع حسابات الفوترة فوراً. لا يمكن التراجع عن هذا الإجراء تلقائياً.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeUupSuspendDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
+      <button onclick="confirmUupSuspend()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Suspend / تعليق</button>
     </div>
   </div>
 </div>

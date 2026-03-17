@@ -3569,7 +3569,7 @@ function loadBalances() {
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
             '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';">' + fmtMoney(r.balance) + '</div>' +
-            '<button class="stg-user-btn" onclick="editBalance(' + JSON.stringify(r) + ')">تعديل</button>' +
+            '<button class="stg-user-btn" onclick="editBalanceById(\'' + escHtml(r.contractId) + '\',\'' + escHtml(String(r.year)) + '\')">تعديل</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -3636,6 +3636,15 @@ function openBalSheet() {
   var err = document.getElementById('bal-inline-err');
   if (err) err.style.display = 'none';
   document.getElementById('bal-sheet-wrap').classList.add('open');
+}
+
+function editBalanceById(contractId, year) {
+  var r = _balCache.find(function(x) {
+    return String(x.contractId).trim() === String(contractId).trim() &&
+           String(x.year).trim() === String(year).trim();
+  });
+  if (!r) { toast('❌ Balance not found', 'fail'); return; }
+  editBalance(r);
 }
 
 function editBalance(r) {

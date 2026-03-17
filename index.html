@@ -5444,8 +5444,11 @@ function toggleUtility(nameEn, activate) {
       clickedBtn = btn;
     }
   });
+  // Lock ALL utility toggle buttons while saving
+  document.querySelectorAll('.stg-user-btn').forEach(function(btn) {
+    btn.disabled = true;
+  });
   if (clickedBtn) {
-    clickedBtn.disabled = true;
     clickedBtn.textContent = '⏳';
   }
 

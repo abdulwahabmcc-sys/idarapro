@@ -5699,7 +5699,16 @@ function editUtilityUnitPrice(utilityName) {
   document.getElementById('uup-utility').disabled      = true;
   document.getElementById('uup-utility').style.opacity = '0.6';
   document.getElementById('uup-price').value           = active.pricePerUnit;
-  document.getElementById('uup-unit').value            = active.unitOfMeasure;
+  var unitSel = document.getElementById('uup-unit');
+  unitSel.value = active.unitOfMeasure;
+  // If no match found, add a temporary option with the saved value
+  if (!unitSel.value && active.unitOfMeasure) {
+    var opt = document.createElement('option');
+    opt.value = active.unitOfMeasure;
+    opt.textContent = active.unitOfMeasure;
+    unitSel.appendChild(opt);
+    unitSel.value = active.unitOfMeasure;
+  }
   document.getElementById('uup-effective-date').value  = formatDateForInput(active.effectiveDate);
   document.getElementById('uup-end-date').value        = formatDateForInput(active.endDate || '');
   document.getElementById('uup-recorded-by').value     = _session ? (_session.name || '') : '';
@@ -5729,7 +5738,7 @@ function submitUtilityUnitPrice() {
 
   var utilityName   = document.getElementById('uup-utility').value;
   var pricePerUnit  = document.getElementById('uup-price').value.trim();
-  var unitOfMeasure = document.getElementById('uup-unit').value.trim();
+  var unitOfMeasure = document.getElementById('uup-unit').value;
   var effectiveDate = document.getElementById('uup-effective-date').value;
   var endDate       = document.getElementById('uup-end-date').value;
   var recordedBy    = document.getElementById('uup-recorded-by').value.trim();

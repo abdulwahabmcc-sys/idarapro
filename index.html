@@ -3514,12 +3514,7 @@ function loadCategories(type) {
       else _expenseCatCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد فئات / No categories found'); return; }
       // Filter out inactive utility-linked entries for income type
-      if (type === 'income') {
-        console.log('DEBUG total rows:', rows.length);
-        rows.forEach(function(r) {
-          console.log('DEBUG:', r.nameEn, '| isUtilityLinked:', r.isUtilityLinked, '| status:', r.status);
-        });
-      }
+      
       var displayRows = type === 'income'
         ? rows.filter(function(c) {
             return !(c.isUtilityLinked && String(c.status).toLowerCase() === 'inactive');

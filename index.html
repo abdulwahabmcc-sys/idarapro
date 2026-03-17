@@ -3550,11 +3550,13 @@ function loadCategories(type) {
   
 // ── ⑪  Opening Balances ──────────────────────────────────────────────────────
 var _balOccCache = [];
+var _balCache = [];
 
 function loadBalances() {
   var el = stgListEl('stg-bal-list'); stgLoading(el);
   stgFromCache('balances', 'getSettingsBalances', el)
     .then(function(rows) {
+      _balCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد أرصدة / No balances'); return; }
       el.innerHTML = rows.map(function(r) {
         var bal   = parseFloat(String(r.balance).replace(/[^\d.\-]/g, '')) || 0;
@@ -3696,6 +3698,19 @@ function submitBalance() {
   if (!year)     { showBalErr('❌ Year is required'); return; }
   if (!type)     { showBalErr('❌ Type is required'); return; }
   if (!amount)   { showBalErr('❌ Amount is required'); return; }
+
+  // Block duplicate entry — one opening balance per contract per year
+  var isEdit = document.getElementById('bal-is-edit').value === 'true';
+  if (!isEdit) {
+    var existing = _balCache.find(function(r) {
+      return String(r.contractId).trim() === String(contract).trim() &&
+             String(r.year).trim() === String(year).trim();
+    });
+    if (existing) {
+      showBalErr('❌ An opening balance already exists for this contract in ' + year + '. Please use the Edit button to update it.');
+      return;
+    }
+  }
 
   var btn = document.getElementById('bal-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';

@@ -5633,22 +5633,30 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-is-edit').value      = 'false';
 
   var utilitySel = document.getElementById('uup-utility');
-  utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
 
-  gasGet('getSettingsUtility', _session.token)
-    .then(function(rows) {
-      _utilityCache = rows || [];
-      utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
-      (rows || []).forEach(function(u) {
-        if (String(u.status).toLowerCase() === 'active') {
-          var name = u.combinedName || u.name || '';
-          utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
-        }
-      });
-    })
-    .catch(function() {
-      utilitySel.innerHTML = '<option value="" disabled selected>Failed to load utilities</option>';
+  function populateUupUtilities(rows) {
+    utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+    (rows || []).forEach(function(u) {
+      if (String(u.status).toLowerCase() === 'active') {
+        var name = u.combinedName || u.name || '';
+        utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
+      }
     });
+  }
+
+  if (_utilityCache && _utilityCache.length) {
+    populateUupUtilities(_utilityCache);
+  } else {
+    utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    gasGet('getSettingsUtility', _session.token)
+      .then(function(rows) {
+        _utilityCache = rows || [];
+        populateUupUtilities(_utilityCache);
+      })
+      .catch(function() {
+        utilitySel.innerHTML = '<option value="" disabled selected>Failed to load utilities</option>';
+      });
+  }
 
   var today = new Date();
   var todayStr = today.getFullYear() + '-' +
@@ -7047,7 +7055,17 @@ function fmtMoney(val) {
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Unit of Measure / وحدة القياس <span class="req">*</span></div>
-        <input class="inp" type="text" id="uup-unit" placeholder="e.g. Liter, Kwh, M³">
+        <select class="inp" id="uup-unit">
+          <option value="" disabled selected>Select unit...</option>
+          <option value="Kwh">Kwh</option>
+          <option value="Ampere">Ampere</option>
+          <option value="Liter">Liter</option>
+          <option value="M³">M³</option>
+          <option value="Ton">Ton</option>
+          <option value="Kg">Kg</option>
+          <option value="Mbps">Mbps</option>
+          <option value="Gbyte">Gbyte</option>
+        </select>
       </div>
     </div>
 

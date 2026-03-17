@@ -5807,6 +5807,7 @@ function submitUtilityUnitPrice() {
   var errEl = document.getElementById('uup-inline-err');
   if (errEl) errEl.style.display = 'none';
 
+  // Validation for new entry only
   if (!isEdit) {
     if (!utilityName)   { showUupErr('❌ Utility is required'); return; }
     if (!pricePerUnit)  { showUupErr('❌ Price is required'); return; }
@@ -5814,7 +5815,7 @@ function submitUtilityUnitPrice() {
     if (!effectiveDate) { showUupErr('❌ Effective date is required'); return; }
   }
 
-  // Status validation for edit mode
+  // Validation for edit mode — status change rules
   if (isEdit && status === 'Expired') {
     if (!endDate) {
       showUupErr('❌ Please set an end date before expiring this price.');
@@ -5842,22 +5843,20 @@ function submitUtilityUnitPrice() {
     rowIndex:      rowIndex ? parseInt(rowIndex) : null
   };
 
-  // Show suspended warning dialog
-  if (status === 'Suspended') {
-    _uupPendingPayload = payload;
-    document.getElementById('uup-suspend-dialog').style.display = 'flex';
-    return;
-  }
-
-  // Edit mode — save directly (price is locked, only end date/notes/status can change)
+  // Edit mode
   if (isEdit) {
+    // Show suspend warning dialog
+    if (status === 'Suspended') {
+      _uupPendingPayload = payload;
+      document.getElementById('uup-suspend-dialog').style.display = 'flex';
+      return;
+    }
+    // Otherwise save directly
     doSaveUtilityUnitPrice(payload);
     return;
   }
 
-  doSaveUtilityUnitPrice(payload);
-}
-
+  // New entry — save directly
   doSaveUtilityUnitPrice(payload);
 }
 

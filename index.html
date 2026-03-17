@@ -5815,8 +5815,8 @@ function submitUtilityUnitPrice() {
     var endDateObj = new Date(endDate);
     var today = new Date(); today.setHours(0,0,0,0);
     endDateObj.setHours(0,0,0,0);
-    if (endDateObj > today) {
-      showUupErr('❌ End date is in the future. Change end date to today or a past date to expire this price.');
+    if (endDateObj >= today) {
+      showUupErr('❌ End date must be before today to expire this price. A price ending today or in the future remains Active until tomorrow.');
       return;
     }
   }

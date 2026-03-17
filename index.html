@@ -5575,8 +5575,12 @@ function loadUtilityUnitPrices() {
 
       el.innerHTML = Object.keys(grouped).map(function(utilName) {
         var entries   = grouped[utilName];
-        var active    = entries.find(function(e) { return !e.endDate; });
-        var history   = entries.filter(function(e) { return !!e.endDate; });
+        var active  = entries.find(function(e) { 
+          return String(e.status).toLowerCase() === 'active' && !e.endDate; 
+        });
+        var history = entries.filter(function(e) { 
+          return String(e.status).toLowerCase() !== 'active' || !!e.endDate; 
+        });
         var historyId = 'uup-hist-' + utilName.replace(/[^a-zA-Z0-9]/g, '_');
 
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">' +
@@ -5598,10 +5602,14 @@ function loadUtilityUnitPrices() {
                 '<button onclick="toggleUupHistory(\'' + historyId + '\')" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;">▶ Price history (' + history.length + ')</button>' +
                 '<div id="' + historyId + '" style="display:none;margin-top:6px;">' +
                   history.map(function(h) {
-                    return '<div style="font-size:11px;color:var(--muted);padding:3px 0;border-top:1px solid var(--border);">' +
-                      '$' + h.pricePerUnit + ' / ' + escHtml(h.unitOfMeasure) +
-                      ' · ' + h.effectiveDate + ' → ' + h.endDate +
-                      (h.notes ? ' · ' + escHtml(h.notes) : '') +
+                    var statusColor = h.status === 'Suspended' ? 'var(--burg)' : 'var(--muted)';
+                    return '<div style="font-size:11px;color:var(--muted);padding:6px 0;border-top:1px solid var(--border);direction:ltr;">' +
+                      '<span style="font-weight:600;">$' + h.pricePerUnit + '</span>' +
+                      ' / ' + escHtml(h.unitOfMeasure) +
+                      ' · ' + h.effectiveDate + 
+                      (h.endDate ? ' → ' + h.endDate : ' → present') +
+                      ' · <span style="color:' + statusColor + ';font-weight:600;">' + (h.status || 'Expired') + '</span>' +
+                      (h.notes ? '<br><span style="color:var(--muted);">' + escHtml(h.notes) + '</span>' : '') +
                     '</div>';
                   }).join('') +
                 '</div>' +

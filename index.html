@@ -3549,6 +3549,8 @@ function loadCategories(type) {
 }
   
 // ── ⑪  Opening Balances ──────────────────────────────────────────────────────
+var _balOccCache = [];
+
 function loadBalances() {
   var el = stgListEl('stg-bal-list'); stgLoading(el);
   stgFromCache('balances', 'getSettingsBalances', el)
@@ -3563,20 +3565,95 @@ function loadBalances() {
             '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
             '<div class="stg-user-meta">' + (r.year || '') + ' · ' + escHtml(r.contractId || '') + ' · ' + escHtml(typeLabel) + '</div>' +
           '</div>' +
-          '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';flex-shrink:0;">' + fmtMoney(r.balance) + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+            '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';">' + fmtMoney(r.balance) + '</div>' +
+            '<button class="stg-user-btn" onclick="editBalance(' + JSON.stringify(r) + ')">تعديل</button>' +
+          '</div>' +
         '</div>';
       }).join('');
     }).catch(function() { stgError(el); });
 }
 
+function populateBalContractDropdown(selectedId) {
+  var sel = document.getElementById('bal-contract');
+  sel.innerHTML = '<option value="" disabled>Select contract...</option>';
+
+  function fill(rows) {
+    _balOccCache = rows || [];
+    rows.forEach(function(o) {
+      if (String(o.status).toLowerCase() !== 'active') return;
+      var label = escHtml(o.contractId) + ' · ' + escHtml(o.name || '') + ' · ' + escHtml(o.unit || '');
+      sel.innerHTML += '<option value="' + escHtml(o.contractId) + '">' + label + '</option>';
+    });
+    if (selectedId) sel.value = selectedId;
+  }
+
+  if (_balOccCache && _balOccCache.length) {
+    fill(_balOccCache);
+  } else {
+    sel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    gasGet('getSettingsOccupancy', _session.token)
+      .then(function(rows) { fill(rows || []); })
+      .catch(function() {
+        sel.innerHTML = '<option value="" disabled selected>Failed to load contracts</option>';
+      });
+  }
+}
+
+function onBalContractChange() {
+  var contractId = document.getElementById('bal-contract').value;
+  var occ = _balOccCache.find(function(o) { return o.contractId === contractId; });
+  if (occ) {
+    document.getElementById('bal-unit').value = occ.unit   || '';
+    document.getElementById('bal-name').value = occ.name   || '';
+  }
+}
+
 function openBalSheet() {
-  ['bal-contract','bal-unit','bal-name','bal-notes'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('bal-year').value   = new Date().getFullYear();
-  document.getElementById('bal-date').value   = todayStr();
-  document.getElementById('bal-type').value   = '';
-  document.getElementById('bal-amount').value = '';
+  document.getElementById('bal-title').textContent = 'إضافة رصيد افتتاحي / Add Opening Balance';
+  document.getElementById('bal-is-edit').value     = 'false';
+  document.getElementById('bal-unit').value        = '';
+  document.getElementById('bal-name').value        = '';
+  document.getElementById('bal-notes').value       = '';
+  document.getElementById('bal-year').value        = new Date().getFullYear();
+  document.getElementById('bal-date').value        = todayStr();
+  document.getElementById('bal-type').value        = '';
+  document.getElementById('bal-amount').value      = '';
+
+  // Unlock contract dropdown for new entry
+  var contractSel = document.getElementById('bal-contract');
+  contractSel.disabled      = false;
+  contractSel.style.opacity = '1';
+
+  populateBalContractDropdown(null);
+
   var btn = document.getElementById('bal-submit');
   btn.disabled = false; btn.textContent = 'إضافة / Add Balance';
+  var err = document.getElementById('bal-inline-err');
+  if (err) err.style.display = 'none';
+  document.getElementById('bal-sheet-wrap').classList.add('open');
+}
+
+function editBalance(r) {
+  if (!sessionValid()) return;
+  document.getElementById('bal-title').textContent = 'تعديل رصيد افتتاحي / Edit Opening Balance';
+  document.getElementById('bal-is-edit').value     = 'true';
+  document.getElementById('bal-year').value        = r.year   || '';
+  document.getElementById('bal-type').value        = r.type   || '';
+  document.getElementById('bal-amount').value      = Math.abs(parseFloat(String(r.balance).replace(/[^\d.\-]/g,'')) || 0);
+  document.getElementById('bal-date').value        = formatDateForInput(r.date || '');
+  document.getElementById('bal-notes').value       = r.notes  || '';
+  document.getElementById('bal-unit').value        = r.unit   || '';
+  document.getElementById('bal-name').value        = r.name   || '';
+
+  // Lock contract dropdown in edit mode
+  populateBalContractDropdown(r.contractId);
+  var contractSel = document.getElementById('bal-contract');
+  contractSel.disabled      = true;
+  contractSel.style.opacity = '0.6';
+
+  var btn = document.getElementById('bal-submit');
+  btn.disabled = false; btn.textContent = 'حفظ التعديل / Save Changes';
   var err = document.getElementById('bal-inline-err');
   if (err) err.style.display = 'none';
   document.getElementById('bal-sheet-wrap').classList.add('open');
@@ -3601,7 +3678,7 @@ function showBalErr(msg) {
 
 function submitBalance() {
   if (!sessionValid()) return;
-  var contract = document.getElementById('bal-contract').value.trim();
+  var contract = document.getElementById('bal-contract').value;
   var unit     = document.getElementById('bal-unit').value.trim();
   var name     = document.getElementById('bal-name').value.trim();
   var year     = document.getElementById('bal-year').value.trim();
@@ -3613,9 +3690,7 @@ function submitBalance() {
   var errEl = document.getElementById('bal-inline-err');
   if (errEl) errEl.style.display = 'none';
 
-  if (!contract) { showBalErr('❌ Contract ID is required'); return; }
-  if (!unit)     { showBalErr('❌ Unit / Section is required'); return; }
-  if (!name)     { showBalErr('❌ Contact Name is required'); return; }
+  if (!contract) { showBalErr('❌ Contract is required'); return; }
   if (!year)     { showBalErr('❌ Year is required'); return; }
   if (!type)     { showBalErr('❌ Type is required'); return; }
   if (!amount)   { showBalErr('❌ Amount is required'); return; }
@@ -3623,18 +3698,36 @@ function submitBalance() {
   var btn = document.getElementById('bal-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
-  gasPost({ action: 'saveOpeningBalance', payload: { contractId: contract, unit: unit, name: name, year: parseInt(year), type: type, amount: parseFloat(amount) || 0, date: date, notes: notes }, token: _session.token })
+  gasPost({
+    action: 'saveOpeningBalance',
+    payload: {
+      contractId: contract,
+      unit:       unit,
+      name:       name,
+      year:       parseInt(year),
+      type:       type,
+      amount:     parseFloat(amount) || 0,
+      date:       date,
+      notes:      notes
+    },
+    token: _session.token
+  })
     .then(function(msg) {
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
-        showBalErr(msg); btn.disabled = false; btn.textContent = 'إضافة / Add Balance'; return;
+        showBalErr(msg);
+        btn.disabled = false;
+        btn.textContent = document.getElementById('bal-is-edit').value === 'true' ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Balance';
+        return;
       }
       invalidateCache('balances');
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-      closeBalSheet(); loadBalances();
+      closeBalSheet();
+      loadBalances();
     })
     .catch(function(e) {
       showBalErr('❌ ' + (e.message || 'Save failed'));
-      btn.disabled = false; btn.textContent = 'إضافة / Add Balance';
+      btn.disabled = false;
+      btn.textContent = document.getElementById('bal-is-edit').value === 'true' ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Balance';
     });
 }
 
@@ -6633,22 +6726,26 @@ function fmtMoney(val) {
 </div>
 
 <!-- ══════════════════════════════════════════════
-     OPENING BALANCE ADD SHEET
+     OPENING BALANCE ADD/EDIT SHEET
 ══════════════════════════════════════════════ -->
 <div id="bal-sheet-wrap">
   <div id="bal-sheet" style="background:var(--surf);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:24px 20px calc(32px + env(safe-area-inset-bottom));animation:shup 0.3s ease;">
-    <div class="cs-title">إضافة رصيد افتتاحي / Add Opening Balance</div>
+    <div class="cs-title" id="bal-title">إضافة رصيد افتتاحي / Add Opening Balance</div>
     <div class="cs-sub">Fields marked <span style="color:var(--burg);">*</span> are required</div>
 
+    <input type="hidden" id="bal-is-edit">
+
     <div class="cs-field">
-      <div class="cs-lbl">Contract ID <span class="req">*</span></div>
-      <input class="inp" type="text" id="bal-contract" placeholder="e.g. U-06-C-01-2025-001">
+      <div class="cs-lbl">Contract / العقد <span class="req">*</span></div>
+      <select class="inp" id="bal-contract" onchange="onBalContractChange()">
+        <option value="" disabled selected>Select contract...</option>
+      </select>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Unit / Section <span class="req">*</span></div>
-        <input class="inp" type="text" id="bal-unit" placeholder="e.g. ٦" style="direction:rtl;">
+        <div class="cs-lbl">Unit / Section</div>
+        <input class="inp" type="text" id="bal-unit" readonly style="opacity:0.6;direction:rtl;">
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Year <span class="req">*</span></div>
@@ -6657,8 +6754,8 @@ function fmtMoney(val) {
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">Contact Name <span class="req">*</span></div>
-      <input class="inp" type="text" id="bal-name" placeholder="Tenant name" style="direction:rtl;">
+      <div class="cs-lbl">Contact Name</div>
+      <input class="inp" type="text" id="bal-name" readonly style="opacity:0.6;direction:rtl;">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -6692,6 +6789,7 @@ function fmtMoney(val) {
     </div>
   </div>
 </div>
+
 
 <!-- ══════════════════════════════════════════════
      ADD FEE RULE SHEET

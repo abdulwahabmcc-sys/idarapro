@@ -3580,9 +3580,11 @@ function populateBalContractDropdown(selectedId) {
 
   function fill(rows) {
     _balOccCache = rows || [];
+    sel.innerHTML = '<option value="" disabled selected>Select contract...</option>';
     rows.forEach(function(o) {
       if (String(o.status).toLowerCase() !== 'active') return;
-      var label = escHtml(o.contractId) + ' · ' + escHtml(o.name || '') + ' · ' + escHtml(o.unit || '');
+      var unit  = o.unitId || o.section || '';
+      var label = escHtml(o.contractId) + ' · ' + escHtml(o.name || '') + (unit ? ' · ' + escHtml(unit) : '');
       sel.innerHTML += '<option value="' + escHtml(o.contractId) + '">' + label + '</option>';
     });
     if (selectedId) sel.value = selectedId;
@@ -3604,8 +3606,8 @@ function onBalContractChange() {
   var contractId = document.getElementById('bal-contract').value;
   var occ = _balOccCache.find(function(o) { return o.contractId === contractId; });
   if (occ) {
-    document.getElementById('bal-unit').value = occ.unit   || '';
-    document.getElementById('bal-name').value = occ.name   || '';
+    document.getElementById('bal-unit').value = occ.unitId  || occ.section || '';
+    document.getElementById('bal-name').value = occ.name    || '';
   }
 }
 

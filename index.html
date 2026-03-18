@@ -3866,7 +3866,7 @@ function fetchMtrPreviousReading() {
       var warningEl = document.getElementById('mtr-prev-warning');
       if (result && result.prevReading !== null) {
         document.getElementById('mtr-prev').value      = result.prevReading;
-        document.getElementById('mtr-prev-date').value = result.prevDate || '';
+        document.getElementById('mtr-prev-date').value = formatDateForInput(result.prevDate || '');
         // Show warning if previous reading is Pending
         if (result.status === 'Pending') {
           warningEl.textContent  = '⚠️ Previous reading is pending confirmation.';

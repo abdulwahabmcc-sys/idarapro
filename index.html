@@ -3595,8 +3595,7 @@ function loadMtrReadings() {
 
       renderMtrList(displayRows, isAdmin);
     })
-    .catch(function(e) {
-      console.log('MTR ERROR:', e && e.message ? e.message : e);
+    .catch(function() {
       el.innerHTML = '<div style="text-align:center;color:var(--burg);padding:20px;">⚠️ Failed to load. Check connection.</div>';
     });
 }

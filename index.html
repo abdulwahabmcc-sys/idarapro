@@ -3583,7 +3583,7 @@ function loadMtrReadings() {
       var pending   = _mtrCache.filter(function(r) { return r.status === 'Pending'; }).length;
       var confirmed = _mtrCache.filter(function(r) { return r.status === 'Confirmed'; }).length;
       var statsEl   = document.getElementById('mtr-stats');
-      if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
+      if (statsEl) statsEl.textContent = confirmed + ' confirmed · ' + pending + ' pending';
 
       var displayRows = isAdmin
         ? _mtrCache

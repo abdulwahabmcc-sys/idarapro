@@ -3571,25 +3571,9 @@ function loadMtrReadings() {
 
   gasPost({ action: 'getSettingsMeters', token: _session.token })
     .then(function(rows) {
-      _mtrCache = rows || [];
-
-      // Reader sees only own readings
-      var displayRows = isAdmin
-        ? rows
-        : rows.filter(function(r) { return r.readBy === _session.name; });
-
-      // Show filters for Admin/Management
-      var filtersEl = document.getElementById('mtr-filters');
-      if (filtersEl) filtersEl.style.display = isAdmin ? 'block' : 'none';
-
-      // Populate filter dropdowns for Admin
-      if (isAdmin) {
-        populateMtrFilters(rows);
-      }
-
-      // Stats
-      var pending   = rows.filter(function(r) { return r.status === 'Pending'; }).length;
-      var confirmed = rows.filter(function(r) { return r.status === 'Confirmed'; }).length;
+      // Stats — always from full _mtrCache regardless of role filter
+      var pending   = _mtrCache.filter(function(r) { return r.status === 'Pending'; }).length;
+      var confirmed = _mtrCache.filter(function(r) { return r.status === 'Confirmed'; }).length;
       var statsEl   = document.getElementById('mtr-stats');
       if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
 

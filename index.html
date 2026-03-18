@@ -3580,10 +3580,10 @@ function loadMtrReadings() {
       if (isAdmin) populateMtrFilters(_mtrCache);
 
       // Stats — always from full _mtrCache
-      var pending   = _mtrCache.filter(function(r) { return r.status === 'Pending'; }).length;
-      var confirmed = _mtrCache.filter(function(r) { return r.status === 'Confirmed'; }).length;
+      var pending   = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Pending'; }).length;
+      var confirmed = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Confirmed'; }).length;
       var statsEl   = document.getElementById('mtr-stats');
-      if (statsEl) statsEl.textContent = confirmed + ' confirmed · ' + pending + ' pending';
+      if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
 
       var displayRows = isAdmin
         ? _mtrCache

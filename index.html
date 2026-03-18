@@ -3558,6 +3558,485 @@ function loadMeters() {
       }).join('');
     }).catch(function() { stgError(el); });
 }
+
+// ── Meter Readings Tab ───────────────────────────────────────────────────────
+var _mtrCache        = [];
+var _mtrUtilityCache = [];
+var _mtrOccCache     = [];
+var _mtrPendingConfirm = null;
+var _mtrPendingOverride = null;
+var _mtrSelectedType = null; // 'Building' or 'Individual'
+
+function loadMtrReadings() {
+  var el = document.getElementById('mtr-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">Loading...</div>';
+
+  var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
+
+  gasPost({ action: 'getSettingsMeters', token: _session.token })
+    .then(function(rows) {
+      _mtrCache = rows || [];
+
+      // Reader sees only own readings
+      var displayRows = isAdmin
+        ? rows
+        : rows.filter(function(r) { return r.readBy === _session.name; });
+
+      // Show filters for Admin/Management
+      var filtersEl = document.getElementById('mtr-filters');
+      if (filtersEl) filtersEl.style.display = isAdmin ? 'block' : 'none';
+
+      // Populate filter dropdowns for Admin
+      if (isAdmin) {
+        populateMtrFilters(rows);
+      }
+
+      // Stats
+      var pending   = rows.filter(function(r) { return r.status === 'Pending'; }).length;
+      var confirmed = rows.filter(function(r) { return r.status === 'Confirmed'; }).length;
+      var statsEl   = document.getElementById('mtr-stats');
+      if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
+
+      renderMtrList(displayRows, isAdmin);
+    })
+    .catch(function() {
+      el.innerHTML = '<div style="text-align:center;color:var(--burg);padding:20px;">⚠️ Failed to load. Check connection.</div>';
+    });
+}
+
+function populateMtrFilters(rows) {
+  // Utility filter
+  var utilSel = document.getElementById('mtr-filter-utility');
+  if (utilSel) {
+    var utilities = [];
+    rows.forEach(function(r) { if (r.utilityName && utilities.indexOf(r.utilityName) === -1) utilities.push(r.utilityName); });
+    utilSel.innerHTML = '<option value="">All Utilities</option>';
+    utilities.forEach(function(u) { utilSel.innerHTML += '<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>'; });
+  }
+
+  // Contract filter
+  var contractSel = document.getElementById('mtr-filter-contract');
+  if (contractSel) {
+    var contracts = [];
+    rows.forEach(function(r) { if (r.contractId && contracts.indexOf(r.contractId) === -1) contracts.push(r.contractId); });
+    contractSel.innerHTML = '<option value="">All Contracts</option>';
+    contracts.forEach(function(c) { contractSel.innerHTML += '<option value="' + escHtml(c) + '">' + escHtml(c) + '</option>'; });
+  }
+}
+
+function applyMtrFilters() {
+  var statusFilter   = document.getElementById('mtr-filter-status').value;
+  var utilityFilter  = document.getElementById('mtr-filter-utility').value;
+  var contractFilter = document.getElementById('mtr-filter-contract').value;
+  var isAdmin        = _session && (_session.role === 'Admin' || _session.role === 'Management');
+
+  var filtered = _mtrCache.filter(function(r) {
+    if (statusFilter   && r.status      !== statusFilter)   return false;
+    if (utilityFilter  && r.utilityName !== utilityFilter)  return false;
+    if (contractFilter && r.contractId  !== contractFilter) return false;
+    return true;
+  });
+
+  renderMtrList(filtered, isAdmin);
+}
+
+function renderMtrList(rows, isAdmin) {
+  var el = document.getElementById('mtr-list');
+  if (!el) return;
+
+  if (!rows || !rows.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">لا توجد قراءات / No readings found</div>';
+    return;
+  }
+
+  // Sort by date descending
+  rows = rows.slice().sort(function(a, b) { return b.date > a.date ? 1 : -1; });
+
+  el.innerHTML = rows.map(function(r) {
+    var statusColor = r.status === 'Confirmed' ? 'var(--forest)'
+                    : r.status === 'Pending'   ? 'var(--gold)'
+                    : r.status === 'Overridden' ? 'var(--navy)'
+                    : r.status === 'Opening'    ? 'var(--muted)'
+                    : 'var(--muted)';
+
+    var actionBtns = '';
+    if (isAdmin && r.status === 'Pending') {
+      actionBtns = '<div style="display:flex;gap:6px;margin-top:8px;">' +
+        '<button class="stg-user-btn" style="background:var(--forest);color:#fff;border-color:var(--forest);" onclick="openMtrConfirmDialog(\'' + escHtml(r.readingId) + '\')">✓ Confirm</button>' +
+        '<button class="stg-user-btn danger" onclick="openMtrOverrideDialog(\'' + escHtml(r.readingId) + '\')">✎ Override</button>' +
+      '</div>';
+    }
+
+    return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:700;direction:ltr;">' + escHtml(r.utilityName || '—') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + escHtml(r.contractId || 'BUILDING') + (r.unit ? ' · ' + escHtml(r.unit) : '') + '</div>' +
+        '</div>' +
+        '<span style="font-size:10px;font-weight:700;color:' + statusColor + ';">● ' + (r.status || '') + '</span>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;margin-bottom:4px;">' +
+        '<div><span style="color:var(--muted);">Prev:</span> <strong>' + (r.prevReading || '—') + '</strong></div>' +
+        '<div><span style="color:var(--muted);">Curr:</span> <strong>' + (r.currReading || '—') + '</strong></div>' +
+        '<div><span style="color:var(--forest);">Use:</span> <strong>' + (r.consumption || '—') + '</strong> ' + escHtml(r.utilityUnit || '') + '</div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--muted);">' + (r.date || '') + ' · ' + escHtml(r.readBy || '') + (r.daysInCycle ? ' · ' + r.daysInCycle + ' days' : '') + '</div>' +
+      actionBtns +
+    '</div>';
+  }).join('');
+}
+
+function openMtrSheet() {
+  if (!sessionValid()) return;
+  var isAdmin = _session.role === 'Admin' || _session.role === 'Management';
+
+  document.getElementById('mtr-title').textContent = 'إضافة قراءة / Add Reading';
+  document.getElementById('mtr-reading-id').value  = '';
+  document.getElementById('mtr-category').value     = 'Regular';
+  document.getElementById('mtr-prev').value         = '';
+  document.getElementById('mtr-prev-date').value    = '';
+  document.getElementById('mtr-curr').value         = '';
+  document.getElementById('mtr-consumption').value  = '';
+  document.getElementById('mtr-days').value         = '';
+  document.getElementById('mtr-notes').value        = '';
+  document.getElementById('mtr-read-by').value      = _session.name || '';
+  document.getElementById('mtr-prev-warning').style.display = 'none';
+
+  // Show date default today
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  document.getElementById('mtr-date').value = todayStr;
+
+  // Show category field for Admin only
+  document.getElementById('mtr-category-field').style.display = isAdmin ? 'block' : 'none';
+
+  // Reset meter type selection
+  _mtrSelectedType = null;
+  document.getElementById('mtr-type-building').style.border   = '2px solid var(--border)';
+  document.getElementById('mtr-type-individual').style.border = '2px solid var(--border)';
+  document.getElementById('mtr-type-building').style.background   = 'transparent';
+  document.getElementById('mtr-type-individual').style.background = 'transparent';
+
+  // Reset utility dropdown
+  document.getElementById('mtr-utility').innerHTML = '<option value="" disabled selected>Select meter type first...</option>';
+
+  // Hide contract fields
+  document.getElementById('mtr-contract-fields').style.display = 'none';
+  document.getElementById('mtr-unit').value = '';
+  document.getElementById('mtr-name').value = '';
+
+  var btn = document.getElementById('mtr-submit');
+  btn.disabled = false; btn.textContent = 'إضافة / Add Reading';
+
+  var err = document.getElementById('mtr-inline-err');
+  if (err) err.style.display = 'none';
+
+  document.getElementById('mtr-sheet-wrap').classList.add('open');
+}
+
+function closeMtrSheet() {
+  document.getElementById('mtr-sheet-wrap').classList.remove('open');
+}
+
+function showMtrErr(msg) {
+  var el = document.getElementById('mtr-inline-err');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function onMtrCategoryChange() {
+  var category = document.getElementById('mtr-category').value;
+  if (category === 'Opening') {
+    document.getElementById('mtr-curr').placeholder = 'Enter initial meter value...';
+    document.getElementById('mtr-prev').value = '0';
+    document.getElementById('mtr-consumption').value = '0';
+  } else {
+    document.getElementById('mtr-curr').placeholder = '0.000';
+    document.getElementById('mtr-prev').value = '';
+    document.getElementById('mtr-consumption').value = '';
+  }
+}
+
+function onMtrTypeChange(type) {
+  _mtrSelectedType = type;
+
+  // Update button styles
+  var buildingBtn    = document.getElementById('mtr-type-building');
+  var individualBtn  = document.getElementById('mtr-type-individual');
+  var activeStyle    = 'background:var(--navy);color:#fff;border-color:var(--navy);';
+  var inactiveStyle  = 'background:transparent;color:inherit;border:2px solid var(--border);';
+
+  buildingBtn.style.cssText    += type === 'Building'   ? activeStyle : inactiveStyle;
+  individualBtn.style.cssText  += type === 'Individual' ? activeStyle : inactiveStyle;
+
+  // Show/hide contract fields
+  document.getElementById('mtr-contract-fields').style.display = type === 'Individual' ? 'block' : 'none';
+
+  // Reset utility dropdown and load filtered utilities
+  var utilitySel = document.getElementById('mtr-utility');
+  utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+
+  // Load utilities filtered by meter type
+  if (_utilityCache && _utilityCache.length) {
+    populateMtrUtilities(_utilityCache, type);
+  } else {
+    gasGet('getSettingsUtility', _session.token)
+      .then(function(rows) {
+        _utilityCache = rows || [];
+        populateMtrUtilities(_utilityCache, type);
+      })
+      .catch(function() {
+        utilitySel.innerHTML = '<option value="" disabled selected>Failed to load</option>';
+      });
+  }
+
+  // Load contracts for Individual
+  if (type === 'Individual') {
+    var contractSel = document.getElementById('mtr-contract');
+    contractSel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    if (_mtrOccCache && _mtrOccCache.length) {
+      populateMtrContracts(_mtrOccCache);
+    } else {
+      gasGet('getSettingsOccupancy', _session.token)
+        .then(function(rows) {
+          _mtrOccCache = rows || [];
+          populateMtrContracts(_mtrOccCache);
+        })
+        .catch(function() {
+          contractSel.innerHTML = '<option value="" disabled selected>Failed to load</option>';
+        });
+    }
+  }
+
+  // Reset previous reading
+  document.getElementById('mtr-prev').value      = '';
+  document.getElementById('mtr-prev-date').value = '';
+  document.getElementById('mtr-consumption').value = '';
+  document.getElementById('mtr-prev-warning').style.display = 'none';
+}
+
+function populateMtrUtilities(rows, meterType) {
+  var utilitySel = document.getElementById('mtr-utility');
+  utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+  rows.forEach(function(u) {
+    if (String(u.status).toLowerCase() !== 'active') return;
+    if (u.meterType !== meterType) return;
+    var name = u.combinedName || u.name || '';
+    utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="' + escHtml(u.tag || '') + '">' + escHtml(name) + '</option>';
+  });
+}
+
+function populateMtrContracts(rows) {
+  var contractSel = document.getElementById('mtr-contract');
+  contractSel.innerHTML = '<option value="" disabled selected>Select contract...</option>';
+  rows.forEach(function(o) {
+    if (String(o.status).toLowerCase() !== 'active') return;
+    var label = escHtml(o.contractId) + ' · ' + escHtml(o.name || '') + ' · ' + escHtml(o.section || o.unitId || '');
+    contractSel.innerHTML += '<option value="' + escHtml(o.contractId) + '">' + label + '</option>';
+  });
+}
+
+function onMtrUtilityChange() {
+  // Fetch previous reading after utility is selected
+  fetchMtrPreviousReading();
+}
+
+function onMtrContractChange() {
+  var contractId = document.getElementById('mtr-contract').value;
+  var occ = _mtrOccCache.find(function(o) { return o.contractId === contractId; });
+  if (occ) {
+    document.getElementById('mtr-unit').value = occ.section || occ.unitId || '';
+    document.getElementById('mtr-name').value = occ.name    || '';
+  }
+  // Fetch previous reading after contract is selected
+  fetchMtrPreviousReading();
+}
+
+function fetchMtrPreviousReading() {
+  var utilityName = document.getElementById('mtr-utility').value;
+  var contractId  = document.getElementById('mtr-contract') ? document.getElementById('mtr-contract').value : '';
+  var meterType   = _mtrSelectedType;
+  var category    = document.getElementById('mtr-category').value;
+
+  if (!utilityName || !meterType) return;
+  if (meterType === 'Individual' && !contractId) return;
+  if (category === 'Opening') return; // No previous for opening reading
+
+  gasPost({
+    action: 'getPreviousReading',
+    payload: { utilityName: utilityName, contractId: contractId, meterType: meterType },
+    token: _session.token
+  })
+    .then(function(result) {
+      var warningEl = document.getElementById('mtr-prev-warning');
+      if (result && result.prevReading !== null) {
+        document.getElementById('mtr-prev').value      = result.prevReading;
+        document.getElementById('mtr-prev-date').value = result.prevDate || '';
+        // Show warning if previous reading is Pending
+        if (result.status === 'Pending') {
+          warningEl.textContent  = '⚠️ Previous reading is pending confirmation.';
+          warningEl.style.display = 'block';
+        } else {
+          warningEl.style.display = 'none';
+        }
+        calcMtrConsumption();
+      } else {
+        document.getElementById('mtr-prev').value      = '';
+        document.getElementById('mtr-prev-date').value = '';
+        warningEl.textContent  = '⚠️ No previous reading found. Please set an opening reading first.';
+        warningEl.style.display = 'block';
+      }
+    })
+    .catch(function() {
+      document.getElementById('mtr-prev-warning').textContent = '⚠️ Could not load previous reading.';
+      document.getElementById('mtr-prev-warning').style.display = 'block';
+    });
+}
+
+function calcMtrConsumption() {
+  var curr = parseFloat(document.getElementById('mtr-curr').value) || 0;
+  var prev = parseFloat(document.getElementById('mtr-prev').value) || 0;
+  var consumption = curr - prev;
+  document.getElementById('mtr-consumption').value = consumption.toFixed(3);
+
+  // Calculate days in cycle
+  var prevDate = document.getElementById('mtr-prev-date').value;
+  var currDate = document.getElementById('mtr-date').value;
+  if (prevDate && currDate) {
+    var days = Math.round((new Date(currDate) - new Date(prevDate)) / (1000 * 60 * 60 * 24));
+    document.getElementById('mtr-days').value = days;
+  }
+}
+
+function submitMtrReading() {
+  if (!sessionValid()) return;
+
+  var category    = document.getElementById('mtr-category').value;
+  var meterType   = _mtrSelectedType;
+  var utilityName = document.getElementById('mtr-utility').value;
+  var contractId  = meterType === 'Individual' ? document.getElementById('mtr-contract').value : 'BUILDING';
+  var unit        = meterType === 'Individual' ? document.getElementById('mtr-unit').value : '';
+  var name        = meterType === 'Individual' ? document.getElementById('mtr-name').value : '';
+  var prevReading = document.getElementById('mtr-prev').value;
+  var prevDate    = document.getElementById('mtr-prev-date').value;
+  var currReading = document.getElementById('mtr-curr').value;
+  var date        = document.getElementById('mtr-date').value;
+  var notes       = document.getElementById('mtr-notes').value.trim();
+  var readBy      = document.getElementById('mtr-read-by').value.trim();
+
+  // Get utility unit from selected option
+  var utilitySel  = document.getElementById('mtr-utility');
+  var utilityUnit = utilitySel.options[utilitySel.selectedIndex] ? utilitySel.options[utilitySel.selectedIndex].getAttribute('data-unit') || '' : '';
+
+  var errEl = document.getElementById('mtr-inline-err');
+  if (errEl) errEl.style.display = 'none';
+
+  if (!meterType)   { showMtrErr('❌ Please select a meter type'); return; }
+  if (!utilityName) { showMtrErr('❌ Utility is required'); return; }
+  if (meterType === 'Individual' && !contractId) { showMtrErr('❌ Contract is required'); return; }
+  if (!currReading) { showMtrErr('❌ Current reading is required'); return; }
+  if (!date)        { showMtrErr('❌ Date is required'); return; }
+
+  var btn = document.getElementById('mtr-submit');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  gasPost({
+    action: 'saveMeterReading',
+    payload: {
+      category:        category,
+      meterType:       meterType,
+      contractId:      contractId,
+      name:            name,
+      unit:            unit,
+      utilityName:     utilityName,
+      utilityUnit:     utilityUnit,
+      prevReading:     prevReading || 0,
+      prevReadingDate: prevDate    || '',
+      currReading:     parseFloat(currReading) || 0,
+      date:            date,
+      notes:           notes,
+      readBy:          readBy,
+      photoLink:       ''
+    },
+    token: _session.token
+  })
+    .then(function(result) {
+      toast('✅ Reading saved / تم حفظ القراءة', 'ok');
+      closeMtrSheet();
+      loadMtrReadings();
+    })
+    .catch(function(e) {
+      showMtrErr('❌ ' + (e.message || 'Save failed'));
+      btn.disabled = false;
+      btn.textContent = 'إضافة / Add Reading';
+    });
+}
+
+// ── Confirm dialog ────────────────────────────────────────────────────────────
+function openMtrConfirmDialog(readingId) {
+  var r = _mtrCache.find(function(x) { return x.readingId === readingId; });
+  if (!r) return;
+  _mtrPendingConfirm = readingId;
+  var details = document.getElementById('mtr-confirm-details');
+  if (details) {
+    details.textContent = r.utilityName + ' · ' + r.contractId + ' · ' + r.date + ' · Consumption: ' + r.consumption + ' ' + r.utilityUnit;
+  }
+  document.getElementById('mtr-confirm-notes').value = '';
+  document.getElementById('mtr-confirm-dialog').style.display = 'flex';
+}
+
+function closeMtrConfirmDialog() {
+  document.getElementById('mtr-confirm-dialog').style.display = 'none';
+  _mtrPendingConfirm = null;
+}
+
+function confirmMtrReading() {
+  if (!_mtrPendingConfirm) return;
+  var notes = document.getElementById('mtr-confirm-notes').value.trim();
+  gasPost({
+    action: 'confirmMeterReading',
+    payload: { readingId: _mtrPendingConfirm, confirmedBy: _session.name, notes: notes },
+    token: _session.token
+  })
+    .then(function() {
+      toast('✅ Reading confirmed / تم تأكيد القراءة', 'ok');
+      closeMtrConfirmDialog();
+      loadMtrReadings();
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+// ── Override dialog ───────────────────────────────────────────────────────────
+function openMtrOverrideDialog(readingId) {
+  _mtrPendingOverride = readingId;
+  document.getElementById('mtr-override-value').value = '';
+  document.getElementById('mtr-override-notes').value = '';
+  document.getElementById('mtr-override-dialog').style.display = 'flex';
+}
+
+function closeMtrOverrideDialog() {
+  document.getElementById('mtr-override-dialog').style.display = 'none';
+  _mtrPendingOverride = null;
+}
+
+function submitMtrOverride() {
+  if (!_mtrPendingOverride) return;
+  var value = document.getElementById('mtr-override-value').value;
+  var notes = document.getElementById('mtr-override-notes').value.trim();
+  if (!value) { toast('❌ Override value is required', 'fail'); return; }
+  if (!notes) { toast('❌ Reason is required', 'fail'); return; }
+  gasPost({
+    action: 'overrideMeterReading',
+    payload: { readingId: _mtrPendingOverride, overrideValue: parseFloat(value), notes: notes },
+    token: _session.token
+  })
+    .then(function() {
+      toast('✅ Reading overridden / تم تجاوز القراءة', 'ok');
+      closeMtrOverrideDialog();
+      loadMtrReadings();
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
   
 // ── ⑨ + ⑩  Categories (income / expense) ────────────────────────────────────
 function loadCategories(type) {

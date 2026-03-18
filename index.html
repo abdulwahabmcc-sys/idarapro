@@ -1068,7 +1068,8 @@
     #category-sheet-wrap,
     #override-sheet-wrap,
     #utility-sheet-wrap,
-    #uup-sheet-wrap {
+    #uup-sheet-wrap,
+    #mtr-sheet-wrap {
       display: none;
       position: fixed;
       inset: 0;
@@ -1085,7 +1086,8 @@
     #category-sheet-wrap.open,
     #override-sheet-wrap.open,
     #utility-sheet-wrap.open,
-    #uup-sheet-wrap.open { display: flex; }
+    #uup-sheet-wrap.open,
+    #mtr-sheet-wrap.open { display: flex; }
     
     #unit-sheet {
       background: var(--surf);
@@ -1099,7 +1101,7 @@
 
     @media (min-width: 768px) {
     #unit-sheet, #fee-sheet, #contract-sheet,
-    #yearcash-sheet, #bal-sheet, #user-sheet, #contact-sheet, #category-sheet, #override-sheet, #utility-sheet, #uup-sheet {
+    #yearcash-sheet, #bal-sheet, #user-sheet, #contact-sheet, #category-sheet, #override-sheet, #utility-sheet, #uup-sheet, #mtr-sheet {
       width: 520px !important;
       border-radius: 16px !important;
       margin: auto !important;
@@ -1107,7 +1109,7 @@
       max-height: 88vh;
       }
       #unit-sheet-wrap, #fee-sheet-wrap, #contract-sheet-wrap,
-      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap, #category-sheet-wrap, #override-sheet-wrap, #utility-sheet-wrap, #uup-sheet-wrap {
+      #yearcash-sheet-wrap, #bal-sheet-wrap, #user-sheet-wrap, #contact-sheet-wrap, #category-sheet-wrap, #override-sheet-wrap, #utility-sheet-wrap, #mtr-sheet-wrap, #uup-sheet-wrap {
       align-items: center;
       }
     }

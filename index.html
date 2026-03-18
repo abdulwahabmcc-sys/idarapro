@@ -3582,6 +3582,8 @@ function loadMtrReadings() {
       // Stats — always from full _mtrCache
       var pending   = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Pending'; }).length;
       var confirmed = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Confirmed'; }).length;
+      console.log('STATS: pending=' + pending + ' confirmed=' + confirmed + ' total=' + _mtrCache.length);
+      _mtrCache.forEach(function(r,i){ console.log(i, r.readingId, '|'+r.status+'|'); });
       var statsEl   = document.getElementById('mtr-stats');
       if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
 

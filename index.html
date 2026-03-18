@@ -3571,7 +3571,15 @@ function loadMtrReadings() {
 
   gasPost({ action: 'getSettingsMeters', token: _session.token })
     .then(function(rows) {
-      // Stats — always from full _mtrCache regardless of role filter
+      _mtrCache = rows || [];
+
+      // Show filters for Admin/Management
+      var filtersEl = document.getElementById('mtr-filters');
+      if (filtersEl) filtersEl.style.display = isAdmin ? 'block' : 'none';
+
+      if (isAdmin) populateMtrFilters(_mtrCache);
+
+      // Stats — always from full _mtrCache
       var pending   = _mtrCache.filter(function(r) { return r.status === 'Pending'; }).length;
       var confirmed = _mtrCache.filter(function(r) { return r.status === 'Confirmed'; }).length;
       var statsEl   = document.getElementById('mtr-stats');

@@ -3667,7 +3667,11 @@ function renderMtrList(rows, isAdmin) {
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
         '<div>' +
           '<div style="font-size:13px;font-weight:700;direction:ltr;">' + escHtml(r.utilityName || '—') + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);">' + escHtml(r.contractId || 'BUILDING') + (r.unit ? ' · ' + escHtml(r.unit) : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);">' + 
+            (r.contractId === 'BUILDING' 
+              ? '🏢 Building Meter' 
+              : escHtml(r.contractId || '') + (r.unit ? ' · ' + escHtml(r.unit) : '') + (r.name ? ' · ' + escHtml(r.name) : '')) + 
+          '</div>' +
         '</div>' +
         '<span style="font-size:10px;font-weight:700;color:' + statusColor + ';">● ' + (r.status || '') + '</span>' +
       '</div>' +

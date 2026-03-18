@@ -2797,18 +2797,19 @@ function setTab(type) {
   TAB = type;
   document.getElementById('eType').value = type;
 
-  ['t-inc','t-exp','t-rep'].forEach(function(id) {
+  ['t-inc','t-exp','t-rep','t-mtr'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.className = 'nav-tab';
   });
 
-  ['dt-t-inc','dt-t-exp','dt-t-rep'].forEach(function(id) {
+  ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.className = 'dt-tab';
   });
 
-  ['f-inc','f-exp','f-rep','f-amt'].forEach(function(id) {
-    document.getElementById(id).classList.add('hide');
+  ['f-inc','f-exp','f-rep','f-amt','f-mtr'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('hide');
   });
 
   var btn = document.getElementById('btn-sub');
@@ -2833,14 +2834,26 @@ function setTab(type) {
     btn.className = 'btn-sub b-exp';
     ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
 
-  } else {
+  } else if (type === 'Report') {
     document.getElementById('t-rep').classList.add('n-rep');
     if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
     ico.textContent = '📧'; txt.textContent = 'إرسال التقرير / Send Report';
+
+  } else if (type === 'Meter') {
+    if (document.getElementById('t-mtr')) document.getElementById('t-mtr').classList.add('n-mtr');
+    if (document.getElementById('dt-t-mtr')) document.getElementById('dt-t-mtr').classList.add('dt-mtr');
+    document.getElementById('f-mtr').classList.remove('hide');
+    // Hide submit button for Meter tab
+    document.getElementById('btn-sub').style.display = 'none';
+    loadMtrReadings();
+    return;
   }
+
+  // Show submit button for non-Meter tabs
+  document.getElementById('btn-sub').style.display = '';
 
   document.getElementById('inp-amt').value = '';
   document.getElementById('scroll').scrollTop = 0;

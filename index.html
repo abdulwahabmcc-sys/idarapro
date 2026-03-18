@@ -3577,6 +3577,10 @@ function loadMtrReadings() {
       var statsEl   = document.getElementById('mtr-stats');
       if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
 
+      var displayRows = isAdmin
+        ? _mtrCache
+        : _mtrCache.filter(function(r) { return r.readBy === _session.name; });
+
       renderMtrList(displayRows, isAdmin);
     })
     .catch(function(e) {

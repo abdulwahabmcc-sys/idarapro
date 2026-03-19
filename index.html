@@ -3817,7 +3817,7 @@ function populateMtrUtilities(rows, meterType) {
     if (String(u.status).toLowerCase() !== 'active') return;
     if (u.meterType !== meterType) return;
     var name = u.combinedName || u.name || '';
-    utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="' + escHtml(u.tag || '') + '">' + escHtml(name) + '</option>';
+    utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="">' + escHtml(name) + '</option>';
   });
 }
 
@@ -3889,10 +3889,26 @@ function fetchMtrPreviousReading() {
 }
 
 function calcMtrConsumption() {
-  var curr = parseFloat(document.getElementById('mtr-curr').value) || 0;
+  var currEl = document.getElementById('mtr-curr');
+  var consEl = document.getElementById('mtr-consumption');
+  var curr = parseFloat(currEl.value);
+
+  if (isNaN(curr) || currEl.value === '') {
+    consEl.value = '';
+    consEl.style.background = '';
+    consEl.style.opacity = '0.6';
+    consEl.style.fontWeight = '';
+    document.getElementById('mtr-days').value = '';
+    return;
+  }
+
   var prev = parseFloat(document.getElementById('mtr-prev').value) || 0;
   var consumption = curr - prev;
-  document.getElementById('mtr-consumption').value = consumption.toFixed(3);
+  consEl.value = consumption.toFixed(3);
+  consEl.style.background = 'var(--gold)';
+  consEl.style.color = 'var(--navy)';
+  consEl.style.opacity = '1';
+  consEl.style.fontWeight = '700';
 
   // Calculate days in cycle
   var prevDate = document.getElementById('mtr-prev-date').value;
@@ -7995,7 +8011,7 @@ function fmtMoney(val) {
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Previous Date / تاريخ السابق</div>
-        <input class="inp" type="text" id="mtr-prev-date" readonly style="opacity:0.6;">
+        <input class="inp" type="date" id="mtr-prev-date" readonly style="opacity:0.6;">
       </div>
     </div>
 
@@ -8012,7 +8028,8 @@ function fmtMoney(val) {
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Consumption / الاستهلاك</div>
-        <input class="inp" type="number" id="mtr-consumption" readonly style="opacity:0.6;color:var(--forest);">
+        <input class="inp" type="number" id="mtr-consumption" readonly 
+               style="opacity:0.6;" placeholder="—">
       </div>
     </div>
 

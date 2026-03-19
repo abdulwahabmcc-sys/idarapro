@@ -2925,6 +2925,8 @@ function doSubmit() {
 
   var type = TAB;
 
+  if (type === 'Meter') return; // Meter tab has its own submit handler
+
   if (type !== 'Report') {
     var amt = parseFloat(document.getElementById('inp-amt').value);
     if (!amt || amt <= 0) {

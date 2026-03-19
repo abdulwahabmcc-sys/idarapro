@@ -3926,9 +3926,9 @@ function submitMtrReading() {
   var meterType   = _mtrSelectedType;
   var utilityName = document.getElementById('mtr-utility').value;
   var contractId  = meterType === 'Individual' ? document.getElementById('mtr-contract').value : 'BUILDING';
-  var unit        = meterType === 'Individual' ? document.getElementById('mtr-unit').value : '';
-  var name        = meterType === 'Individual' ? document.getElementById('mtr-name').value : '';
-  var prevReading = document.getElementById('mtr-prev').value;
+  var unit        = meterType === 'Individual' ? document.getElementById('mtr-unit').value.trim() : '';
+  var name        = meterType === 'Individual' ? document.getElementById('mtr-name').value.trim() : '';
+  var prevReading = parseFloat(document.getElementById('mtr-prev').value) || 0;
   var prevDate    = document.getElementById('mtr-prev-date').value;
   var currReading = document.getElementById('mtr-curr').value;
   var date        = document.getElementById('mtr-date').value;
@@ -3961,7 +3961,7 @@ function submitMtrReading() {
       unit:            unit,
       utilityName:     utilityName,
       utilityUnit:     utilityUnit,
-      prevReading:     prevReading || 0,
+      prevReading:     prevReading,
       prevReadingDate: prevDate    || '',
       currReading:     parseFloat(currReading) || 0,
       date:            date,

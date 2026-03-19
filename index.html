@@ -3931,8 +3931,21 @@ function fetchMtrPreviousReading() {
 }
 
 function calcMtrConsumption() {
+  var category = document.getElementById('mtr-category').value;
   var currEl = document.getElementById('mtr-curr');
   var consEl = document.getElementById('mtr-consumption');
+
+  // Opening readings always show consumption = 0
+  if (category === 'Opening') {
+    consEl.value = '0.000';
+    consEl.style.background = 'var(--gold)';
+    consEl.style.color = 'var(--navy)';
+    consEl.style.opacity = '1';
+    consEl.style.fontWeight = '700';
+    document.getElementById('mtr-days').value = '';
+    return;
+  }
+
   var curr = parseFloat(currEl.value);
 
   if (isNaN(curr) || currEl.value === '') {

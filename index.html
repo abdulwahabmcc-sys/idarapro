@@ -4058,18 +4058,56 @@ function closeMtrConfirmDialog() {
 
 function confirmMtrReading() {
   if (!_mtrPendingConfirm) return;
-  var notes = document.getElementById('mtr-confirm-notes').value.trim();
+  var notes       = document.getElementById('mtr-confirm-notes').value.trim();
+  var readingId   = _mtrPendingConfirm;
+  var confirmedBy = _session.name;
+
+  // Optimistic UI — update cache instantly
+  var r = _mtrCache.find(function(x) { return x.readingId === readingId; });
+  if (r) {
+    r.status         = 'Confirmed';
+    r.confirmedBy    = confirmedBy;
+    r.dateConfirmed  = new Date().toISOString().slice(0, 10);
+    r.confirmeeNotes = notes;
+  }
+
+  // Update stats instantly
+  var pending   = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Pending'; }).length;
+  var confirmed = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Confirmed'; }).length;
+  var statsEl   = document.getElementById('mtr-stats');
+  if (statsEl) statsEl.textContent = pending + ' pending · ' + confirmed + ' confirmed';
+
+  // Re-render list instantly — respect active filters
+  var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
+  if (isAdmin) {
+    applyMtrFilters();
+  } else {
+    var displayRows = _mtrCache.filter(function(x) { return x.readBy === _session.name; });
+    renderMtrList(displayRows, false);
+  }
+
+  closeMtrConfirmDialog();
+  toast('✅ Reading confirmed / تم تأكيد القراءة', 'ok');
+
+  // Save in background
   gasPost({
     action: 'confirmMeterReading',
-    payload: { readingId: _mtrPendingConfirm, confirmedBy: _session.name, notes: notes },
+    payload: { readingId: readingId, confirmedBy: confirmedBy, notes: notes },
     token: _session.token
   })
-    .then(function() {
-      toast('✅ Reading confirmed / تم تأكيد القراءة', 'ok');
-      closeMtrConfirmDialog();
-      loadMtrReadings();
-    })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) {
+      // Revert on failure
+      if (r) r.status = 'Pending';
+      var pending2   = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Pending'; }).length;
+      var confirmed2 = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Confirmed'; }).length;
+      if (statsEl) statsEl.textContent = pending2 + ' pending · ' + confirmed2 + ' confirmed';
+      if (isAdmin) {
+        applyMtrFilters();
+      } else {
+        renderMtrList(_mtrCache.filter(function(x) { return x.readBy === _session.name; }), false);
+      }
+      toast('❌ ' + e.message, 'fail');
+    });
 }
 
 // ── Override dialog ───────────────────────────────────────────────────────────

@@ -4019,7 +4019,7 @@ function submitMtrReading() {
       loadMtrReadings();
     })
     .catch(function(e) {
-      showMtrErr(e.message || '❌ Save failed');
+      showMtrErr((e.message || '❌ Save failed').replace('Error: ', ''));
       btn.disabled = false;
       btn.textContent = 'إضافة / Add Reading';
     });

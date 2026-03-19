@@ -3708,12 +3708,12 @@ function openMtrSheet() {
   // Show category field for Admin only
   document.getElementById('mtr-category-field').style.display = isAdmin ? 'block' : 'none';
 
-  // Reset meter type selection
+  // Reset meter type selection — clear all inline styles
   _mtrSelectedType = null;
-  document.getElementById('mtr-type-building').style.border   = '2px solid var(--border)';
-  document.getElementById('mtr-type-individual').style.border = '2px solid var(--border)';
-  document.getElementById('mtr-type-building').style.background   = 'transparent';
-  document.getElementById('mtr-type-individual').style.background = 'transparent';
+  var bldBtn = document.getElementById('mtr-type-building');
+  var indBtn = document.getElementById('mtr-type-individual');
+  bldBtn.style.cssText = 'padding:12px;border-radius:12px;border:2px solid var(--border);background:transparent;font-size:13px;cursor:pointer;color:inherit;';
+  indBtn.style.cssText = 'padding:12px;border-radius:12px;border:2px solid var(--border);background:transparent;font-size:13px;cursor:pointer;color:inherit;';
 
   // Reset utility dropdown
   document.getElementById('mtr-utility').innerHTML = '<option value="" disabled selected>Select meter type first...</option>';

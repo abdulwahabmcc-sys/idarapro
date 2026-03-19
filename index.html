@@ -8022,7 +8022,7 @@ function fmtMoney(val) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Enter New Reading / أدخل القراءة الجديدة <span class="req">*</span></div>
-        <input class="inp" type="number" id="mtr-curr" step="0.001" placeholder="0.000" 
+        <input class="inp" type="text" inputmode="decimal" id="mtr-curr" placeholder="0.000" 
                style="background:var(--gold);color:var(--navy);font-weight:700;" 
                oninput="calcMtrConsumption()">
       </div>

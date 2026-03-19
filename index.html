@@ -3857,36 +3857,76 @@ function fetchMtrPreviousReading() {
 
   if (!utilityName || !meterType) return;
   if (meterType === 'Individual' && !contractId) return;
-  if (category === 'Opening') return; // No previous for opening reading
+  if (category === 'Opening') return;
 
+  var prevEl     = document.getElementById('mtr-prev');
+  var prevDateEl = document.getElementById('mtr-prev-date');
+  var warningEl  = document.getElementById('mtr-prev-warning');
+
+  // Show loading indicator
+  prevEl.value             = 'Loading...';
+  prevDateEl.value         = '';
+  prevEl.style.opacity     = '0.4';
+  prevDateEl.style.opacity = '0.4';
+  warningEl.style.display  = 'none';
+
+  function applyResult(reading, date, status) {
+    prevEl.style.opacity     = '0.6';
+    prevDateEl.style.opacity = '0.6';
+    if (reading !== null && reading !== undefined && reading !== '') {
+      prevEl.value     = reading;
+      prevDateEl.value = formatDateForInput(date || '');
+      if (status === 'Pending') {
+        warningEl.textContent  = '⚠️ Previous reading is pending confirmation.';
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    } else {
+      prevEl.value            = '';
+      prevDateEl.value        = '';
+      warningEl.textContent   = '⚠️ No previous reading found. Please set an opening reading first.';
+      warningEl.style.display = 'block';
+    }
+    calcMtrConsumption();
+  }
+
+  // Use _mtrCache if available — instant, no backend call
+  if (_mtrCache && _mtrCache.length) {
+    var matches = _mtrCache.filter(function(r) {
+      if (r.utilityName !== utilityName) return false;
+      if (r.status === 'Cancelled' || r.status === 'Opening') return false;
+      if (meterType === 'Individual' && r.contractId !== contractId) return false;
+      if (meterType === 'Building' && r.contractId !== 'BUILDING') return false;
+      return true;
+    });
+    var latest = matches.length ? matches[matches.length - 1] : null;
+    applyResult(
+      latest ? latest.currReading : null,
+      latest ? latest.date : null,
+      latest ? latest.status : null
+    );
+    return;
+  }
+
+  // Fallback to backend if cache empty
   gasPost({
     action: 'getPreviousReading',
     payload: { utilityName: utilityName, contractId: contractId, meterType: meterType },
     token: _session.token
   })
     .then(function(result) {
-      var warningEl = document.getElementById('mtr-prev-warning');
-      if (result && result.prevReading !== null) {
-        document.getElementById('mtr-prev').value      = result.prevReading;
-        document.getElementById('mtr-prev-date').value = formatDateForInput(result.prevDate || '');
-        // Show warning if previous reading is Pending
-        if (result.status === 'Pending') {
-          warningEl.textContent  = '⚠️ Previous reading is pending confirmation.';
-          warningEl.style.display = 'block';
-        } else {
-          warningEl.style.display = 'none';
-        }
-        calcMtrConsumption();
-      } else {
-        document.getElementById('mtr-prev').value      = '';
-        document.getElementById('mtr-prev-date').value = '';
-        warningEl.textContent  = '⚠️ No previous reading found. Please set an opening reading first.';
-        warningEl.style.display = 'block';
-      }
+      applyResult(
+        result ? result.prevReading : null,
+        result ? result.prevDate : null,
+        result ? result.status : null
+      );
     })
     .catch(function() {
-      document.getElementById('mtr-prev-warning').textContent = '⚠️ Could not load previous reading.';
-      document.getElementById('mtr-prev-warning').style.display = 'block';
+      prevEl.style.opacity     = '0.6';
+      prevDateEl.style.opacity = '0.6';
+      warningEl.textContent   = '⚠️ Could not load previous reading.';
+      warningEl.style.display = 'block';
     });
 }
 

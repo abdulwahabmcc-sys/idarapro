@@ -8005,8 +8005,10 @@ function fmtMoney(val) {
     <!-- Current reading -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Current Reading / القراءة الحالية <span class="req">*</span></div>
-        <input class="inp" type="number" id="mtr-curr" step="0.001" placeholder="0.000" oninput="calcMtrConsumption()">
+        <div class="cs-lbl">Enter New Reading / أدخل القراءة الجديدة <span class="req">*</span></div>
+        <input class="inp" type="number" id="mtr-curr" step="0.001" placeholder="0.000" 
+               style="background:var(--gold);color:var(--navy);font-weight:700;" 
+               oninput="calcMtrConsumption()">
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Consumption / الاستهلاك</div>

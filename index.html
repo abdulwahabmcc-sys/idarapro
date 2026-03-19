@@ -4131,7 +4131,7 @@ function submitMtrOverride() {
   if (!notes) { toast('❌ Reason is required', 'fail'); return; }
   gasPost({
     action: 'overrideMeterReading',
-    payload: { readingId: _mtrPendingOverride, overrideValue: parseFloat(value), notes: notes },
+    payload: { readingId: _mtrPendingOverride, overrideValue: parseFloat(value), notes: notes, confirmedBy: _session.name },
     token: _session.token
   })
     .then(function() {

@@ -2710,6 +2710,8 @@ function applyPermissionUI(auth) {
   var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
 
   if (!perms.INC)      { tInc.classList.add('hide'); if (dtInc) dtInc.classList.add('hide'); }
+  console.log('tInc classList after hide:', tInc.className);
+  console.log('tRep classList after hide attempt:', document.getElementById('t-rep') ? document.getElementById('t-rep').className : 'not found');
   if (!perms.EXP)      { tExp.classList.add('hide'); if (dtExp) dtExp.classList.add('hide'); }
   if (!hasAnyReport)   { tRep.classList.add('hide'); if (dtRep) dtRep.classList.add('hide'); }
   if (!perms.MTR_RED)  { if (tMtr) tMtr.classList.add('hide'); if (dtMtr) dtMtr.classList.add('hide'); }

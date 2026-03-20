@@ -2714,7 +2714,9 @@ function applyPermissionUI(auth) {
   console.log('tInc classList after hide:', tInc.className);
   console.log('tRep classList after hide attempt:', document.getElementById('t-rep') ? document.getElementById('t-rep').className : 'not found');
   if (!perms.EXP)      { tExp.classList.add('hide'); if (dtExp) dtExp.classList.add('hide'); }
+  console.log('About to hide tRep, hasAnyReport:', hasAnyReport, 'tRep:', tRep);
   if (!hasAnyReport)   { tRep.classList.add('hide'); if (dtRep) dtRep.classList.add('hide'); }
+  console.log('tRep after hide:', tRep ? tRep.className : 'null');
   if (!perms.MTR_RED)  { if (tMtr) tMtr.classList.add('hide'); if (dtMtr) dtMtr.classList.add('hide'); }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable

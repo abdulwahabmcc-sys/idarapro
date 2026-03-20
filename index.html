@@ -6286,7 +6286,36 @@ function doSaveFee(payload) {
       }
       toast('✅ Fee rule saved successfully / تم حفظ الرسم بنجاح', 'ok');
       closeFeeSheet();
-      loadFees();
+      if (feeId) {
+        // Edit — update cache and re-render instantly
+        var cached = _feesCache.find(function(x) { return x.feeId === feeId; });
+        if (cached) {
+          cached.name       = payload.name       || cached.name;
+          cached.frequency  = payload.frequency  || cached.frequency;
+          cached.status     = payload.status     || cached.status;
+          cached.feeType    = payload.feeType    || cached.feeType;
+          cached.baseRate   = payload.baseRate   !== undefined ? payload.baseRate : cached.baseRate;
+          cached.targetType = payload.targetType || cached.targetType;
+          cached.target     = payload.target     !== undefined ? payload.target : cached.target;
+          cached.startDate  = payload.startDate  || cached.startDate;
+          cached.endDate    = payload.endDate    !== undefined ? payload.endDate : cached.endDate;
+          cached.notes      = payload.notes      !== undefined ? payload.notes  : cached.notes;
+          cached.category   = payload.category   !== undefined ? payload.category : cached.category;
+          // Auto-expire if end date in past
+          if (payload.endDate) {
+            var ed = new Date(payload.endDate);
+            var td = new Date(); td.setHours(0,0,0,0);
+            if (ed < td) cached.status = 'Expired';
+          }
+        }
+        var feesEl = stgListEl('stg-fees-list');
+        renderFeeCards(feesEl, _feesCache);
+      } else {
+        // New fee — reload from backend
+        invalidateCache('fees');
+        _feesCache = [];
+        loadFees();
+      }
     })
     .catch(function(e) {
       showFeeErr('❌ ' + (e.message || 'Save failed'));

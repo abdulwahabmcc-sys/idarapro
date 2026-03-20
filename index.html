@@ -2776,7 +2776,17 @@ function initApp(d) {
     document.getElementById('form').classList.add('disabled');
   }
 
-  setTab('Income');
+  // Set default tab based on permissions
+  if (_session && _session.permissions) {
+    var p = _session.permissions;
+    if (p.INC) setTab('Income');
+    else if (p.EXP) setTab('Expense');
+    else if (p.REP_YTD || p.REP_CUR || p.REP_LST || p.REP_JRN) setTab('Report');
+    else if (p.MTR_RED) setTab('Meter');
+    else setTab('Income'); // fallback
+  } else {
+    setTab('Income');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

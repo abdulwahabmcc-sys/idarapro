@@ -2710,11 +2710,29 @@ function applyPermissionUI(auth) {
   var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
 
 
-  if (!perms.INC)      { tInc.classList.add('hide'); if (dtInc) dtInc.classList.add('hide'); }
+  if (!perms.INC) { 
+    tInc.classList.add('hide'); 
+    if (dtInc) dtInc.classList.add('hide'); 
+  } else {
+    tInc.classList.remove('hide');
+    if (dtInc) dtInc.classList.remove('hide');
+  }
   
-  if (!perms.EXP)      { tExp.classList.add('hide'); if (dtExp) dtExp.classList.add('hide'); }
+  if (!perms.EXP) { 
+    tExp.classList.add('hide'); 
+    if (dtExp) dtExp.classList.add('hide'); 
+  } else {
+    tExp.classList.remove('hide');
+    if (dtExp) dtExp.classList.remove('hide');
+  }
   
-  if (!hasAnyReport)   { tRep.classList.add('hide'); if (dtRep) dtRep.classList.add('hide'); }
+  if (!hasAnyReport) { 
+    tRep.classList.add('hide'); 
+    if (dtRep) dtRep.classList.add('hide'); 
+  } else {
+    tRep.classList.remove('hide');
+    if (dtRep) dtRep.classList.remove('hide');
+  }
   
   if (!perms.MTR_RED)  { 
     if (tMtr) tMtr.classList.add('hide'); 

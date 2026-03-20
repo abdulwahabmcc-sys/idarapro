@@ -4936,9 +4936,44 @@ function submitContact() {
         showContactErr(msg); btn.disabled = false;
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Contact'; return;
       }
-      invalidateCache('contacts');
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-      closeContactSheet(); loadContacts();
+      closeContactSheet();
+      if (isEdit) {
+        // Update cache and re-render instantly
+        var contact = _contactsCache.find(function(x) { return x.contactId === id; });
+        if (contact) {
+          contact.name   = name   || contact.name;
+          contact.email  = email  !== undefined ? email  : contact.email;
+          contact.phone  = phone  !== undefined ? phone  : contact.phone;
+          contact.status = status || contact.status;
+        }
+        // Re-render from cache
+        var el = stgListEl('stg-contacts-list');
+        el.innerHTML = _contactsCache.map(function(c) {
+          var isActive   = String(c.status).toLowerCase() === 'active';
+          var badgeColor = isActive ? 'var(--forest)' : 'var(--burg)';
+          return '<div class="stg-user-row">' +
+            '<div class="stg-user-avatar" style="font-size:10px;background:var(--navy);">' + escHtml((c.name || '?')[0]) + '</div>' +
+            '<div class="stg-user-info">' +
+              '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
+              '<div class="stg-user-meta">' + (c.contactId || '') + (c.email ? ' · ' + c.email : '') + (c.phone ? ' · ' + c.phone : '') + '</div>' +
+            '</div>' +
+            '<span style="font-size:9px;color:' + badgeColor + ';font-weight:700;flex-shrink:0;">● ' + (isActive ? 'Active' : 'Inactive') + '</span>' +
+            '<div class="stg-user-actions">' +
+              '<button class="stg-user-btn" onclick="editContact(\'' + escHtml(c.contactId) + '\')">تعديل</button>' +
+              (isActive
+                ? '<button class="stg-user-btn danger" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',false)">إيقاف</button>'
+                : '<button class="stg-user-btn" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',true)">تفعيل</button>') +
+            '</div>' +
+          '</div>';
+        }).join('');
+        invalidateCache('contacts');
+      } else {
+        // New entry — reload from backend
+        invalidateCache('contacts');
+        _contactsCache = [];
+        loadContacts();
+      }
     })
     .catch(function(e) {
       showContactErr('❌ ' + (e.message || 'Save failed'));

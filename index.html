@@ -5047,9 +5047,30 @@ function submitCategory() {
         showCategoryErr(msg); btn.disabled = false;
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category'; return;
       }
-      invalidateCache(type === 'income' ? 'incomeCategories' : 'expenseCategories');
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-      closeCategorySheet(); loadCategories(type);
+      closeCategorySheet();
+      if (isEdit) {
+        // Update cache and re-render instantly
+        var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
+        var cat = cache.find(function(x) { return x.code === c.code; });
+        if (cat) {
+          cat.nameAr      = c.nameAr || cat.nameAr;
+          cat.nameEn      = c.nameEn || cat.nameEn;
+          cat.status      = c.status || cat.status;
+          cat.parent      = c.parent || '';
+          cat.notes       = c.notes  || '';
+          cat.combinedName = (c.nameEn || cat.nameEn) + ' / ' + (c.nameAr || cat.nameAr);
+        }
+        renderCategoriesFromCache(type);
+      } else {
+        // New entry — reload from backend to get correct code and data
+        var cacheKey = type === 'income' ? 'incomeCategories' : 'expenseCategories';
+        invalidateCache(cacheKey);
+        if (_settingsCache && typeof _settingsCache === 'object') _settingsCache[cacheKey] = null;
+        if (type === 'income') _incomeCatCache = [];
+        else _expenseCatCache = [];
+        loadCategories(type);
+      }
     })
     .catch(function(e) {
       showCategoryErr('❌ ' + (e.message || 'Save failed'));

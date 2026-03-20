@@ -5054,11 +5054,12 @@ function submitCategory() {
         var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
         var cat = cache.find(function(x) { return x.code === c.code; });
         if (cat) {
-          cat.nameAr      = c.nameAr || cat.nameAr;
-          cat.nameEn      = c.nameEn || cat.nameEn;
-          cat.status      = c.status || cat.status;
-          cat.parent      = c.parent || '';
-          cat.notes       = c.notes  || '';
+          cat.nameAr       = c.nameAr      || cat.nameAr;
+          cat.nameEn       = c.nameEn      || cat.nameEn;
+          cat.status       = c.status      || cat.status;
+          cat.parent       = c.parent      || cat.parent || '';
+          cat.notes        = c.notes       !== undefined ? c.notes : cat.notes;
+          cat.desc         = c.desc        !== undefined ? c.desc  : cat.desc;
           cat.combinedName = (c.nameEn || cat.nameEn) + ' / ' + (c.nameAr || cat.nameAr);
         }
         renderCategoriesFromCache(type);

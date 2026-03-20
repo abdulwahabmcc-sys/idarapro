@@ -5052,15 +5052,15 @@ function submitCategory() {
       if (isEdit) {
         // Update cache and re-render instantly
         var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
-        var cat = cache.find(function(x) { return x.code === c.code; });
+        var cat = cache.find(function(x) { return x.code === code; });
         if (cat) {
-          cat.nameAr       = c.nameAr      || cat.nameAr;
-          cat.nameEn       = c.nameEn      || cat.nameEn;
-          cat.status       = c.status      || cat.status;
-          cat.parent       = c.parent      || cat.parent || '';
-          cat.notes        = c.notes       !== undefined ? c.notes : cat.notes;
-          cat.desc         = c.desc        !== undefined ? c.desc  : cat.desc;
-          cat.combinedName = (c.nameEn || cat.nameEn) + ' / ' + (c.nameAr || cat.nameAr);
+          cat.nameAr       = nameAr  || cat.nameAr;
+          cat.nameEn       = nameEn  || cat.nameEn;
+          cat.status       = status  || cat.status;
+          cat.parent       = parent  || cat.parent || '';
+          cat.notes        = notes   !== undefined ? notes : cat.notes;
+          cat.desc         = desc    !== undefined ? desc  : cat.desc;
+          cat.combinedName = nameEn + ' / ' + nameAr;
         }
         renderCategoriesFromCache(type);
       } else {

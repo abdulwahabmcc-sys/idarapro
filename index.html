@@ -2704,6 +2704,7 @@ function applyPermissionUI(auth) {
 
   // Admin — show everything, no changes needed
   if (role === 'Admin') return;
+  console.log('PERMS:', JSON.stringify(perms), 'ROLE:', role);
 
   // All other roles — hide tabs based on permissions
   var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;

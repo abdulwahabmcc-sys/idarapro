@@ -5081,7 +5081,7 @@ function toggleCategory(type, code, activate) {
     .catch(function(e) {
       // Revert on failure
       if (cat) cat.status = activate ? 'Inactive' : 'Active';
-      loadCategories(type);
+      renderCategoriesFromCache(type); // re-render instantly from cache
       toast('❌ ' + e.message, 'fail');
     });
 }

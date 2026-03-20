@@ -2707,7 +2707,7 @@ function applyPermissionUI(auth) {
   console.log('PERMS:', JSON.stringify(perms), 'ROLE:', role);
 
   // All other roles — hide tabs based on permissions
-  var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
+  console.log('hasAnyReport:', hasAnyReport, perms.REP_YTD, perms.REP_CUR, perms.REP_LST, perms.REP_JRN);
 
   if (!perms.INC)      { tInc.classList.add('hide'); if (dtInc) dtInc.classList.add('hide'); }
   console.log('tInc classList after hide:', tInc.className);

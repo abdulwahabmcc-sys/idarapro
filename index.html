@@ -2702,8 +2702,12 @@ function applyPermissionUI(auth) {
   var dtMtr = document.getElementById('dt-t-mtr');
   var dtSet = document.getElementById('dt-t-set');
 
-  // Admin — show everything, no changes needed
-  if (role === 'Admin') return;
+  // Admin — show everything including meter tab
+  if (role === 'Admin') {
+    if (tMtr) tMtr.classList.remove('hide');
+    if (dtMtr) dtMtr.classList.remove('hide');
+    return;
+  }
   
 
   // All other roles — hide tabs based on permissions

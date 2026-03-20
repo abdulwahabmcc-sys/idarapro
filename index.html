@@ -2716,7 +2716,13 @@ function applyPermissionUI(auth) {
   
   if (!hasAnyReport)   { tRep.classList.add('hide'); if (dtRep) dtRep.classList.add('hide'); }
   
-  if (!perms.MTR_RED)  { if (tMtr) tMtr.classList.add('hide'); if (dtMtr) dtMtr.classList.add('hide'); }
+  if (!perms.MTR_RED)  { 
+    if (tMtr) tMtr.classList.add('hide'); 
+    if (dtMtr) dtMtr.classList.add('hide'); 
+  } else {
+    if (tMtr) tMtr.classList.remove('hide');
+    if (dtMtr) dtMtr.classList.remove('hide');
+  }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
   if (tSet) tSet.classList.add('hide');

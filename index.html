@@ -2762,6 +2762,11 @@ function applyPermissionUI(auth) {
   if (!perms.REP_CUR) document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
   if (!perms.REP_LST) document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
   if (!perms.REP_JRN) document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
+
+  // Hide report cards based on permissions
+  if (!perms.REP_YTD) { var rcYtd = document.getElementById('rc-ytd');     if (rcYtd) rcYtd.style.display = 'none'; }
+  if (!perms.REP_CUR) { var rcMon = document.getElementById('rc-month');   if (rcMon) rcMon.style.display = 'none'; }
+  if (!perms.REP_JRN) { var rcJrn = document.getElementById('rc-journal'); if (rcJrn) rcJrn.style.display = 'none'; }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

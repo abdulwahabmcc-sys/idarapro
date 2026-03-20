@@ -5048,10 +5048,49 @@ function resetPin(name) {
 
 function toggleUserStatus(name, activate) {
   if (!sessionValid()) return;
-  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' user ' + name + '?')) return;
+
+  // Optimistic UI — update cache instantly
+  var u = _usersCache.find(function(x) { return x.name === name; });
+  if (u) {
+    u.active = activate;
+    // Re-render list instantly
+    var el = stgListEl('stg-users-list');
+    el.innerHTML = _usersCache.map(function(usr) {
+      var initial    = (usr.name || '?')[0].toUpperCase();
+      var badgeClass = !usr.active ? 'badge-off'
+                     : usr.role === 'Admin'      ? 'badge-admin'
+                     : usr.role === 'Management' ? 'badge-mgmt'
+                     : 'badge-occ';
+      var statusLabel = usr.active ? usr.role : 'Inactive';
+      return '<div class="stg-user-row">' +
+        '<div class="stg-user-avatar">' + initial + '</div>' +
+        '<div class="stg-user-info">' +
+          '<div class="stg-user-name">' + escHtml(usr.name) + '</div>' +
+          '<div class="stg-user-meta">' + (usr.email || 'No email') + '</div>' +
+        '</div>' +
+        '<span class="stg-user-badge ' + badgeClass + '">' + statusLabel.toUpperCase() + '</span>' +
+        '<div class="stg-user-actions">' +
+          '<button class="stg-user-btn" onclick="openUserSheet(\'' + escHtml(usr.name) + '\')">تعديل</button>' +
+          '<button class="stg-user-btn" onclick="resetPin(\'' + escHtml(usr.name) + '\')">PIN</button>' +
+          (usr.active
+            ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(usr.name) + '\',false)">إيقاف</button>'
+            : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(usr.name) + '\',true)">تفعيل</button>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok');
+
+  // Save in background
   gasPost({ action: 'setUserStatus', payload: { name: name, active: activate }, token: _session.token })
-    .then(function() { invalidateCache('users'); toast((activate ? '✅ Activated: ' : '✅ Deactivated: ') + name, 'ok'); loadUsers(); })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .then(function() { invalidateCache('users'); })
+    .catch(function(e) {
+      // Revert on failure
+      if (u) u.active = !activate;
+      loadUsers();
+      toast('❌ ' + e.message, 'fail');
+    });
 }
 
 function openAddUser() { toast('ℹ️ Add user form — coming soon', 'info'); }

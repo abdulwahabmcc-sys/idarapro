@@ -4949,11 +4949,45 @@ function submitContact() {
 
 function toggleContact(id, activate) {
   if (!sessionValid()) return;
-  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' contact ' + id + '?')) return;
+
+  // Optimistic UI — update cache and re-render instantly
+  var contact = _contactsCache.find(function(x) { return x.contactId === id; });
+  if (contact) {
+    contact.status = activate ? 'Active' : 'Inactive';
+    var el = stgListEl('stg-contacts-list');
+    el.innerHTML = _contactsCache.map(function(c) {
+      var isActive   = String(c.status).toLowerCase() === 'active';
+      var badgeColor = isActive ? 'var(--forest)' : 'var(--burg)';
+      return '<div class="stg-user-row">' +
+        '<div class="stg-user-avatar" style="font-size:10px;background:var(--navy);">' + escHtml((c.name || '?')[0]) + '</div>' +
+        '<div class="stg-user-info">' +
+          '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
+          '<div class="stg-user-meta">' + (c.contactId || '') + (c.email ? ' · ' + c.email : '') + (c.phone ? ' · ' + c.phone : '') + '</div>' +
+        '</div>' +
+        '<span style="font-size:9px;color:' + badgeColor + ';font-weight:700;flex-shrink:0;">● ' + (isActive ? 'Active' : 'Inactive') + '</span>' +
+        '<div class="stg-user-actions">' +
+          '<button class="stg-user-btn" onclick="editContact(\'' + escHtml(c.contactId) + '\')">تعديل</button>' +
+          (isActive
+            ? '<button class="stg-user-btn danger" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',false)">إيقاف</button>'
+            : '<button class="stg-user-btn" onclick="toggleContact(\'' + escHtml(c.contactId) + '\',true)">تفعيل</button>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  toast((activate ? '✅ Activated' : '✅ Deactivated') + ' / تم التحديث', 'ok');
+
+  // Save in background
   gasPost({ action: 'setContactStatus', payload: { contactId: id, active: activate }, token: _session.token })
-    .then(function() { invalidateCache('contacts'); toast('✅ Contact updated', 'ok'); loadContacts(); })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .then(function() { invalidateCache('contacts'); })
+    .catch(function(e) {
+      // Revert on failure
+      if (contact) contact.status = activate ? 'Inactive' : 'Active';
+      loadContacts();
+      toast('❌ ' + e.message, 'fail');
+    });
 }
+
 // ── Category actions ──────────────────────────────────────────────────────────
 var _incomeCatCache  = [];
 var _expenseCatCache = [];

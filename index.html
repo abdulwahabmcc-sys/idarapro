@@ -5018,22 +5018,33 @@ function submitCategory() {
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category';
     });
 }
+
 function toggleCategory(type, code, activate) {
   if (!sessionValid()) return;
-  if (!confirm((activate ? 'Activate' : 'Deactivate') + ' category ' + code + '?')) return;
+
+  // Optimistic UI — update cache instantly
+  var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
+  var cat = cache.find(function(x) { return x.code === code; });
+  if (cat) {
+    cat.status = activate ? 'Active' : 'Inactive';
+    loadCategories(type); // re-render from updated cache — fast since cache is populated
+  }
+
+  toast((activate ? '✅ Activated' : '✅ Deactivated') + ' / تم التحديث', 'ok');
+
+  // Save in background
   gasPost({ action: 'setCategoryStatus', payload: { type: type, code: code, active: activate }, token: _session.token })
-    .then(function(res) {
+    .then(function() {
       var cacheKey = type === 'income' ? 'incomeCategories' : 'expenseCategories';
       invalidateCache(cacheKey);
-      if (_settingsCache && typeof _settingsCache === 'object') {
-        _settingsCache[cacheKey] = null;
-      }
-      if (type === 'income') _incomeCatCache = [];
-      else _expenseCatCache = [];
-      toast('✅ Category updated', 'ok');
-      loadCategories(type);
+      if (_settingsCache && typeof _settingsCache === 'object') _settingsCache[cacheKey] = null;
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) {
+      // Revert on failure
+      if (cat) cat.status = activate ? 'Inactive' : 'Active';
+      loadCategories(type);
+      toast('❌ ' + e.message, 'fail');
+    });
 }
 
 // ── User actions ──────────────────────────────────────────────────────────────

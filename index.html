@@ -5983,6 +5983,15 @@ function openFeeSheet(f) {
       var combined = c.combinedName || (c.nameEn + (c.nameAr ? ' / ' + c.nameAr : ''));
       nameSel.innerHTML += '<option value="' + escHtml(combined) + '">' + escHtml(combined) + '</option>';
     });
+    
+    if (isEdit && f.name) {
+      // Add saved name as first option to ensure it displays
+      var savedOpt = document.createElement('option');
+      savedOpt.value = f.name;
+      savedOpt.textContent = f.name;
+      savedOpt.selected = true;
+      nameSel.insertBefore(savedOpt, nameSel.options[0]);
+    
     if (isEdit && f.name) {
       // Try exact match first
       var exactMatch = Array.from(nameSel.options).find(function(o) {
@@ -6002,7 +6011,6 @@ function openFeeSheet(f) {
     }
     nameSel.disabled      = isEdit;
     nameSel.style.opacity = isEdit ? '0.6' : '1';
-    console.log('FEE NAME set to:', nameSel.value, 'fs-edit-name:', document.getElementById('fs-edit-name').value);
 
     // Fee Types dropdown
     var feeTypeSel = document.getElementById('fs-fee-type');
@@ -6218,8 +6226,7 @@ function buildFeePayload() {
   var targetType = document.getElementById('fs-target-type').value;
   var targetVal  = (targetType === 'Category' || targetType === 'Occupancy Specific')
                    ? document.getElementById('fs-target-val-sel').value : '';
-                   console.log('PAYLOAD name:', document.getElementById('fs-edit-name').value, 'notes:', document.getElementById('fs-notes').value, 'category:', document.getElementById('fs-category').value);
-  return {
+                   
     feeId:              document.getElementById('fs-edit-feeid').value || '',
     name:               document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value,
     frequency:          document.getElementById('fs-frequency').value,

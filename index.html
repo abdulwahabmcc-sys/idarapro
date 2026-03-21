@@ -4486,10 +4486,44 @@ function submitBalance() {
         btn.textContent = document.getElementById('bal-is-edit').value === 'true' ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Balance';
         return;
       }
-      invalidateCache('balances');
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeBalSheet();
-      loadBalances();
+      if (isEdit) {
+        // Update cache and re-render instantly
+        var bal = _balCache.find(function(x) {
+          return String(x.contractId).trim() === String(contract).trim() &&
+                 String(x.year).trim() === String(year).trim();
+        });
+        if (bal) {
+          bal.type    = type;
+          bal.balance = type === 'Credit' ? parseFloat(amount) : -parseFloat(amount);
+          bal.date    = date;
+          bal.notes   = notes;
+        }
+        // Re-render from cache
+        var el = stgListEl('stg-bal-list');
+        el.innerHTML = _balCache.map(function(r) {
+          var bal2  = parseFloat(String(r.balance).replace(/[^\d.\-]/g, '')) || 0;
+          var color = bal2 < 0 ? 'var(--burg)' : bal2 > 0 ? 'var(--forest)' : 'var(--muted)';
+          var typeLabel = String(r.type || '').trim();
+          return '<div class="stg-user-row">' +
+            '<div class="stg-user-info">' +
+              '<div class="stg-user-name" style="direction:rtl;">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.name || '') + '</div>' +
+              '<div class="stg-user-meta">' + (r.year || '') + ' · ' + escHtml(r.contractId || '') + ' · ' + escHtml(typeLabel) + '</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+              '<div style="font-family:var(--mono);font-size:13px;font-weight:500;color:' + color + ';">' + fmtMoney(r.balance) + '</div>' +
+              '<button class="stg-user-btn" onclick="editBalanceById(\'' + escHtml(r.contractId) + '\',\'' + escHtml(String(r.year)) + '\')">تعديل</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+        invalidateCache('balances');
+      } else {
+        // New entry — reload from backend
+        invalidateCache('balances');
+        _balCache = [];
+        loadBalances();
+      }
     })
     .catch(function(e) {
       showBalErr('❌ ' + (e.message || 'Save failed'));

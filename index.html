@@ -3530,7 +3530,7 @@ function renderFeeCards(el, rows) {
       '<div class="fee-card-dates">' + dates + '</div>' +
       notes +
       '<div class="stg-user-actions" style="margin-top:8px;">' +
-        '<button class="stg-user-btn" onclick="editFee(\'' + escHtml(f.feeId) + '\')">تعديل</button>' +
+        '<button class="stg-user-btn" id="fee-edit-btn-' + escHtml(f.feeId) + '" onclick="editFee(\'' + escHtml(f.feeId) + '\')">تعديل</button>' +
       '</div>' +
     '</div>';
   }).join('');

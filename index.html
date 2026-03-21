@@ -6182,7 +6182,7 @@ function submitFee() {
 
   var feeType   = document.getElementById('fs-fee-type').value;
   var isMeter   = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
-  var name      = document.getElementById('fs-name').value;
+  var name      = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
   var frequency = document.getElementById('fs-frequency').value;
   var rate      = document.getElementById('fs-rate').value.trim();
   var startDate = document.getElementById('fs-start').value;

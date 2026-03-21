@@ -6002,6 +6002,7 @@ function openFeeSheet(f) {
     }
     nameSel.disabled      = isEdit;
     nameSel.style.opacity = isEdit ? '0.6' : '1';
+    console.log('FEE NAME set to:', nameSel.value, 'fs-edit-name:', document.getElementById('fs-edit-name').value);
 
     // Fee Types dropdown
     var feeTypeSel = document.getElementById('fs-fee-type');
@@ -6217,6 +6218,7 @@ function buildFeePayload() {
   var targetType = document.getElementById('fs-target-type').value;
   var targetVal  = (targetType === 'Category' || targetType === 'Occupancy Specific')
                    ? document.getElementById('fs-target-val-sel').value : '';
+                   console.log('PAYLOAD name:', document.getElementById('fs-edit-name').value, 'notes:', document.getElementById('fs-notes').value, 'category:', document.getElementById('fs-category').value);
   return {
     feeId:              document.getElementById('fs-edit-feeid').value || '',
     name:               document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value,

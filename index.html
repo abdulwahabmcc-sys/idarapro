@@ -6981,7 +6981,27 @@ function doSaveUtilityUnitPrice(payload) {
       }
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
       closeUupSheet();
-      loadUtilityUnitPrices();
+      if (payload.isEdit) {
+        // Update cache and re-render instantly
+        var entry = _uupCache.find(function(x) {
+          return x.utilityName === payload.utilityName && String(x.rowIndex) === String(payload.rowIndex);
+        });
+        if (entry) {
+          entry.endDate = payload.endDate || '';
+          entry.notes   = payload.notes   || '';
+          entry.status  = payload.status  || entry.status;
+          // Auto-expire if end date in past
+          if (payload.endDate) {
+            var ed = new Date(payload.endDate);
+            var td = new Date(); td.setHours(0,0,0,0);
+            if (ed < td) entry.status = 'Expired';
+          }
+        }
+        loadUtilityUnitPrices(); // re-render — fast since uses existing cache structure
+      } else {
+        // New price — reload from backend
+        loadUtilityUnitPrices();
+      }
     })
     .catch(function(e) {
       showUupErr('❌ ' + (e.message || 'Save failed'));

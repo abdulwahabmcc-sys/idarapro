@@ -5966,7 +5966,16 @@ function onChargeNameChange() {
 function editFee(feeId) {
   var f = _feesCache.find(function(x){ return x.feeId === feeId; });
   if (!f) { toast('❌ Fee not found', 'fail'); return; }
-  loadFeeLookups(function() { openFeeSheet(f); });
+
+  // Show loading indicator on button
+  var btn = document.getElementById('fee-edit-btn-' + feeId);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  loadFeeLookups(function() {
+    // Restore button
+    if (btn) { btn.disabled = false; btn.textContent = 'تعديل'; }
+    openFeeSheet(f);
+  });
 }
 
 function openFeeSheet(f) {

@@ -5938,7 +5938,7 @@ function onFeeTargetTypeChange() {
   }
 }
 
-var METER_BASED_FEE_TYPES = ['Per-Kwh','Per-M³','Per-Liter','Per-Ton','Per-Kg','Per-Mbps','Per-Gbyte'];
+var METER_BASED_FEE_TYPES = ['Per-Kwh','Per-M³','Per-Liter','Per-Ton','Per-Kg','Per-Mbps','Per-Gbyte','Per-Ampere','Bill-Based'];
 
 function onFeeTypeChange() {
   var feeType       = document.getElementById('fs-fee-type').value;
@@ -6077,60 +6077,110 @@ function fetchCurrentFeePrice() {
 function onChargeNameChange() {
   var chargeName   = document.getElementById('fs-name').value;
   var feeTypeSel   = document.getElementById('fs-fee-type');
-  var distWrap     = document.getElementById('fs-distribution').closest('.cs-field') ||
-                     document.getElementById('fs-distribution').parentElement;
   var feeTypeErr   = document.getElementById('fs-fee-type-err');
+  var meterRefWrap = document.getElementById('fs-meter-ref-wrap');
+  var rateWrap     = document.getElementById('fs-rate-wrap');
+  var cpWrap       = document.getElementById('fs-current-price-wrap');
+  var distField    = document.getElementById('fs-distribution');
+  var distWrap     = distField ? distField.closest('.cs-field') || distField.parentElement : null;
 
-  // Clear previous error
+  // Clear previous errors
   if (feeTypeErr) { feeTypeErr.style.display = 'none'; feeTypeErr.textContent = ''; }
 
+  if (!chargeName) return;
+
   // Check if charge name is utility-linked
-  var utilities  = window._feeUtilities || [];
+  var utilities   = window._feeUtilities || [];
   var matchedUtil = utilities.find(function(u) {
     var uName = u.name || u;
     return uName === chargeName ||
            chargeName.indexOf(uName) !== -1 ||
            uName.indexOf(chargeName) !== -1;
   });
+  console.log('chargeName:', chargeName, 'matchedUtil:', JSON.stringify(matchedUtil));
 
   if (matchedUtil) {
-    // Utility-linked — show meter-based fee types only
     var meterType = matchedUtil.meterType || '';
-    feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>';
-    METER_BASED_FEE_TYPES.forEach(function(ft) {
-      feeTypeSel.innerHTML += '<option value="' + ft + '">' + ft + '</option>';
-    });
-    feeTypeSel.value = '';
+    var unit      = matchedUtil.unit      || '';
 
     // Auto-fill meter reference
     document.getElementById('fs-meter-ref').value = matchedUtil.name || chargeName;
+    meterRefWrap.style.display = '';
 
-    // Show/hide Distribution Method based on meter type
-    if (meterType === 'Building') {
-      distWrap.style.display = '';
+    // Unit to fee type map
+    var unitToFeeType = {
+      'Kwh':    'Per-Kwh',    'KWh':   'Per-Kwh',   'kwh':    'Per-Kwh',
+      'Liter':  'Per-Liter',  'litre': 'Per-Liter',  'L':      'Per-Liter',
+      'M³':     'Per-M³',     'm³':    'Per-M³',      'M3':     'Per-M³',
+      'Ton':    'Per-Ton',    'Tonne': 'Per-Ton',
+      'Kg':     'Per-Kg',     'kg':    'Per-Kg',
+      'Mbps':   'Per-Mbps',
+      'Gbyte':  'Per-Gbyte',  'GB':    'Per-Gbyte',
+      'Ampere': 'Per-Ampere', 'Amp':   'Per-Ampere',  'A': 'Per-Ampere'
+    };
+
+    if (meterType === 'Bill-Based') {
+      // Bill-Based — lock fee type, hide price fields, show distribution
+      feeTypeSel.innerHTML = '<option value="Bill-Based">Bill-Based</option>';
+      feeTypeSel.value     = 'Bill-Based';
+      feeTypeSel.disabled  = true;
+      feeTypeSel.style.opacity = '0.6';
+
+      rateWrap.style.display = 'none';
+      cpWrap.style.display   = 'none';
+      document.getElementById('fs-rate').value = 0;
+
+      if (distWrap) distWrap.style.display = '';
+
     } else {
-      distWrap.style.display = 'none';
-      document.getElementById('fs-distribution').value = 'Individual';
+      // Individual or Building — derive fee type from unit
+      var derivedFeeType = unitToFeeType[unit] || '';
+
+      if (derivedFeeType) {
+        feeTypeSel.innerHTML = '<option value="' + derivedFeeType + '">' + derivedFeeType + '</option>';
+        feeTypeSel.value     = derivedFeeType;
+      } else {
+        feeTypeSel.innerHTML = '<option value="" disabled selected>⚠️ Unit not recognized — check Utility Master</option>';
+        feeTypeSel.value     = '';
+        if (feeTypeErr) {
+          feeTypeErr.textContent  = '⚠️ Unit of measure "' + unit + '" not recognized. Please update Utility Master. / وحدة القياس غير معروفة، يرجى تحديث الخدمات.';
+          feeTypeErr.style.display = 'block';
+        }
+      }
+      feeTypeSel.disabled      = true;
+      feeTypeSel.style.opacity = '0.6';
+
+      // Show/hide distribution based on meter type
+      if (meterType === 'Building') {
+        if (distWrap) distWrap.style.display = '';
+      } else {
+        if (distWrap) distWrap.style.display = 'none';
+        if (distField) distField.value = 'Individual';
+      }
+
+      // Show current price, hide base rate
+      rateWrap.style.display = 'none';
+      cpWrap.style.display   = '';
+      document.getElementById('fs-rate').value = 0;
+      fetchCurrentFeePrice();
     }
 
-    // Show meter ref wrap
-    document.getElementById('fs-meter-ref-wrap').style.display = '';
-
   } else {
-    // Non-utility — show Fixed and Per-SqM only
+    // Non-utility linked — Fixed or Per-SqM only
     feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
       '<option value="Fixed">Fixed</option>' +
       '<option value="Per-SqM">Per-SqM</option>';
-    feeTypeSel.value = '';
+    feeTypeSel.value     = '';
+    feeTypeSel.disabled  = false;
+    feeTypeSel.style.opacity = '1';
 
-    // Hide meter ref and distribution
-    document.getElementById('fs-meter-ref-wrap').style.display = 'none';
+    // Hide meter ref, distribution, current price — show base rate
+    meterRefWrap.style.display = 'none';
     document.getElementById('fs-meter-ref').value = '';
-    distWrap.style.display = 'none';
-
-    // Show base rate, hide current price
-    document.getElementById('fs-rate-wrap').style.display = '';
-    document.getElementById('fs-current-price-wrap').style.display = 'none';
+    if (distWrap) distWrap.style.display = 'none';
+    if (distField) distField.value = 'Individual';
+    rateWrap.style.display = '';
+    cpWrap.style.display   = 'none';
   }
 
   // Trigger fee type change to update rest of form

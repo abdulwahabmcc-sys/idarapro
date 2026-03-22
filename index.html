@@ -5959,6 +5959,10 @@ function onFeeTypeChange() {
   meterRefWrap.style.display = isMeter ? '' : 'none';
   if (isMeter) onChargeNameChange();
 
+  
+  // Clear fee type error
+  var feeTypeErr = document.getElementById('fs-fee-type-err');
+  if (feeTypeErr) { feeTypeErr.style.display = 'none'; feeTypeErr.textContent = ''; }
   // Base Rate vs Current Price
   var rateWrap         = document.getElementById('fs-rate-wrap');
   var currentPriceWrap = document.getElementById('fs-current-price-wrap');
@@ -5997,16 +6001,28 @@ function onFeeTypeChange() {
 
 function fetchCurrentFeePrice() {
   var chargeName   = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
+  var feeType      = document.getElementById('fs-fee-type').value;
   var priceEl      = document.getElementById('fs-current-price');
+  var feeTypeErr   = document.getElementById('fs-fee-type-err');
+  var submitBtn    = document.getElementById('fs-submit');
+
+  // Clear previous error
+  feeTypeErr.style.display = 'none';
+  feeTypeErr.textContent   = '';
+
   if (!chargeName) {
-    priceEl.value = '—';
+    priceEl.value = '';
     return;
   }
+
   priceEl.value = 'Loading...';
+
   gasGet('getSettingsUtilityUnitPrices', _session.token)
     .then(function(rows) {
       var today = new Date();
       today.setHours(0,0,0,0);
+
+      // Find active price for this utility
       var active = (rows || []).filter(function(r) {
         if (String(r.utilityName).trim() !== String(chargeName).trim()) return false;
         if (String(r.status).toLowerCase() !== 'active') return false;
@@ -6015,13 +6031,40 @@ function fetchCurrentFeePrice() {
         if (effDate > today) return false;
         return true;
       });
+
       if (active.length) {
         // Sort by effective date descending — latest active price
         active.sort(function(a,b) { return new Date(b.effectiveDate) - new Date(a.effectiveDate); });
         var p = active[0];
-        priceEl.value = p.pricePerUnit + ' / ' + p.unitOfMeasure + '  (as set in Utility Unit Prices)';
+
+        // Check fee type matches unit of measure
+        var unitMap = {
+          'Per-Kwh':   'Kwh',
+          'Per-M³':    'M³',
+          'Per-Liter': 'Liter',
+          'Per-Ton':   'Ton',
+          'Per-Kg':    'Kg',
+          'Per-Mbps':  'Mbps',
+          'Per-Gbyte': 'Gbyte'
+        };
+        var expectedUnit = unitMap[feeType] || '';
+        if (expectedUnit && String(p.unitOfMeasure).trim() !== expectedUnit) {
+          // Fee type mismatch
+          priceEl.value = '';
+          feeTypeErr.textContent  = '⚠️ Fee type ' + feeType + ' does not match this utility\'s unit (' + p.unitOfMeasure + '). Check Utility Unit Prices. / نوع الرسم لا يتوافق مع وحدة قياس هذه الخدمة.';
+          feeTypeErr.style.display = 'block';
+          if (submitBtn) submitBtn.disabled = true;
+          return;
+        }
+
+        // All good — show clean price
+        priceEl.value = p.pricePerUnit + ' / ' + p.unitOfMeasure;
+
       } else {
-        priceEl.value = '⚠️ No active price set — charges cannot be calculated until a price is set in Utility Unit Prices';
+        priceEl.value           = '';
+        feeTypeErr.textContent  = '⚠️ No active price found for this utility. Set a price in Utility Unit Prices before creating this fee. / لا يوجد سعر فعال لهذه الخدمة.';
+        feeTypeErr.style.display = 'block';
+        if (submitBtn) submitBtn.disabled = true;
       }
     })
     .catch(function() {
@@ -7606,6 +7649,7 @@ function fmtMoney(val) {
         <select class="inp" id="fs-fee-type" onchange="onFeeTypeChange()">
           <option value="" disabled selected>Select...</option>
         </select>
+        <div id="fs-fee-type-err" style="display:none;font-size:11px;color:var(--burg);margin-top:4px;padding:6px 10px;background:rgba(139,26,46,0.08);border-radius:8px;"></div>
       </div>
       <div class="cs-field" id="fs-rate-wrap">
         <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>

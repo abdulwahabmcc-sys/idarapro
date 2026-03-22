@@ -5957,7 +5957,7 @@ function onFeeTypeChange() {
 
   // Meter Reference — only for meter-based fees, auto-fill from charge name
   meterRefWrap.style.display = isMeter ? '' : 'none';
-  if (isMeter) onChargeNameChange();
+  // onChargeNameChange handles meter ref — no call needed here
 
   
   // Clear fee type error
@@ -6097,7 +6097,6 @@ function onChargeNameChange() {
            chargeName.indexOf(uName) !== -1 ||
            uName.indexOf(chargeName) !== -1;
   });
-  console.log('chargeName:', chargeName, 'matchedUtil:', JSON.stringify(matchedUtil));
 
   if (matchedUtil) {
     var meterType = matchedUtil.meterType || '';
@@ -6183,9 +6182,7 @@ function onChargeNameChange() {
     cpWrap.style.display   = 'none';
   }
 
-  // Trigger fee type change to update rest of form
-  onFeeTypeChange();
-}
+  }
 
 function editFee(feeId) {
   var f = _feesCache.find(function(x){ return x.feeId === feeId; });

@@ -5961,21 +5961,21 @@ function onFeeTypeChange() {
 
   // Frequency — auto-set Per Reading for meter-based, restore Monthly for others
   if (isMeter) {
-    // Add Per Reading option if not present, set it
-    var hasPerReading = false;
-    for (var i = 0; i < freqSel.options.length; i++) {
-      if (freqSel.options[i].value === 'Per Reading') { hasPerReading = true; break; }
-    }
-    if (!hasPerReading) {
-      var opt = document.createElement('option');
-      opt.value = 'Per Reading'; opt.textContent = 'Per Reading';
-      freqSel.appendChild(opt);
-    }
-    freqSel.value    = 'Per Reading';
-    freqSel.disabled = true;
-    freqSel.style.opacity = '0.6';
+    // Meter-based fees: Monthly and Quarterly only
+    freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
+      '<option value="Monthly">Monthly</option>' +
+      '<option value="Quarterly">Quarterly</option>';
+    freqSel.disabled      = false;
+    freqSel.style.opacity = '1';
+    if (!freqSel.value) freqSel.value = 'Monthly';
   } else {
-    freqSel.disabled = false;
+    // Non-meter fees: all options except Per Reading
+    freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
+      '<option value="Monthly">Monthly</option>' +
+      '<option value="Quarterly">Quarterly</option>' +
+      '<option value="Annual">Annual</option>' +
+      '<option value="One-Time">One-Time</option>';
+    freqSel.disabled      = false;
     freqSel.style.opacity = '1';
     if (freqSel.value === 'Per Reading') freqSel.value = 'Monthly';
   }

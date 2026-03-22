@@ -5959,6 +5959,20 @@ function onFeeTypeChange() {
   meterRefWrap.style.display = isMeter ? '' : 'none';
   if (isMeter) onChargeNameChange();
 
+  // Base Rate vs Current Price
+  var rateWrap         = document.getElementById('fs-rate-wrap');
+  var currentPriceWrap = document.getElementById('fs-current-price-wrap');
+  if (isMeter) {
+    rateWrap.style.display         = 'none';
+    currentPriceWrap.style.display = '';
+    document.getElementById('fs-rate').value = 0;
+    // Load current price from Utility Unit Prices
+    fetchCurrentFeePrice();
+  } else {
+    rateWrap.style.display         = '';
+    currentPriceWrap.style.display = 'none';
+  }
+
   // Frequency — auto-set Per Reading for meter-based, restore Monthly for others
   if (isMeter) {
     // Meter-based fees: Monthly and Quarterly only
@@ -5981,6 +5995,40 @@ function onFeeTypeChange() {
   }
 }
 
+function fetchCurrentFeePrice() {
+  var chargeName   = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
+  var priceEl      = document.getElementById('fs-current-price');
+  if (!chargeName) {
+    priceEl.value = '—';
+    return;
+  }
+  priceEl.value = 'Loading...';
+  gasGet('getSettingsUtilityUnitPrices', _session.token)
+    .then(function(rows) {
+      var today = new Date();
+      today.setHours(0,0,0,0);
+      var active = (rows || []).filter(function(r) {
+        if (String(r.utilityName).trim() !== String(chargeName).trim()) return false;
+        if (String(r.status).toLowerCase() !== 'active') return false;
+        var effDate = new Date(r.effectiveDate);
+        if (isNaN(effDate.getTime())) return false;
+        if (effDate > today) return false;
+        return true;
+      });
+      if (active.length) {
+        // Sort by effective date descending — latest active price
+        active.sort(function(a,b) { return new Date(b.effectiveDate) - new Date(a.effectiveDate); });
+        var p = active[0];
+        priceEl.value = p.pricePerUnit + ' / ' + p.unitOfMeasure + '  (as set in Utility Unit Prices)';
+      } else {
+        priceEl.value = '⚠️ No active price set — charges cannot be calculated until a price is set in Utility Unit Prices';
+      }
+    })
+    .catch(function() {
+      priceEl.value = '⚠️ Could not load price';
+    });
+}
+
 function onChargeNameChange() {
   var chargeName = document.getElementById('fs-name').value;
   var feeType    = document.getElementById('fs-fee-type').value;
@@ -5994,6 +6042,7 @@ function onChargeNameChange() {
              u.indexOf(chargeName) !== -1;
     });
     document.getElementById('fs-meter-ref').value = matched || chargeName;
+    fetchCurrentFeePrice();
   }
 }
 
@@ -7558,9 +7607,13 @@ function fmtMoney(val) {
           <option value="" disabled selected>Select...</option>
         </select>
       </div>
-      <div class="cs-field">
+      <div class="cs-field" id="fs-rate-wrap">
         <div class="cs-lbl">Base Rate / السعر الأساسي <span class="req">*</span></div>
         <input class="inp" type="number" id="fs-rate" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="cs-field" id="fs-current-price-wrap" style="display:none;">
+        <div class="cs-lbl">Current Price / السعر الحالي</div>
+        <input class="inp" type="text" id="fs-current-price" readonly style="opacity:0.7;">
       </div>
     </div>
 

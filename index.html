@@ -6075,20 +6075,66 @@ function fetchCurrentFeePrice() {
 }
 
 function onChargeNameChange() {
-  var chargeName = document.getElementById('fs-name').value;
-  var feeType    = document.getElementById('fs-fee-type').value;
-  var isMeter    = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
-  if (isMeter) {
-    // Match charge name against utilities list
-    var utilities = window._feeUtilities || [];
-    var matched   = utilities.find(function(u) {
-      return u === chargeName ||
-             chargeName.indexOf(u) !== -1 ||
-             u.indexOf(chargeName) !== -1;
+  var chargeName   = document.getElementById('fs-name').value;
+  var feeTypeSel   = document.getElementById('fs-fee-type');
+  var distWrap     = document.getElementById('fs-distribution').closest('.cs-field') ||
+                     document.getElementById('fs-distribution').parentElement;
+  var feeTypeErr   = document.getElementById('fs-fee-type-err');
+
+  // Clear previous error
+  if (feeTypeErr) { feeTypeErr.style.display = 'none'; feeTypeErr.textContent = ''; }
+
+  // Check if charge name is utility-linked
+  var utilities  = window._feeUtilities || [];
+  var matchedUtil = utilities.find(function(u) {
+    var uName = u.name || u;
+    return uName === chargeName ||
+           chargeName.indexOf(uName) !== -1 ||
+           uName.indexOf(chargeName) !== -1;
+  });
+
+  if (matchedUtil) {
+    // Utility-linked — show meter-based fee types only
+    var meterType = matchedUtil.meterType || '';
+    feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>';
+    METER_BASED_FEE_TYPES.forEach(function(ft) {
+      feeTypeSel.innerHTML += '<option value="' + ft + '">' + ft + '</option>';
     });
-    document.getElementById('fs-meter-ref').value = matched || chargeName;
-    fetchCurrentFeePrice();
+    feeTypeSel.value = '';
+
+    // Auto-fill meter reference
+    document.getElementById('fs-meter-ref').value = matchedUtil.name || chargeName;
+
+    // Show/hide Distribution Method based on meter type
+    if (meterType === 'Building') {
+      distWrap.style.display = '';
+    } else {
+      distWrap.style.display = 'none';
+      document.getElementById('fs-distribution').value = 'Individual';
+    }
+
+    // Show meter ref wrap
+    document.getElementById('fs-meter-ref-wrap').style.display = '';
+
+  } else {
+    // Non-utility — show Fixed and Per-SqM only
+    feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
+      '<option value="Fixed">Fixed</option>' +
+      '<option value="Per-SqM">Per-SqM</option>';
+    feeTypeSel.value = '';
+
+    // Hide meter ref and distribution
+    document.getElementById('fs-meter-ref-wrap').style.display = 'none';
+    document.getElementById('fs-meter-ref').value = '';
+    distWrap.style.display = 'none';
+
+    // Show base rate, hide current price
+    document.getElementById('fs-rate-wrap').style.display = '';
+    document.getElementById('fs-current-price-wrap').style.display = 'none';
   }
+
+  // Trigger fee type change to update rest of form
+  onFeeTypeChange();
 }
 
 function editFee(feeId) {

@@ -6039,16 +6039,18 @@ function fetchCurrentFeePrice() {
 
         // Check fee type matches unit of measure
         var unitMap = {
-          'Per-Kwh':   'Kwh',
-          'Per-M³':    'M³',
-          'Per-Liter': 'Liter',
-          'Per-Ton':   'Ton',
-          'Per-Kg':    'Kg',
-          'Per-Mbps':  'Mbps',
-          'Per-Gbyte': 'Gbyte'
+          'Per-Kwh':    ['kwh', 'kWh', 'KWh', 'KWH'],
+          'Per-M³':     ['m³', 'M³', 'm3', 'M3'],
+          'Per-Liter':  ['liter', 'Liter', 'litre', 'Litre', 'L'],
+          'Per-Ton':    ['ton', 'Ton', 'tonne', 'Tonne'],
+          'Per-Kg':     ['kg', 'Kg', 'KG'],
+          'Per-Mbps':   ['mbps', 'Mbps', 'MBPS'],
+          'Per-Gbyte':  ['gbyte', 'Gbyte', 'GB', 'gb'],
+          'Per-Ampere': ['ampere', 'Ampere', 'amp', 'Amp', 'A']
         };
-        var expectedUnit = unitMap[feeType] || '';
-        if (expectedUnit && String(p.unitOfMeasure).trim() !== expectedUnit) {
+        var expectedUnits = unitMap[feeType] || [];
+        var actualUnit = String(p.unitOfMeasure).trim();
+        if (expectedUnits.length && expectedUnits.indexOf(actualUnit) === -1) {
           // Fee type mismatch
           priceEl.value = '';
           feeTypeErr.textContent  = '⚠️ Fee type ' + feeType + ' does not match this utility\'s unit (' + p.unitOfMeasure + '). Check Utility Unit Prices. / نوع الرسم لا يتوافق مع وحدة قياس هذه الخدمة.';

@@ -6041,19 +6041,20 @@ function fetchCurrentFeePrice() {
 
         // Check fee type matches unit of measure
         var unitMap = {
-          'Per-Kwh':    ['kwh', 'kWh', 'KWh', 'KWH'],
-          'Per-M³':     ['m³', 'M³', 'm3', 'M3'],
-          'Per-Liter':  ['liter', 'Liter', 'litre', 'Litre', 'L'],
-          'Per-Ton':    ['ton', 'Ton', 'tonne', 'Tonne'],
-          'Per-Kg':     ['kg', 'Kg', 'KG'],
-          'Per-Mbps':   ['mbps', 'Mbps', 'MBPS'],
-          'Per-Gbyte':  ['gbyte', 'Gbyte', 'GB', 'gb'],
-          'Per-Ampere': ['ampere', 'Ampere', 'amp', 'Amp', 'A']
+          'Per-Kwh':    ['kwh'],
+          'Per-M³':     ['m³', 'm3'],
+          'Per-Liter':  ['liter', 'litre', 'l'],
+          'Per-Ton':    ['ton', 'tonne'],
+          'Per-Kg':     ['kg'],
+          'Per-Mbps':   ['mbps'],
+          'Per-Gbyte':  ['gbyte', 'gb'],
+          'Per-Ampere': ['ampere', 'amp', 'a']
         };
         
         var expectedUnits = unitMap[feeType] || [];
-        var actualUnit = String(p.unitOfMeasure).trim();
-        if (expectedUnits.length && expectedUnits.indexOf(actualUnit) === -1) {
+        var actualUnit = String(p.unitOfMeasure).trim().toLowerCase();
+        var expectedLower = expectedUnits.map(function(u) { return u.toLowerCase(); });
+        if (expectedUnits.length && expectedLower.indexOf(actualUnit) === -1) {
           // Fee type mismatch
           priceEl.value = '';
           feeTypeErr.textContent  = '⚠️ Fee type ' + feeType + ' does not match this utility\'s unit (' + p.unitOfMeasure + '). Check Utility Unit Prices. / نوع الرسم لا يتوافق مع وحدة قياس هذه الخدمة.';

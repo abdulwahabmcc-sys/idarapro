@@ -5941,7 +5941,6 @@ function onFeeTargetTypeChange() {
 var METER_BASED_FEE_TYPES = ['Per-Kwh','Per-M³','Per-Liter','Per-Ton','Per-Kg','Per-Mbps','Per-Gbyte','Per-Ampere','Bill-Based'];
 
 function onFeeTypeChange() {
-  if (window._onChargeNameChanging) return;
   var feeType       = document.getElementById('fs-fee-type').value;
   var prorationWrap = document.getElementById('fs-proration-wrap');
   var meterRefWrap  = document.getElementById('fs-meter-ref-wrap');

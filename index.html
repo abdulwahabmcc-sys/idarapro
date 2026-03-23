@@ -6002,6 +6002,7 @@ function onFeeTypeChange() {
 function fetchCurrentFeePrice() {
   var chargeName   = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
   var feeType      = document.getElementById('fs-fee-type').value;
+  console.log('feeType at fetch time:', feeType);
   var priceEl      = document.getElementById('fs-current-price');
   var feeTypeErr   = document.getElementById('fs-fee-type-err');
   var submitBtn    = document.getElementById('fs-submit');

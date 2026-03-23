@@ -6002,7 +6002,6 @@ function onFeeTypeChange() {
 function fetchCurrentFeePrice() {
   var chargeName   = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
   var feeType      = document.getElementById('fs-fee-type').value;
-  console.log('feeType at fetch time:', feeType);
   var priceEl      = document.getElementById('fs-current-price');
   var feeTypeErr   = document.getElementById('fs-fee-type-err');
   var submitBtn    = document.getElementById('fs-submit');
@@ -6017,7 +6016,6 @@ function fetchCurrentFeePrice() {
   }
 
   priceEl.value = 'Loading...';
-  console.log('fetchCurrentFeePrice chargeName:', chargeName);
 
   gasGet('getSettingsUtilityUnitPrices', _session.token)
     .then(function(rows) {
@@ -6033,8 +6031,7 @@ function fetchCurrentFeePrice() {
         if (effDate > today) return false;
         return true;
       });
-      console.log('fetchCurrentFeePrice chargeName:', chargeName);
-      console.log('UUP rows total:', rows ? rows.length : 0, 'active matches:', active.length);
+      
       if (rows) rows.forEach(function(r){ console.log('UUP row:', r.utilityName, '| status:', r.status, '| price:', r.pricePerUnit, '| unit:', r.unitOfMeasure); });
 
       if (active.length) {
@@ -6057,7 +6054,6 @@ function fetchCurrentFeePrice() {
         var expectedUnits = unitMap[feeType] || [];
         var actualUnit = String(p.unitOfMeasure).trim();
         if (expectedUnits.length && expectedUnits.indexOf(actualUnit) === -1) {
-          console.log('expectedUnits:', JSON.stringify(expectedUnits), 'actualUnit:', actualUnit, 'match:', expectedUnits.indexOf(actualUnit));
           // Fee type mismatch
           priceEl.value = '';
           feeTypeErr.textContent  = '⚠️ Fee type ' + feeType + ' does not match this utility\'s unit (' + p.unitOfMeasure + '). Check Utility Unit Prices. / نوع الرسم لا يتوافق مع وحدة قياس هذه الخدمة.';

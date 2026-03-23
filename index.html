@@ -6137,6 +6137,11 @@ function onChargeNameChange() {
       document.getElementById('fs-rate').value = 0;
 
       if (distWrap) distWrap.style.display = '';
+      // Remove Individual option for Bill-Based
+      var distSelBill = document.getElementById('fs-distribution');
+      distSelBill.innerHTML = '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
+                              '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
+      distSelBill.value = 'Equal Split';
 
     } else {
       // Individual or Building — derive fee type from unit
@@ -6158,11 +6163,15 @@ function onChargeNameChange() {
 
       // Show/hide distribution based on meter type
       if (meterType === 'Building') {
-        if (distWrap) distWrap.style.display = '';
-      } else {
-        if (distWrap) distWrap.style.display = 'none';
-        if (distField) distField.value = 'Individual';
-      }
+      if (distWrap) distWrap.style.display = '';
+      var distSel = document.getElementById('fs-distribution');
+      distSel.innerHTML = '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
+                          '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
+      distSel.value = 'Equal Split';
+    } else {
+      if (distWrap) distWrap.style.display = 'none';
+      if (distField) distField.value = 'Individual';
+    }
 
       // Show current price, hide base rate
       rateWrap.style.display = 'none';
@@ -6176,6 +6185,14 @@ function onChargeNameChange() {
     feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
       '<option value="Fixed">Fixed</option>' +
       '<option value="Per-SqM">Per-SqM</option>';
+      // Restore all distribution options for non-utility fees
+    var distSelNon = document.getElementById('fs-distribution');
+    if (distSelNon) {
+      distSelNon.innerHTML = '<option value="Individual">Individual / فردي</option>' +
+                             '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
+                             '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
+      distSelNon.value = 'Individual';
+    }
     feeTypeSel.value     = '';
     feeTypeSel.disabled  = false;
     feeTypeSel.style.opacity = '1';

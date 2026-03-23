@@ -6087,6 +6087,7 @@ function onChargeNameChange() {
   var cpWrap       = document.getElementById('fs-current-price-wrap');
   var distField    = document.getElementById('fs-distribution');
   var distWrap     = distField ? distField.closest('.cs-field') || distField.parentElement : null;
+  var freqSel      = document.getElementById('fs-frequency');
 
   // Clear previous errors
   if (feeTypeErr) { feeTypeErr.style.display = 'none'; feeTypeErr.textContent = ''; }
@@ -6122,11 +6123,21 @@ function onChargeNameChange() {
       'Ampere': 'Per-Ampere', 'Amp':   'Per-Ampere',  'A': 'Per-Ampere'
     };
 
+    // Set frequency to Monthly/Quarterly only for all utility types
+    freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
+      '<option value="Monthly">Monthly</option>' +
+      '<option value="Quarterly">Quarterly</option>';
+    freqSel.disabled      = false;
+    freqSel.style.opacity = '1';
+    if (!freqSel.value || freqSel.value === 'Annual' || freqSel.value === 'One-Time') {
+      freqSel.value = 'Monthly';
+    }
+
     if (meterType === 'Bill-Based') {
       // Bill-Based — lock fee type, hide price fields, show distribution
-      feeTypeSel.innerHTML = '<option value="Bill-Based">Bill-Based</option>';
-      feeTypeSel.value     = 'Bill-Based';
-      feeTypeSel.disabled  = true;
+      feeTypeSel.innerHTML     = '<option value="Bill-Based">Bill-Based</option>';
+      feeTypeSel.value         = 'Bill-Based';
+      feeTypeSel.disabled      = true;
       feeTypeSel.style.opacity = '0.6';
 
       rateWrap.style.display = 'none';
@@ -6134,7 +6145,6 @@ function onChargeNameChange() {
       document.getElementById('fs-rate').value = 0;
 
       if (distWrap) distWrap.style.display = '';
-      // Remove Individual option for Bill-Based
       var distSelBill = document.getElementById('fs-distribution');
       distSelBill.innerHTML = '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
                               '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
@@ -6151,7 +6161,7 @@ function onChargeNameChange() {
         feeTypeSel.innerHTML = '<option value="" disabled selected>⚠️ Unit not recognized — check Utility Master</option>';
         feeTypeSel.value     = '';
         if (feeTypeErr) {
-          feeTypeErr.textContent  = '⚠️ Unit of measure "' + unit + '" not recognized. Please update Utility Master. / وحدة القياس غير معروفة، يرجى تحديث الخدمات.';
+          feeTypeErr.textContent   = '⚠️ Unit of measure "' + unit + '" not recognized. Please update Utility Master. / وحدة القياس غير معروفة، يرجى تحديث الخدمات.';
           feeTypeErr.style.display = 'block';
         }
       }
@@ -6160,15 +6170,15 @@ function onChargeNameChange() {
 
       // Show/hide distribution based on meter type
       if (meterType === 'Building') {
-      if (distWrap) distWrap.style.display = '';
-      var distSel = document.getElementById('fs-distribution');
-      distSel.innerHTML = '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
-                          '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
-      distSel.value = 'Equal Split';
-    } else {
-      if (distWrap) distWrap.style.display = 'none';
-      if (distField) distField.value = 'Individual';
-    }
+        if (distWrap) distWrap.style.display = '';
+        var distSel = document.getElementById('fs-distribution');
+        distSel.innerHTML = '<option value="Equal Split">Equal Split / توزيع متساوي</option>' +
+                            '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
+        distSel.value = 'Equal Split';
+      } else {
+        if (distWrap) distWrap.style.display = 'none';
+        if (distField) distField.value = 'Individual';
+      }
 
       // Show current price, hide base rate
       rateWrap.style.display = 'none';
@@ -6179,10 +6189,23 @@ function onChargeNameChange() {
 
   } else {
     // Non-utility linked — Fixed or Per-SqM only
-    feeTypeSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
+    feeTypeSel.innerHTML     = '<option value="" disabled selected>Select...</option>' +
       '<option value="Fixed">Fixed</option>' +
       '<option value="Per-SqM">Per-SqM</option>';
-      // Restore all distribution options for non-utility fees
+    feeTypeSel.value         = '';
+    feeTypeSel.disabled      = false;
+    feeTypeSel.style.opacity = '1';
+
+    // Restore all frequency options
+    freqSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
+      '<option value="Monthly">Monthly</option>' +
+      '<option value="Quarterly">Quarterly</option>' +
+      '<option value="Annual">Annual</option>' +
+      '<option value="One-Time">One-Time</option>';
+    freqSel.disabled      = false;
+    freqSel.style.opacity = '1';
+
+    // Restore all distribution options
     var distSelNon = document.getElementById('fs-distribution');
     if (distSelNon) {
       distSelNon.innerHTML = '<option value="Individual">Individual / فردي</option>' +
@@ -6190,9 +6213,6 @@ function onChargeNameChange() {
                              '<option value="Pro-rata SqM">Pro-rata SqM / نسبة المساحة</option>';
       distSelNon.value = 'Individual';
     }
-    feeTypeSel.value     = '';
-    feeTypeSel.disabled  = false;
-    feeTypeSel.style.opacity = '1';
 
     // Hide meter ref, distribution, current price — show base rate
     meterRefWrap.style.display = 'none';
@@ -6202,8 +6222,7 @@ function onChargeNameChange() {
     rateWrap.style.display = '';
     cpWrap.style.display   = 'none';
   }
-
-  }
+}
 
 function editFee(feeId) {
   var f = _feesCache.find(function(x){ return x.feeId === feeId; });
@@ -7830,11 +7849,6 @@ function fmtMoney(val) {
         <div class="cs-lbl">Frequency / التكرار <span class="req">*</span></div>
         <select class="inp" id="fs-frequency">
           <option value="" disabled selected>Select...</option>
-          <option value="Monthly">Monthly</option>
-          <option value="Quarterly">Quarterly</option>
-          <option value="Annual">Annual</option>
-          <option value="One-Time">One-Time</option>
-          <option value="Per Reading">Per Reading</option>
         </select>
       </div>
       <div class="cs-field" id="fs-proration-wrap">

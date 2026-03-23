@@ -6316,6 +6316,16 @@ function openFeeSheet(f) {
     if (isEdit) {
       document.getElementById('fs-proration').value = f.proration  || 'Full-Month';
       document.getElementById('fs-meter-ref').value = f.meterRef   || '';
+      // Fix frequency options for meter-based fees in edit mode
+      var editFeeType = String(f.feeType || '');
+      var isMeterEdit = METER_BASED_FEE_TYPES.indexOf(editFeeType) !== -1;
+      if (isMeterEdit) {
+        var freqSelEdit = document.getElementById('fs-frequency');
+        freqSelEdit.innerHTML = '<option value="" disabled>Select...</option>' +
+          '<option value="Monthly">Monthly</option>' +
+          '<option value="Quarterly">Quarterly</option>';
+        freqSelEdit.value = f.frequency || 'Monthly';
+      }
     }
 
     var btn = document.getElementById('fs-submit');

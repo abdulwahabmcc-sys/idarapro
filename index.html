@@ -6056,6 +6056,7 @@ function fetchCurrentFeePrice() {
         var expectedUnits = unitMap[feeType] || [];
         var actualUnit = String(p.unitOfMeasure).trim();
         if (expectedUnits.length && expectedUnits.indexOf(actualUnit) === -1) {
+          console.log('expectedUnits:', JSON.stringify(expectedUnits), 'actualUnit:', actualUnit, 'match:', expectedUnits.indexOf(actualUnit));
           // Fee type mismatch
           priceEl.value = '';
           feeTypeErr.textContent  = '⚠️ Fee type ' + feeType + ' does not match this utility\'s unit (' + p.unitOfMeasure + '). Check Utility Unit Prices. / نوع الرسم لا يتوافق مع وحدة قياس هذه الخدمة.';

@@ -6032,8 +6032,7 @@ function fetchCurrentFeePrice() {
         return true;
       });
       
-      if (rows) rows.forEach(function(r){ console.log('UUP row:', r.utilityName, '| status:', r.status, '| price:', r.pricePerUnit, '| unit:', r.unitOfMeasure); });
-
+      
       if (active.length) {
         // Sort by effective date descending — latest active price
         active.sort(function(a,b) { return new Date(b.effectiveDate) - new Date(a.effectiveDate); });

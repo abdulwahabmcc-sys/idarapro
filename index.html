@@ -6171,6 +6171,9 @@ function onChargeNameChange() {
       feeTypeSel.disabled      = true;
       feeTypeSel.style.opacity = '0.6';
 
+      // Trigger fee type change to hide proration, show current price etc.
+      onFeeTypeChange();
+
       // Show/hide distribution based on meter type
       if (meterType === 'Building') {
         if (distWrap) distWrap.style.display = '';

@@ -7153,9 +7153,9 @@ function onUupUtilityChange() {
   unitEl.value      = unit;
   meterTypeEl.value = meterType;
 
-  // Bill-Based utilities have no unit — show note
+  // Bill-Based utilities have no unit — show placeholder only, save empty
   if (meterType === 'Bill-Based') {
-    unitEl.value        = 'N/A';
+    unitEl.value        = '';
     unitEl.placeholder  = 'Bill-Based — no unit';
   }
 

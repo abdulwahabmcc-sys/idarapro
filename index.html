@@ -8334,22 +8334,27 @@ function fmtMoney(val) {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
-        <div class="cs-lbl">Price per Unit / السعر للوحدة <span class="req">*</span></div>
-        <input class="inp" type="number" id="uup-price" placeholder="0.000" step="0.001" min="0">
+        <div class="cs-lbl">Meter Type / نوع العداد</div>
+        <input class="inp" type="text" id="uup-meter-type" readonly
+               style="opacity:0.6;background:var(--input-bg,#f5f5f5);"
+               placeholder="Auto-populated...">
       </div>
       <div class="cs-field">
         <div class="cs-lbl">Unit of Measure / وحدة القياس <span class="req">*</span></div>
-        <select class="inp" id="uup-unit">
-          <option value="" disabled selected>Select unit...</option>
-          <option value="Kwh">Kwh</option>
-          <option value="Ampere">Ampere</option>
-          <option value="Liter">Liter</option>
-          <option value="M³">M³</option>
-          <option value="Ton">Ton</option>
-          <option value="Kg">Kg</option>
-          <option value="Mbps">Mbps</option>
-          <option value="Gbyte">Gbyte</option>
-        </select>
+        <input class="inp" type="text" id="uup-unit" readonly
+               style="opacity:0.6;background:var(--input-bg,#f5f5f5);"
+               placeholder="Auto-populated...">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="cs-field">
+        <div class="cs-lbl">Price per Unit / السعر للوحدة <span class="req">*</span></div>
+        <input class="inp" type="number" id="uup-price" placeholder="0.000" step="0.001" min="0">
+      </div>
+      <div class="cs-field" id="uup-bill-amount-field" style="display:none;">
+        <div class="cs-lbl">Bill Amount / قيمة الفاتورة</div>
+        <input class="inp" type="number" id="uup-bill-amount" placeholder="0.00" step="0.01" min="0">
       </div>
     </div>
 

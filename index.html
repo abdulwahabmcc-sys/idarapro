@@ -7184,11 +7184,17 @@ function onUupUtilityChange() {
 
   // Show/hide Unit of Measure field based on Meter Type
   var unitField = unitEl.closest('.cs-field');
+  var priceLbl  = document.getElementById('uup-price')
+                    ? document.getElementById('uup-price').closest('.cs-field').querySelector('.cs-lbl')
+                    : null;
   if (meterType === 'Bill-Based') {
     unitEl.value = '';
+    unitEl.placeholder = '';
     if (unitField) unitField.style.display = 'none';
+    if (priceLbl) priceLbl.innerHTML = 'Bill Amount / قيمة الفاتورة <span class="req">*</span>';
   } else {
     if (unitField) unitField.style.display = '';
+    if (priceLbl) priceLbl.innerHTML = 'Price per Unit / السعر للوحدة <span class="req">*</span>';
   }
 
   Logger.log && Logger.log('onUupUtilityChange: ' + selectedOpt.value + ' → unit=' + unit + ' meterType=' + meterType);
@@ -7268,7 +7274,30 @@ function submitUtilityUnitPrice() {
     return;
   }
 
-  // New entry — save directly
+  // New entry — validate future date against active price
+  if (!isEdit) {
+    var effDateVal = new Date(effectiveDate);
+    effDateVal.setHours(0, 0, 0, 0);
+    var todayVal = new Date(); todayVal.setHours(0, 0, 0, 0);
+
+    if (effDateVal > todayVal) {
+      // Check if active price exists in cache
+      var hasActive = _uupCache.some(function(r) {
+        return r.utilityName === utilityName &&
+               String(r.status).toLowerCase() === 'active' &&
+               (!r.endDate || (function() {
+                 var ed = new Date(r.endDate); ed.setHours(0,0,0,0);
+                 return ed >= todayVal;
+               })());
+      });
+      if (hasActive) {
+        showUupErr('❌ Cannot create a future-dated price while an active price exists. Expire the current price first.');
+        return;
+      }
+    }
+  }
+
+  // Save
   doSaveUtilityUnitPrice(payload);
 }
 

@@ -6017,7 +6017,7 @@ function fetchCurrentFeePrice() {
 
   priceEl.value = 'Loading...';
 
-  gasGet('getSettingsUtilityUnitPrices', _session.token)
+  gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
     .then(function(rows) {
       var today = new Date();
       today.setHours(0,0,0,0);
@@ -7274,21 +7274,56 @@ function submitUtilityUnitPrice() {
     return;
   }
 
-  // New entry — validate future date against active price
+  // New entry — validate dates and detect Case 2 (future-dated price exists)
   if (!isEdit) {
     var effDateVal = new Date(effectiveDate);
     effDateVal.setHours(0, 0, 0, 0);
     var todayVal = new Date(); todayVal.setHours(0, 0, 0, 0);
 
+    // Check for future-dated active price (Case 2)
+    var futureDatedPrice = null;
+    for (var fi = 0; fi < _uupCache.length; fi++) {
+      var fc = _uupCache[fi];
+      if (fc.utilityName !== utilityName) continue;
+      if (String(fc.status).toLowerCase() !== 'active') continue;
+      var fcEff = new Date(fc.effectiveDate); fcEff.setHours(0,0,0,0);
+      if (fcEff > todayVal) {
+        futureDatedPrice = fc;
+        break;
+      }
+    }
+
+    // Case 2 — future-dated price exists and new price is effective today or past
+    if (futureDatedPrice && effDateVal <= todayVal) {
+      // Show warning dialog with full details
+      var bodyEl = document.getElementById('uup-future-dialog-body');
+      if (bodyEl) {
+        bodyEl.innerHTML =
+          '<strong>Utility:</strong> ' + escHtml(utilityName) + '<br><br>' +
+          '<strong>Existing future price:</strong> $' + escHtml(futureDatedPrice.pricePerUnit) +
+          (futureDatedPrice.unitOfMeasure ? ' / ' + escHtml(futureDatedPrice.unitOfMeasure) : '') +
+          '<br>' +
+          '<strong>Scheduled from:</strong> ' + escHtml(futureDatedPrice.effectiveDate) +
+          (futureDatedPrice.endDate ? ' → ' + escHtml(futureDatedPrice.endDate) : '') +
+          '<br><br>' +
+          '<strong>Your new price:</strong> $' + escHtml(String(pricePerUnit)) +
+          (unitOfMeasure ? ' / ' + escHtml(unitOfMeasure) : '') +
+          '<br>' +
+          '<strong>Effective:</strong> ' + escHtml(effectiveDate);
+      }
+      _uupPendingPayload = payload;
+      document.getElementById('uup-future-dialog').style.display = 'flex';
+      return;
+    }
+
+    // Block future-dated new price if active price exists
     if (effDateVal > todayVal) {
-      // Check if active price exists in cache
       var hasActive = _uupCache.some(function(r) {
-        return r.utilityName === utilityName &&
-               String(r.status).toLowerCase() === 'active' &&
-               (!r.endDate || (function() {
-                 var ed = new Date(r.endDate); ed.setHours(0,0,0,0);
-                 return ed >= todayVal;
-               })());
+        if (r.utilityName !== utilityName) return false;
+        if (String(r.status).toLowerCase() !== 'active') return false;
+        if (!r.endDate) return true;
+        var ed = new Date(r.endDate); ed.setHours(0,0,0,0);
+        return ed >= todayVal;
       });
       if (hasActive) {
         showUupErr('❌ Cannot create a future-dated price while an active price exists. Expire the current price first.');
@@ -7319,6 +7354,16 @@ function closeUupEditDialog() {
 
 function confirmUupEdit() {
   document.getElementById('uup-edit-dialog').style.display = 'none';
+  if (_uupPendingPayload) doSaveUtilityUnitPrice(_uupPendingPayload);
+}
+
+function closeUupFutureDialog() {
+  document.getElementById('uup-future-dialog').style.display = 'none';
+  _uupPendingPayload = null;
+}
+
+function confirmUupFuture() {
+  document.getElementById('uup-future-dialog').style.display = 'none';
   if (_uupPendingPayload) doSaveUtilityUnitPrice(_uupPendingPayload);
 }
 
@@ -8546,6 +8591,22 @@ function fmtMoney(val) {
     <div style="display:flex;gap:10px;">
       <button onclick="closeUupEditDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
       <button onclick="confirmUupEdit()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Proceed / متابعة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Utility Unit Price — Future Price Exists Warning Dialog -->
+<div id="uup-future-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:380px;width:90%;text-align:center;">
+    <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+    <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Future Price Exists / يوجد سعر مستقبلي</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;text-align:left;" id="uup-future-dialog-body"></div>
+    <div style="background:var(--border);border-radius:10px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:var(--burg);text-align:left;">
+      ⚠️ By proceeding, the future-dated price will be <strong>Suspended</strong> and your new price will become active immediately.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeUupFutureDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
+      <button onclick="confirmUupFuture()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Proceed / متابعة</button>
     </div>
   </div>
 </div>

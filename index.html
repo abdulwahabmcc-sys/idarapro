@@ -6909,13 +6909,26 @@ function loadUtilityUnitPrices() {
         });
         var historyId = 'uup-hist-' + utilName.replace(/[^a-zA-Z0-9]/g, '_');
 
+        // Build meter type + unit tag for this utility
+        var firstEntry  = entries[0];
+        var meterType   = firstEntry.meterType || '';
+        var unitLabel   = firstEntry.unit || '';
+        var meterTag    = meterType === 'Bill-Based'
+          ? 'Bill-Based'
+          : meterType + (unitLabel ? ' · ' + unitLabel : '');
+
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">' +
-          '<div style="font-size:13px;font-weight:700;direction:ltr;margin-bottom:8px;">' + escHtml(utilName) + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<div style="font-size:13px;font-weight:700;direction:ltr;">' + escHtml(utilName) + '</div>' +
+            (meterTag ? '<span style="font-size:10px;color:var(--muted);background:var(--border);border-radius:6px;padding:2px 7px;">' + escHtml(meterTag) + '</span>' : '') +
+          '</div>' +
           (active
             ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
                 '<div>' +
                   '<span style="font-size:18px;font-weight:700;color:var(--forest);">$' + active.pricePerUnit + '</span>' +
-                  '<span style="font-size:11px;color:var(--muted);margin-left:4px;">/ ' + escHtml(active.unitOfMeasure) + '</span>' +
+                  (meterType !== 'Bill-Based' && active.unitOfMeasure
+                    ? '<span style="font-size:11px;color:var(--muted);margin-left:4px;">/ ' + escHtml(active.unitOfMeasure) + '</span>'
+                    : '') +
                 '</div>' +
                 '<div style="display:flex;gap:6px;align-items:center;">' +
                   '<span style="font-size:10px;color:var(--muted);">From ' + active.effectiveDate + 

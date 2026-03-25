@@ -6023,12 +6023,16 @@ function fetchCurrentFeePrice() {
       today.setHours(0,0,0,0);
 
       // Find active price for this utility
+      var todayStr = today.getFullYear() + '-' +
+                     String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                     String(today.getDate()).padStart(2, '0');
+
       var active = (rows || []).filter(function(r) {
         if (String(r.utilityName).trim() !== String(chargeName).trim()) return false;
         if (String(r.status).toLowerCase() !== 'active') return false;
-        var effDate = new Date(r.effectiveDate);
-        if (isNaN(effDate.getTime())) return false;
-        if (effDate > today) return false;
+        var effDateStr = String(r.effectiveDate).trim().substring(0, 10); // YYYY-MM-DD
+        if (!effDateStr) return false;
+        if (effDateStr > todayStr) return false; // string comparison safe for ISO dates
         return true;
       });
       

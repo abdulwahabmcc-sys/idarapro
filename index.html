@@ -6968,7 +6968,12 @@ function addUtilityUnitPrice() {
     (rows || []).forEach(function(u) {
       if (String(u.status).toLowerCase() === 'active') {
         var name = u.combinedName || u.name || '';
-        utilitySel.innerHTML += '<option value="' + escHtml(name) + '">' + escHtml(name) + '</option>';
+        var opt  = document.createElement('option');
+        opt.value           = name;
+        opt.textContent     = name;
+        opt.dataset.unit     = u.unit      || '';
+        opt.dataset.meterType = u.meterType || '';
+        utilitySel.appendChild(opt);
       }
     });
   }
@@ -6996,7 +7001,11 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-end-date').value        = '';
   document.getElementById('uup-price').value           = '';
   document.getElementById('uup-unit').value            = '';
+  document.getElementById('uup-meter-type').value      = '';
   document.getElementById('uup-notes').value           = '';
+
+  // Wire utility change handler
+  utilitySel.onchange = function() { onUupUtilityChange(); };
   document.getElementById('uup-recorded-by').value     = _session ? (_session.name || '') : '';
   document.getElementById('uup-utility').disabled      = false;
   document.getElementById('uup-utility').style.opacity = '1';
@@ -7006,9 +7015,15 @@ function addUtilityUnitPrice() {
     var el = document.getElementById(id);
     if (el) { el.readOnly = false; el.disabled = false; el.style.opacity = '1'; }
   });
+  // uup-unit and uup-meter-type are always readonly — auto-populated from Utility_Master
   var unitEl = document.getElementById('uup-unit');
+  unitEl.readOnly = true;
   unitEl.disabled = false;
-  unitEl.style.opacity = '1';
+  unitEl.style.opacity = '0.6';
+  var meterTypeEl = document.getElementById('uup-meter-type');
+  meterTypeEl.readOnly = true;
+  meterTypeEl.disabled = false;
+  meterTypeEl.style.opacity = '0.6';
   document.getElementById('uup-end-date').disabled  = false;
   document.getElementById('uup-end-date').style.opacity = '1';
   document.getElementById('uup-notes').readOnly     = false;
@@ -7104,6 +7119,39 @@ function editUtilityUnitPrice(utilityName) {
 
 function closeUupSheet() {
   document.getElementById('uup-sheet-wrap').classList.remove('open');
+}
+
+/**
+ * onUupUtilityChange()
+ * Fires when admin selects a utility in the Add Price form.
+ * Auto-populates Unit of Measure and Meter Type from Utility_Master
+ * via the data attributes stored on the option element.
+ */
+function onUupUtilityChange() {
+  var utilitySel  = document.getElementById('uup-utility');
+  var unitEl      = document.getElementById('uup-unit');
+  var meterTypeEl = document.getElementById('uup-meter-type');
+
+  var selectedOpt = utilitySel.options[utilitySel.selectedIndex];
+  if (!selectedOpt || !selectedOpt.value) {
+    unitEl.value      = '';
+    meterTypeEl.value = '';
+    return;
+  }
+
+  var unit      = selectedOpt.dataset.unit      || '';
+  var meterType = selectedOpt.dataset.meterType || '';
+
+  unitEl.value      = unit;
+  meterTypeEl.value = meterType;
+
+  // Bill-Based utilities have no unit — show note
+  if (meterType === 'Bill-Based') {
+    unitEl.value        = 'N/A';
+    unitEl.placeholder  = 'Bill-Based — no unit';
+  }
+
+  Logger.log && Logger.log('onUupUtilityChange: ' + selectedOpt.value + ' → unit=' + unit + ' meterType=' + meterType);
 }
 
 function showUupErr(msg) {

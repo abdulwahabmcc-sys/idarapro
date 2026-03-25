@@ -7184,7 +7184,7 @@ function submitUtilityUnitPrice() {
   if (!isEdit) {
     if (!utilityName)   { showUupErr('❌ Utility is required'); return; }
     if (!pricePerUnit)  { showUupErr('❌ Price is required'); return; }
-    if (!unitOfMeasure) { showUupErr('❌ Unit of measure is required'); return; }
+    if (!unitOfMeasure) { showUupErr('❌ Please select a utility first — Unit of Measure will auto-populate'); return; }
     if (!effectiveDate) { showUupErr('❌ Effective date is required'); return; }
   }
 

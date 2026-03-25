@@ -6903,8 +6903,9 @@ function loadUtilityUnitPrices() {
           var end = new Date(e.endDate); end.setHours(0,0,0,0);
           return end >= today;
         });
-        var history = entries.filter(function(e) { 
-          return String(e.status).toLowerCase() !== 'active' || !!e.endDate; 
+        var history = entries.filter(function(e) {
+          var s = String(e.status).toLowerCase();
+          return s === 'expired' || s === 'suspended';
         });
         var historyId = 'uup-hist-' + utilName.replace(/[^a-zA-Z0-9]/g, '_');
 
@@ -6917,7 +6918,8 @@ function loadUtilityUnitPrices() {
                   '<span style="font-size:11px;color:var(--muted);margin-left:4px;">/ ' + escHtml(active.unitOfMeasure) + '</span>' +
                 '</div>' +
                 '<div style="display:flex;gap:6px;align-items:center;">' +
-                  '<span style="font-size:10px;color:var(--muted);">From ' + active.effectiveDate + '</span>' +
+                  '<span style="font-size:10px;color:var(--muted);">From ' + active.effectiveDate + 
+                  (active.endDate ? ' → ' + active.endDate : '') + '</span>' +
                   '<button class="stg-user-btn" onclick="editUtilityUnitPrice(\'' + escHtml(utilName) + '\')">تعديل</button>' +
                 '</div>' +
               '</div>'
@@ -7008,6 +7010,10 @@ function addUtilityUnitPrice() {
   document.getElementById('uup-meter-type').value      = '';
   document.getElementById('uup-notes').value           = '';
 
+  // Reset Unit of Measure field visibility (may have been hidden by previous Bill-Based selection)
+  var unitField = document.getElementById('uup-unit').closest('.cs-field');
+  if (unitField) unitField.style.display = '';
+
   // Wire utility change handler
   utilitySel.onchange = function() { onUupUtilityChange(); };
   document.getElementById('uup-recorded-by').value     = _session ? (_session.name || '') : '';
@@ -7092,7 +7098,17 @@ function editUtilityUnitPrice(utilityName) {
   var cachedUtil = (_utilityCache || []).find(function(u) {
     return (u.combinedName || u.name || '') === utilityName;
   });
-  meterTypeEl.value = cachedUtil ? (cachedUtil.meterType || '') : '';
+  var editMeterType = cachedUtil ? (cachedUtil.meterType || '') : '';
+  meterTypeEl.value = editMeterType;
+
+  // Hide Unit of Measure field for Bill-Based utilities
+  var unitField = unitEl.closest('.cs-field');
+  if (editMeterType === 'Bill-Based') {
+    unitEl.value = '';
+    if (unitField) unitField.style.display = 'none';
+  } else {
+    if (unitField) unitField.style.display = '';
+  }
 
   // Editable fields
   document.getElementById('uup-end-date').disabled  = false;
@@ -7153,10 +7169,13 @@ function onUupUtilityChange() {
   unitEl.value      = unit;
   meterTypeEl.value = meterType;
 
-  // Bill-Based utilities have no unit — clear value and placeholder
+  // Show/hide Unit of Measure field based on Meter Type
+  var unitField = unitEl.closest('.cs-field');
   if (meterType === 'Bill-Based') {
-    unitEl.value       = '';
-    unitEl.placeholder = '';
+    unitEl.value = '';
+    if (unitField) unitField.style.display = 'none';
+  } else {
+    if (unitField) unitField.style.display = '';
   }
 
   Logger.log && Logger.log('onUupUtilityChange: ' + selectedOpt.value + ' → unit=' + unit + ' meterType=' + meterType);

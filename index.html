@@ -7073,10 +7073,22 @@ function editUtilityUnitPrice(utilityName) {
     if (el) { el.readOnly = true; el.disabled = true; el.style.opacity = '0.6'; }
   });
 
-  // Lock unit dropdown
+  // Lock unit and meter type — always readonly
   var unitEl = document.getElementById('uup-unit');
-  unitEl.disabled = true;
+  unitEl.readOnly = true;
+  unitEl.disabled = false;
   unitEl.style.opacity = '0.6';
+  unitEl.value = active.unitOfMeasure || '';
+
+  // Populate meter type from utility cache
+  var meterTypeEl = document.getElementById('uup-meter-type');
+  meterTypeEl.readOnly = true;
+  meterTypeEl.disabled = false;
+  meterTypeEl.style.opacity = '0.6';
+  var cachedUtil = (_utilityCache || []).find(function(u) {
+    return (u.combinedName || u.name || '') === utilityName;
+  });
+  meterTypeEl.value = cachedUtil ? (cachedUtil.meterType || '') : '';
 
   // Editable fields
   document.getElementById('uup-end-date').disabled  = false;
@@ -7086,15 +7098,7 @@ function editUtilityUnitPrice(utilityName) {
 
   // Set values
   document.getElementById('uup-price').value           = active.pricePerUnit;
-  var unitSel = document.getElementById('uup-unit');
-  unitSel.value = active.unitOfMeasure;
-  if (!unitSel.value && active.unitOfMeasure) {
-    var opt = document.createElement('option');
-    opt.value = active.unitOfMeasure;
-    opt.textContent = active.unitOfMeasure;
-    unitSel.appendChild(opt);
-    unitSel.value = active.unitOfMeasure;
-  }
+  // uup-unit already set in lock block above
   document.getElementById('uup-effective-date').value  = formatDateForInput(active.effectiveDate);
   document.getElementById('uup-end-date').value        = formatDateForInput(active.endDate || '');
   document.getElementById('uup-recorded-by').value     = active.recordedBy || '';

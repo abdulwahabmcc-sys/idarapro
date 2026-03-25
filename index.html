@@ -3509,9 +3509,10 @@ function renderFeeCards(el, rows) {
       ? escHtml(f.targetType) + ': ' + escHtml(f.target)
       : escHtml(f.targetType || f.target || 'All');
 
+    var cleanDate = function(d) { return d ? String(d).trim().substring(0, 10) : ''; };
     var dates = '';
-    if (f.startDate) dates += '<span class="fee-chip">From ' + f.startDate + '</span>';
-    if (f.endDate)   dates += '<span class="fee-chip" style="color:var(--burg);">Until ' + f.endDate + '</span>';
+    if (f.startDate) dates += '<span class="fee-chip">From ' + cleanDate(f.startDate) + '</span>';
+    if (f.endDate)   dates += '<span class="fee-chip" style="color:var(--burg);">Until ' + cleanDate(f.endDate) + '</span>';
 
     var notes = f.notes ? '<div class="fee-notes">' + escHtml(f.notes) + '</div>' : '';
 
@@ -3520,7 +3521,11 @@ function renderFeeCards(el, rows) {
         '<div class="fee-card-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
         '<div class="fee-status-pill" style="background:' + statusBg + ';color:' + statusColor + ';">● ' + escHtml(f.status || '') + '</div>' +
       '</div>' +
-      '<div class="fee-card-rate">$' + escHtml(String(f.baseRate || '0')) + '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span></div>' +
+      '<div class="fee-card-rate">' +
+  (METER_BASED_FEE_TYPES.indexOf(f.feeType) !== -1
+    ? '<span style="font-size:12px;color:var(--muted);">⚡ ' + escHtml(f.feeType || '') + ' · ' + escHtml(f.frequency || '') + '</span>'
+    : '$' + escHtml(String(f.baseRate || '0')) + '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span>') +
+'</div>' +
       '<div class="fee-card-chips">' +
         '<span class="fee-chip">' + escHtml(f.feeType || '') + '</span>' +
         '<span class="fee-chip">' + targetLabel + '</span>' +

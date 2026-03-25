@@ -6168,13 +6168,18 @@ function onChargeNameChange() {
           feeTypeErr.style.display = 'block';
         }
       }
+      
       feeTypeSel.disabled      = true;
       feeTypeSel.style.opacity = '0.6';
 
-      // Trigger fee type change to hide proration, show current price etc.
-      onFeeTypeChange();
+      // Hide proration directly — no onFeeTypeChange call to avoid infinite loop
+      var prorationWrap = document.getElementById('fs-proration-wrap');
+      if (prorationWrap) prorationWrap.style.display = 'none';
+      var prorationEl = document.getElementById('fs-proration');
+      if (prorationEl) prorationEl.value = 'None';
 
       // Show/hide distribution based on meter type
+
       if (meterType === 'Building') {
         if (distWrap) distWrap.style.display = '';
         var distSel = document.getElementById('fs-distribution');

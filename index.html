@@ -7153,10 +7153,9 @@ function onUupUtilityChange() {
   unitEl.value      = unit;
   meterTypeEl.value = meterType;
 
-  // Bill-Based utilities have no unit — show placeholder only, save empty
+  // Bill-Based utilities have no unit — leave empty
   if (meterType === 'Bill-Based') {
-    unitEl.value        = '';
-    
+    unitEl.value = '';
   }
 
   Logger.log && Logger.log('onUupUtilityChange: ' + selectedOpt.value + ' → unit=' + unit + ' meterType=' + meterType);
@@ -7188,7 +7187,10 @@ function submitUtilityUnitPrice() {
   if (!isEdit) {
     if (!utilityName)   { showUupErr('❌ Utility is required'); return; }
     if (!pricePerUnit)  { showUupErr('❌ Price is required'); return; }
-    if (!unitOfMeasure) { showUupErr('❌ Please select a utility first — Unit of Measure will auto-populate'); return; }
+    var meterTypeVal = document.getElementById('uup-meter-type').value;
+    if (!unitOfMeasure && meterTypeVal !== 'Bill-Based') {
+      showUupErr('❌ Please select a utility first — Unit of Measure will auto-populate'); return;
+    }
     if (!effectiveDate) { showUupErr('❌ Effective date is required'); return; }
   }
 

@@ -6896,8 +6896,12 @@ function loadUtilityUnitPrices() {
 
       el.innerHTML = Object.keys(grouped).map(function(utilName) {
         var entries   = grouped[utilName];
-        var active  = entries.find(function(e) { 
-          return String(e.status).toLowerCase() === 'active' && !e.endDate; 
+        var today = new Date(); today.setHours(0,0,0,0);
+        var active = entries.find(function(e) {
+          if (String(e.status).toLowerCase() !== 'active') return false;
+          if (!e.endDate) return true;
+          var end = new Date(e.endDate); end.setHours(0,0,0,0);
+          return end >= today;
         });
         var history = entries.filter(function(e) { 
           return String(e.status).toLowerCase() !== 'active' || !!e.endDate; 

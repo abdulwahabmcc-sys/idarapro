@@ -3503,7 +3503,7 @@ function loadFees() {
       })
       .catch(function() {});
   }
-  
+
   stgFromCache('fees', 'getSettingsFees', el)
     .then(function(rows) {
       _feesCache = rows || [];
@@ -3570,8 +3570,8 @@ function renderFeeCards(el, rows) {
           var livePrice = getActivePriceFromCache(f.meterRef || f.name);
           if (livePrice) {
             rateDisplay = '<div class="fee-card-rate" style="color:var(--forest);">' +
-              escHtml(String(livePrice.price)) + ' / ' + escHtml(livePrice.unit) +
-              '<span class="fee-rate-per"> · ' + escHtml(f.frequency || '') + '</span>' +
+              escHtml(String(livePrice.price)) +
+              '<span class="fee-rate-per"> / ' + escHtml(livePrice.unit) + ' · ' + escHtml(f.frequency || '') + '</span>' +
             '</div>';
           } else {
             rateDisplay = '<div class="fee-card-rate" style="color:var(--burg);">⚠️ No active price' +

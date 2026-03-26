@@ -3489,12 +3489,46 @@ function loadFees() {
       .then(function(data) { _feeLookupsCache = data; })
       .catch(function() {});
   }
+
+  // Pre-load UUP cache for live price display in fee cards
+  if (!_uupCache || !_uupCache.length) {
+    gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
+      .then(function(data) { _uupCache = data || []; })
+      .catch(function() {});
+  }
   stgFromCache('fees', 'getSettingsFees', el)
     .then(function(rows) {
       _feesCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد رسوم / No fees configured'); return; }
       renderFeeCards(el, rows);
     }).catch(function() { stgError(el); });
+}
+
+/**
+ * getActivePriceFromCache(utilityName)
+ * Looks up current active price for a utility from _uupCache.
+ * Returns { price, unit } or null if no active price found.
+ * Uses string date comparison (safe for ISO YYYY-MM-DD format).
+ */
+function getActivePriceFromCache(utilityName) {
+  if (!_uupCache || !_uupCache.length) return null;
+  var todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  var matches = _uupCache.filter(function(r) {
+    if (String(r.utilityName).trim() !== String(utilityName).trim()) return false;
+    if (String(r.status).toLowerCase() !== 'active') return false;
+    var effStr = String(r.effectiveDate).trim().substring(0, 10);
+    if (!effStr || effStr > todayStr) return false;
+    return true;
+  });
+  if (!matches.length) return null;
+  matches.sort(function(a, b) {
+    return String(b.effectiveDate).substring(0, 10) >
+           String(a.effectiveDate).substring(0, 10) ? 1 : -1;
+  });
+  return {
+    price: matches[0].pricePerUnit,
+    unit:  matches[0].unitOfMeasure
+  };
 }
 
 function renderFeeCards(el, rows) {
@@ -3521,11 +3555,33 @@ function renderFeeCards(el, rows) {
         '<div class="fee-card-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
         '<div class="fee-status-pill" style="background:' + statusBg + ';color:' + statusColor + ';">● ' + escHtml(f.status || '') + '</div>' +
       '</div>' +
-      '<div class="fee-card-rate">' +
-  (METER_BASED_FEE_TYPES.indexOf(f.feeType) !== -1
-    ? '<span style="font-size:12px;color:var(--muted);">⚡ ' + escHtml(f.feeType || '') + ' · ' + escHtml(f.frequency || '') + '</span>'
-    : '$' + escHtml(String(f.baseRate || '0')) + '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span>') +
-'</div>' +
+      (function() {
+        var isMeterFee = METER_BASED_FEE_TYPES.indexOf(f.feeType || '') !== -1;
+        var rateDisplay = '';
+        if (isMeterFee && f.feeType !== 'Bill-Based') {
+          var livePrice = getActivePriceFromCache(f.meterRef || f.name);
+          if (livePrice) {
+            rateDisplay = '<div class="fee-card-rate" style="color:var(--forest);">' +
+              escHtml(String(livePrice.price)) + ' / ' + escHtml(livePrice.unit) +
+              '<span class="fee-rate-per"> · ' + escHtml(f.frequency || '') + '</span>' +
+            '</div>';
+          } else {
+            rateDisplay = '<div class="fee-card-rate" style="color:var(--burg);">⚠️ No active price' +
+              '<span class="fee-rate-per"> · ' + escHtml(f.frequency || '') + '</span>' +
+            '</div>';
+          }
+        } else if (isMeterFee && f.feeType === 'Bill-Based') {
+          rateDisplay = '<div class="fee-card-rate" style="color:var(--muted);">Bill-Based' +
+            '<span class="fee-rate-per"> · ' + escHtml(f.frequency || '') +
+            ' · Managed via Invoices (Phase 8B)</span>' +
+          '</div>';
+        } else {
+          rateDisplay = '<div class="fee-card-rate">$' + escHtml(String(f.baseRate || '0')) +
+            '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span>' +
+          '</div>';
+        }
+        return rateDisplay;
+      })() +
       '<div class="fee-card-chips">' +
         '<span class="fee-chip">' + escHtml(f.feeType || '') + '</span>' +
         '<span class="fee-chip">' + targetLabel + '</span>' +

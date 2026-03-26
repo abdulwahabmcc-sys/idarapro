@@ -3540,12 +3540,23 @@ function getActivePriceFromCache(utilityName) {
 }
 
 function renderFeeCards(el, rows) {
-  el.innerHTML = rows.map(function(f) {
-    var status   = String(f.status || '').toLowerCase();
-    var isActive  = status === 'active';
-    var isExpired = status === 'expired';
-    var statusColor = isActive ? 'var(--forest)' : isExpired ? 'var(--burg)' : 'var(--muted)';
-    var statusBg    = isActive ? 'rgba(26,107,60,0.08)' : isExpired ? 'rgba(155,35,53,0.08)' : 'var(--bg)';
+  // Sort: Active first, then Expired/Suspended by end date descending
+  var sorted = rows.slice().sort(function(a, b) {
+    var aActive = String(a.status || '').toLowerCase() === 'active';
+    var bActive = String(b.status || '').toLowerCase() === 'active';
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    var aEnd = a.endDate ? a.endDate : '0000-00-00';
+    var bEnd = b.endDate ? b.endDate : '0000-00-00';
+    return bEnd > aEnd ? 1 : bEnd < aEnd ? -1 : 0;
+  });
+
+  el.innerHTML = sorted.map(function(f) {
+    var status     = String(f.status || '').toLowerCase();
+    var isActive   = status === 'active';
+    var isInactive = status === 'expired' || status === 'suspended';
+    var statusColor = isActive ? 'var(--forest)' : 'var(--burg)';
+    var statusBg    = isActive ? 'rgba(26,107,60,0.08)' : 'rgba(155,35,53,0.08)';
 
     var targetLabel = f.targetType && f.target
       ? escHtml(f.targetType) + ': ' + escHtml(f.target)
@@ -3558,7 +3569,7 @@ function renderFeeCards(el, rows) {
 
     var notes = f.notes ? '<div class="fee-notes">' + escHtml(f.notes) + '</div>' : '';
 
-    return '<div class="fee-card" style="opacity:' + (isExpired ? '0.65' : '1') + ';">' +
+    return '<div class="fee-card" style="opacity:' + (isInactive ? '0.65' : '1') + ';">' +
       '<div class="fee-card-top">' +
         '<div class="fee-card-name" style="direction:rtl;">' + escHtml(f.name || '—') + '</div>' +
         '<div class="fee-status-pill" style="background:' + statusBg + ';color:' + statusColor + ';">● ' + escHtml(f.status || '') + '</div>' +
@@ -3569,7 +3580,8 @@ function renderFeeCards(el, rows) {
         if (isMeterFee && f.feeType !== 'Bill-Based') {
           var livePrice = getActivePriceFromCache(f.meterRef || f.name);
           if (livePrice) {
-            rateDisplay = '<div class="fee-card-rate" style="color:var(--forest);direction:ltr;text-align:right;">' +
+            var priceColor = isActive ? 'var(--forest)' : 'var(--burg)';
+            rateDisplay = '<div class="fee-card-rate" style="color:' + priceColor + ';direction:ltr;text-align:right;">' +
               escHtml(String(livePrice.price)) +
               '<span class="fee-rate-per"> / ' + escHtml(livePrice.unit) + ' · ' + escHtml(f.frequency || '') + '</span>' +
             '</div>';

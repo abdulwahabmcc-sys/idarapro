@@ -3569,7 +3569,7 @@ function renderFeeCards(el, rows) {
         if (isMeterFee && f.feeType !== 'Bill-Based') {
           var livePrice = getActivePriceFromCache(f.meterRef || f.name);
           if (livePrice) {
-            rateDisplay = '<div class="fee-card-rate" style="color:var(--forest);">' +
+            rateDisplay = '<div class="fee-card-rate" style="color:var(--forest);direction:ltr;text-align:right;">' +
               escHtml(String(livePrice.price)) +
               '<span class="fee-rate-per"> / ' + escHtml(livePrice.unit) + ' · ' + escHtml(f.frequency || '') + '</span>' +
             '</div>';

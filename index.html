@@ -3493,9 +3493,17 @@ function loadFees() {
   // Pre-load UUP cache for live price display in fee cards
   if (!_uupCache || !_uupCache.length) {
     gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
-      .then(function(data) { _uupCache = data || []; })
+      .then(function(data) {
+        _uupCache = data || [];
+        // Re-render fee cards now that UUP cache is ready
+        if (_feesCache && _feesCache.length) {
+          var feesEl = stgListEl('stg-fees-list');
+          if (feesEl) renderFeeCards(feesEl, _feesCache);
+        }
+      })
       .catch(function() {});
   }
+  
   stgFromCache('fees', 'getSettingsFees', el)
     .then(function(rows) {
       _feesCache = rows || [];

@@ -3596,7 +3596,8 @@ function renderFeeCards(el, rows) {
             ' · Managed via Invoices (Phase 8B)</span>' +
           '</div>';
         } else {
-          rateDisplay = '<div class="fee-card-rate">$' + escHtml(String(f.baseRate || '0')) +
+          var fixedColor = isActive ? '' : 'color:var(--burg);';
+          rateDisplay = '<div class="fee-card-rate" style="' + fixedColor + '">$' + escHtml(String(f.baseRate || '0')) +
             '<span class="fee-rate-per"> / ' + escHtml(f.frequency || '') + '</span>' +
           '</div>';
         }

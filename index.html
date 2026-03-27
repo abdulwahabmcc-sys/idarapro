@@ -3952,13 +3952,40 @@ function onMtrTypeChange(type) {
 
 function populateMtrUtilities(rows, meterType) {
   var utilitySel = document.getElementById('mtr-utility');
-  utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
-  rows.forEach(function(u) {
-    if (String(u.status).toLowerCase() !== 'active') return;
-    if (u.meterType !== meterType) return;
-    var name = u.combinedName || u.name || '';
-    utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="">' + escHtml(name) + '</option>';
-  });
+
+  // Build set of utility names with Active fee rules
+  function buildAndRender(feeRows) {
+    var activeFeeUtilities = {};
+    (feeRows || []).forEach(function(f) {
+      if (String(f.status || '').toLowerCase() === 'active' && f.meterRef) {
+        activeFeeUtilities[f.meterRef] = true;
+      }
+    });
+
+    utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+    rows.forEach(function(u) {
+      if (String(u.status).toLowerCase() !== 'active') return;
+      if (u.meterType !== meterType) return;
+      var name = u.combinedName || u.name || '';
+      if (!activeFeeUtilities[name]) return;
+      utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="">' + escHtml(name) + '</option>';
+    });
+  }
+
+  // Use _feesCache if available, otherwise fetch
+  if (_feesCache && _feesCache.length) {
+    buildAndRender(_feesCache);
+  } else {
+    utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    gasPost({ action: 'getSettingsFees', token: _session.token })
+      .then(function(feeRows) {
+        _feesCache = feeRows || [];
+        buildAndRender(_feesCache);
+      })
+      .catch(function() {
+        utilitySel.innerHTML = '<option value="" disabled selected>Failed to load</option>';
+      });
+  }
 }
 
 function populateMtrContracts(rows) {

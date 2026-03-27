@@ -4067,7 +4067,7 @@ function fetchMtrPreviousReading() {
   if (_mtrCache && _mtrCache.length) {
     var matches = _mtrCache.filter(function(r) {
       if (r.utilityName !== utilityName) return false;
-      if (r.status === 'Cancelled' || r.status === 'Opening') return false;
+      if (r.status === 'Cancelled' || r.status === 'Overridden') return false;
       if (meterType === 'Individual' && r.contractId !== contractId) return false;
       if (meterType === 'Building' && r.contractId !== 'BUILDING') return false;
       return true;

@@ -3962,14 +3962,21 @@ function populateMtrUtilities(rows, meterType) {
       }
     });
 
-    utilitySel.innerHTML = '<option value="" disabled selected>Select utility...</option>';
+    utilitySel.innerHTML = '';
+    var count = 0;
     rows.forEach(function(u) {
       if (String(u.status).toLowerCase() !== 'active') return;
       if (u.meterType !== meterType) return;
       var name = u.combinedName || u.name || '';
       if (!activeFeeUtilities[name]) return;
       utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="">' + escHtml(name) + '</option>';
+      count++;
     });
+    if (count === 0) {
+      utilitySel.innerHTML = '<option value="" disabled selected>⚠️ No active fee rules found for ' + meterType + ' meters</option>';
+    } else {
+      utilitySel.insertAdjacentHTML('afterbegin', '<option value="" disabled selected>Select utility...</option>');
+    }
   }
 
   // Use _feesCache if available, otherwise fetch
@@ -3983,7 +3990,7 @@ function populateMtrUtilities(rows, meterType) {
         buildAndRender(_feesCache);
       })
       .catch(function() {
-        utilitySel.innerHTML = '<option value="" disabled selected>Failed to load</option>';
+        utilitySel.innerHTML = '<option value="" disabled selected>⚠️ Could not load fee rules — check connection</option>';
       });
   }
 }

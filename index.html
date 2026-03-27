@@ -3969,7 +3969,7 @@ function populateMtrUtilities(rows, meterType) {
       if (u.meterType !== meterType) return;
       var name = u.combinedName || u.name || '';
       if (!activeFeeUtilities[name]) return;
-      utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="">' + escHtml(name) + '</option>';
+      utilitySel.innerHTML += '<option value="' + escHtml(name) + '" data-unit="' + escHtml(u.unit || '') + '">' + escHtml(name) + '</option>';
       count++;
     });
     if (count === 0) {

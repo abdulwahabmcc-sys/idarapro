@@ -3984,7 +3984,7 @@ function populateMtrUtilities(rows, meterType) {
     buildAndRender(_feesCache);
   } else {
     utilitySel.innerHTML = '<option value="" disabled selected>Loading...</option>';
-    gasPost({ action: 'getSettingsFees', token: _session.token })
+    gasGet('getSettingsFees', _session.token)
       .then(function(feeRows) {
         _feesCache = feeRows || [];
         buildAndRender(_feesCache);

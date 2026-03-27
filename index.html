@@ -6081,6 +6081,49 @@ function onFeeTypeChange() {
   }
 }
 
+/**
+ * onFrequencyChange()
+ * Handles One-Time frequency selection — auto-sets and locks date fields.
+ * Does NOT touch fee type, proration, or distribution.
+ */
+function onFrequencyChange() {
+  var freq    = document.getElementById('fs-frequency').value;
+  var startEl = document.getElementById('fs-start');
+  var endEl   = document.getElementById('fs-end');
+  var endWrap = endEl ? endEl.closest('.cs-field') : null;
+  var endLbl  = endWrap ? endWrap.querySelector('.cs-lbl') : null;
+
+  if (freq === 'One-Time') {
+    var today    = new Date();
+    var todayStr = today.getFullYear() + '-' +
+                   String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(today.getDate()).padStart(2, '0');
+
+    startEl.value        = todayStr;
+    startEl.readOnly     = true;
+    startEl.style.opacity = '0.6';
+
+    endEl.value          = todayStr;
+    endEl.readOnly       = true;
+    endEl.style.opacity  = '0.6';
+
+    if (endLbl) endLbl.innerHTML = 'End Date / تاريخ الانتهاء <span style="font-size:11px;color:var(--muted);">(auto-set)</span>';
+
+  } else {
+    // Restore date fields
+    startEl.readOnly      = false;
+    startEl.style.opacity = '1';
+
+    endEl.readOnly        = false;
+    endEl.style.opacity   = '1';
+
+    // Clear end date only if it was auto-set by One-Time (start === end)
+    if (endEl.value && endEl.value === startEl.value) endEl.value = '';
+
+    if (endLbl) endLbl.innerHTML = 'End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span>';
+  }
+}
+
 function fetchCurrentFeePrice() {
   var chargeName   = document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value;
   var feeType      = document.getElementById('fs-fee-type').value;
@@ -6540,6 +6583,20 @@ function openFeeSheet(f) {
 
     var err = document.getElementById('fs-inline-err');
     if (err) err.style.display = 'none';
+
+    // Lock date fields for One-Time fees in edit mode
+    // Must run AFTER existing lock logic to avoid being overridden
+    if (isEdit && f && f.frequency === 'One-Time') {
+      var startElOT = document.getElementById('fs-start');
+      var endElOT   = document.getElementById('fs-end');
+      if (startElOT) { startElOT.readOnly = true; startElOT.style.opacity = '0.6'; }
+      if (endElOT)   { endElOT.readOnly   = true; endElOT.style.opacity   = '0.6'; }
+      var endWrapOT = endElOT ? endElOT.closest('.cs-field') : null;
+      if (endWrapOT) {
+        var endLblOT = endWrapOT.querySelector('.cs-lbl');
+        if (endLblOT) endLblOT.innerHTML = 'End Date / تاريخ الانتهاء <span style="font-size:11px;color:var(--muted);">(auto-set)</span>';
+      }
+    }
 
     document.getElementById('fee-sheet-wrap').classList.add('open');
   });
@@ -8105,7 +8162,7 @@ function fmtMoney(val) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="cs-field">
         <div class="cs-lbl">Frequency / التكرار <span class="req">*</span></div>
-        <select class="inp" id="fs-frequency">
+        <select class="inp" id="fs-frequency" onchange="onFrequencyChange()">
           <option value="" disabled selected>Select...</option>
         </select>
       </div>

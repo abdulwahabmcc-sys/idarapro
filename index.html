@@ -4328,6 +4328,36 @@ function submitMtrOverride() {
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
+
+var _utilityDeactivatePending = null;
+
+function openUtilityDeactivateDialog(nameEn) {
+  _utilityDeactivatePending = nameEn;
+  var details = document.getElementById('utility-deactivate-details');
+  if (details) details.textContent = 'Are you sure you want to deactivate "' + nameEn + '"? This will hide it from the reader dropdown immediately. / هل أنت متأكد من إيقاف هذه الخدمة؟ سيتم إخفاؤها من قائمة القراءات فوراً.';
+  var dlg = document.getElementById('utility-deactivate-dialog');
+  if (dlg) dlg.style.display = 'flex';
+}
+
+function closeUtilityDeactivateDialog() {
+  _utilityDeactivatePending = null;
+  var dlg = document.getElementById('utility-deactivate-dialog');
+  if (dlg) dlg.style.display = 'none';
+  // Re-enable all utility buttons
+  document.querySelectorAll('.stg-user-btn').forEach(function(btn) { btn.disabled = false; });
+  // Restore إيقاف button text
+  document.querySelectorAll('.stg-user-btn').forEach(function(btn) {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf('false') !== -1) {
+      btn.textContent = 'إيقاف';
+    }
+  });
+}
+
+function confirmUtilityDeactivate() {
+  var nameEn = _utilityDeactivatePending;
+  closeUtilityDeactivateDialog();
+  if (nameEn) toggleUtility(nameEn, false, true); // true = skipCheck (already confirmed)
+}
   
 // ── ⑨ + ⑩  Categories (income / expense) ────────────────────────────────────
 
@@ -6937,7 +6967,7 @@ function editUtility(nameEn) {
   openUtilitySheet(u || null);
 }
 
-function toggleUtility(nameEn, activate) {
+function toggleUtility(nameEn, activate, skipCheck) {
   if (!sessionValid()) return;
 
   function doToggle() {
@@ -6994,9 +7024,12 @@ function toggleUtility(nameEn, activate) {
       return;
     }
 
-    if (!confirm('Are you sure you want to deactivate "' + nameEn + '"?\nهل أنت متأكد من إيقاف هذه الخدمة؟')) return;
-    doToggle();
+    openUtilityDeactivateDialog(nameEn);
+    return; // doToggle() called from confirmUtilityDeactivate()
   }
+
+  // If already confirmed via dialog — skip check and proceed
+  if (skipCheck) { doToggle(); return; }
 
   // Load fees if cache empty then check
   if (!_feesCache || !_feesCache.length) {
@@ -9016,6 +9049,21 @@ function fmtMoney(val) {
     </div>
   </div>
 </div>  
+
+<!-- Utility Deactivate Confirm Dialog -->
+<div id="utility-deactivate-dialog" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div style="background:var(--surf);border-radius:20px;padding:28px 24px;max-width:340px;width:90%;text-align:center;">
+    <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+    <div style="font-size:15px;font-weight:700;color:var(--burg);margin-bottom:8px;">Deactivate Utility / إيقاف الخدمة</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="utility-deactivate-details"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button onclick="closeUtilityDeactivateDialog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--muted);background:transparent;font-size:13px;cursor:pointer;">إلغاء / Cancel</button>
+      <button onclick="confirmUtilityDeactivate()" style="flex:1;padding:12px;border-radius:12px;border:none;background:var(--burg);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Deactivate / إيقاف</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- ══════════════════════════════════════════════
      USER ADD/EDIT SHEET
 ══════════════════════════════════════════════ -->

@@ -6940,77 +6940,72 @@ function editUtility(nameEn) {
 function toggleUtility(nameEn, activate) {
   if (!sessionValid()) return;
 
-  // Show confirmation dialog before deactivating
-  if (!activate) {
-    // Check if Active fee rule exists in _feesCache
-    var blockingFee = null;
-    if (_feesCache && _feesCache.length) {
-      // Find combined name for this utility from _utilityCache
-      var utilEntry = (_utilityCache || []).find(function(u) {
-        return String(u.nameEn).trim() === String(nameEn).trim();
-      });
-      var combinedName = utilEntry ? (utilEntry.combinedName || utilEntry.name || '') : '';
-      if (combinedName) {
-        blockingFee = _feesCache.find(function(f) {
-          return String(f.status || '').toLowerCase() === 'active' &&
-                 String(f.meterRef || '').trim() === combinedName;
-        });
+  function doToggle() {
+    // Find and lock buttons
+    var buttons = document.querySelectorAll('.stg-user-btn');
+    var clickedBtn = null;
+    buttons.forEach(function(btn) {
+      if (btn.getAttribute('onclick') &&
+          btn.getAttribute('onclick').indexOf(nameEn) !== -1 &&
+          btn.getAttribute('onclick').indexOf('toggleUtility') !== -1) {
+        clickedBtn = btn;
       }
-    }
+    });
+    document.querySelectorAll('.stg-user-btn').forEach(function(btn) { btn.disabled = true; });
+    if (clickedBtn) clickedBtn.textContent = '⏳';
+
+    gasPost({
+      action: 'setUtilityStatus',
+      payload: { nameEn: nameEn, active: activate },
+      token: _session.token
+    })
+      .then(function() {
+        invalidateCache('utility');
+        _utilityCache = [];
+        _feeLookupsCache = null;
+        toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
+        loadUtility();
+      })
+      .catch(function(e) {
+        toast('❌ ' + e.message, 'fail');
+        document.querySelectorAll('.stg-user-btn').forEach(function(btn) { btn.disabled = false; });
+        if (clickedBtn) clickedBtn.textContent = activate ? 'تفعيل' : 'إيقاف';
+      });
+  }
+
+  // Activation — no check needed
+  if (activate) { doToggle(); return; }
+
+  // Deactivation — check for blocking Active fee rule first
+  function checkThenConfirm() {
+    var utilEntry = (_utilityCache || []).find(function(u) {
+      return String(u.nameEn).trim() === String(nameEn).trim();
+    });
+    var combinedName = utilEntry ? (utilEntry.combinedName || utilEntry.name || '') : '';
+    var blockingFee = combinedName ? (_feesCache || []).find(function(f) {
+      return String(f.status || '').toLowerCase() === 'active' &&
+             String(f.meterRef || '').trim() === combinedName;
+    }) : null;
 
     if (blockingFee) {
-      // Block immediately — no backend call needed
       toast('❌ Cannot deactivate "' + nameEn + '" — Active fee rule "' +
-        (blockingFee.name || blockingFee.feeId || '') + '" exists. ' +
-        'Cancel or expire the fee rule first. / ' +
+        (blockingFee.name || '') + '" exists. Cancel or expire the fee rule first. / ' +
         'لا يمكن إيقاف هذه الخدمة — توجد قاعدة رسوم نشطة مرتبطة بها.', 'fail');
       return;
     }
 
-    // No blocking fee found in cache — show confirmation dialog
-    if (!confirm('Are you sure you want to deactivate "' + nameEn + '"?\n' +
-                 'هل أنت متأكد من إيقاف هذه الخدمة؟')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to deactivate "' + nameEn + '"?\nهل أنت متأكد من إيقاف هذه الخدمة؟')) return;
+    doToggle();
   }
 
-  // Find the clicked button and show spinner
-  var buttons = document.querySelectorAll('.stg-user-btn');
-  var clickedBtn = null;
-  buttons.forEach(function(btn) {
-    if (btn.getAttribute('onclick') &&
-        btn.getAttribute('onclick').indexOf(nameEn) !== -1 &&
-        btn.getAttribute('onclick').indexOf('toggleUtility') !== -1) {
-      clickedBtn = btn;
-    }
-  });
-  // Lock ALL utility toggle buttons while saving
-  document.querySelectorAll('.stg-user-btn').forEach(function(btn) {
-    btn.disabled = true;
-  });
-  if (clickedBtn) {
-    clickedBtn.textContent = '⏳';
+  // Load fees if cache empty then check
+  if (!_feesCache || !_feesCache.length) {
+    gasGet('getSettingsFees', _session.token)
+      .then(function(rows) { _feesCache = rows || []; checkThenConfirm(); })
+      .catch(function() { checkThenConfirm(); });
+  } else {
+    checkThenConfirm();
   }
-
-  gasPost({
-    action: 'setUtilityStatus',
-    payload: { nameEn: nameEn, active: activate },
-    token: _session.token
-  })
-    .then(function() {
-      invalidateCache('utility');
-      _utilityCache = [];
-      _feeLookupsCache = null;
-      toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-      loadUtility();
-    })
-    .catch(function(e) {
-      toast('❌ ' + e.message, 'fail');
-      if (clickedBtn) {
-        clickedBtn.disabled = false;
-        clickedBtn.textContent = activate ? 'تفعيل' : 'إيقاف';
-      }
-    });
 }
 
 function onUtilityNameChange() {

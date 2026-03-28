@@ -3881,14 +3881,29 @@ function showMtrErr(msg) {
 
 function onMtrCategoryChange() {
   var category = document.getElementById('mtr-category').value;
+  var prevWrap = document.getElementById('mtr-prev').closest('.cs-field') ||
+                 document.getElementById('mtr-prev').parentElement;
+  var prevDateWrap = document.getElementById('mtr-prev-date').closest('.cs-field') ||
+                     document.getElementById('mtr-prev-date').parentElement;
+  var warningEl = document.getElementById('mtr-prev-warning');
+
   if (category === 'Opening') {
+    // Hide previous reading fields — not applicable for Opening
+    if (prevWrap)     prevWrap.style.display     = 'none';
+    if (prevDateWrap) prevDateWrap.style.display  = 'none';
+    if (warningEl)    warningEl.style.display     = 'none';
     document.getElementById('mtr-curr').placeholder = 'Enter initial meter value...';
-    document.getElementById('mtr-prev').value = '0';
+    document.getElementById('mtr-prev').value        = '0';
     document.getElementById('mtr-consumption').value = '0';
   } else {
+    // Show previous reading fields
+    if (prevWrap)     prevWrap.style.display     = '';
+    if (prevDateWrap) prevDateWrap.style.display  = '';
     document.getElementById('mtr-curr').placeholder = '0.000';
-    document.getElementById('mtr-prev').value = '';
+    document.getElementById('mtr-prev').value        = '';
     document.getElementById('mtr-consumption').value = '';
+    // Fetch previous reading for selected utility
+    fetchMtrPreviousReading();
   }
 }
 

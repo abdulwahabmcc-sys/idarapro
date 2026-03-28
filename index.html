@@ -7000,9 +7000,27 @@ function toggleUtility(nameEn, activate) {
 
   // Load fees if cache empty then check
   if (!_feesCache || !_feesCache.length) {
+    // Find clicked button and show subtle loading — don't lock all buttons
+    var checkBtn = null;
+    document.querySelectorAll('.stg-user-btn').forEach(function(btn) {
+      if (btn.getAttribute('onclick') &&
+          btn.getAttribute('onclick').indexOf(nameEn) !== -1 &&
+          btn.getAttribute('onclick').indexOf('toggleUtility') !== -1) {
+        checkBtn = btn;
+      }
+    });
+    if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = '⏳'; }
+
     gasGet('getSettingsFees', _session.token)
-      .then(function(rows) { _feesCache = rows || []; checkThenConfirm(); })
-      .catch(function() { checkThenConfirm(); });
+      .then(function(rows) {
+        _feesCache = rows || [];
+        if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'إيقاف'; }
+        checkThenConfirm();
+      })
+      .catch(function() {
+        if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'إيقاف'; }
+        checkThenConfirm();
+      });
   } else {
     checkThenConfirm();
   }

@@ -6971,35 +6971,75 @@ function toggleUtility(nameEn, activate, skipCheck) {
   if (!sessionValid()) return;
 
   function doToggle() {
-    // Find and lock buttons
-    var buttons = document.querySelectorAll('.stg-user-btn');
-    var clickedBtn = null;
-    buttons.forEach(function(btn) {
-      if (btn.getAttribute('onclick') &&
-          btn.getAttribute('onclick').indexOf(nameEn) !== -1 &&
-          btn.getAttribute('onclick').indexOf('toggleUtility') !== -1) {
-        clickedBtn = btn;
-      }
+    // 1. Update cache instantly
+    var newStatus = activate ? 'Active' : 'Inactive';
+    var oldStatus = activate ? 'Inactive' : 'Active';
+    var utilEntry = (_utilityCache || []).find(function(u) {
+      return String(u.nameEn).trim() === String(nameEn).trim();
     });
-    document.querySelectorAll('.stg-user-btn').forEach(function(btn) { btn.disabled = true; });
-    if (clickedBtn) clickedBtn.textContent = '⏳';
+    if (utilEntry) utilEntry.status = newStatus;
 
+    // 2. Re-render instantly from cache
+    var el = stgListEl('stg-utility-list');
+    if (_utilityCache && _utilityCache.length) {
+      el.innerHTML = _utilityCache.map(function(u) {
+        var displayName = u.combinedName || u.name || '—';
+        var isActive = String(u.status).toLowerCase() === 'active';
+        var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+        return '<div class="stg-user-row">' +
+          '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
+          '<div class="stg-user-info">' +
+            '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + '</div>' +
+            '<div class="stg-user-meta">' + escHtml(u.meterType || '') + (u.tag ? ' · ' + escHtml(u.tag) : '') + '</div>' +
+          '</div>' +
+          '<div class="stg-user-actions">' +
+            '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (u.status || '') + '</span>' +
+            '<div style="display:flex;gap:4px;">' +
+              '<button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button>' +
+              (isActive
+                ? '<button class="stg-user-btn danger" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',false)">إيقاف</button>'
+                : '<button class="stg-user-btn" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',true)">تفعيل</button>') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // 3. Show success toast immediately
+    toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
+
+    // 4. Save in background
     gasPost({
       action: 'setUtilityStatus',
       payload: { nameEn: nameEn, active: activate },
       token: _session.token
     })
-      .then(function() {
-        invalidateCache('utility');
-        _utilityCache = [];
-        _feeLookupsCache = null;
-        toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-        loadUtility();
-      })
       .catch(function(e) {
+        // Revert on failure
+        if (utilEntry) utilEntry.status = oldStatus;
+        var elRevert = stgListEl('stg-utility-list');
+        elRevert.innerHTML = _utilityCache.map(function(u) {
+          var displayName = u.combinedName || u.name || '—';
+          var isActive = String(u.status).toLowerCase() === 'active';
+          var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+          return '<div class="stg-user-row">' +
+            '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
+            '<div class="stg-user-info">' +
+              '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + '</div>' +
+              '<div class="stg-user-meta">' + escHtml(u.meterType || '') + (u.tag ? ' · ' + escHtml(u.tag) : '') + '</div>' +
+            '</div>' +
+            '<div class="stg-user-actions">' +
+              '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (u.status || '') + '</span>' +
+              '<div style="display:flex;gap:4px;">' +
+                '<button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button>' +
+                (isActive
+                  ? '<button class="stg-user-btn danger" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',false)">إيقاف</button>'
+                  : '<button class="stg-user-btn" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',true)">تفعيل</button>') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
         toast('❌ ' + e.message, 'fail');
-        document.querySelectorAll('.stg-user-btn').forEach(function(btn) { btn.disabled = false; });
-        if (clickedBtn) clickedBtn.textContent = activate ? 'تفعيل' : 'إيقاف';
       });
   }
 
@@ -7142,14 +7182,54 @@ function submitUtility() {
         showUtilityErr(msg); btn.disabled = false;
         btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Utility'; return;
       }
-      invalidateCache('utility');
-      invalidateCache('fees');
-      if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['utility'] = null;
-      if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['incomeCategories'] = null;
-      _utilityCache = [];
-      _feeLookupsCache = null;
       toast('✅ Saved successfully / تم الحفظ بنجاح', 'ok');
-      closeUtilitySheet(); loadUtility();
+      closeUtilitySheet();
+
+      if (isEdit) {
+        // Optimistic UI — update cache entry directly, no reload
+        var entry = (_utilityCache || []).find(function(u) {
+          return String(u.nameEn).trim() === String(nameEn).trim();
+        });
+        if (entry) {
+          entry.status    = status;
+          entry.meterType = meterType;
+          entry.tag       = tag;
+        }
+        // Re-render from updated cache
+        var el = stgListEl('stg-utility-list');
+        el.innerHTML = (_utilityCache || []).map(function(u) {
+          var displayName = u.combinedName || u.name || '—';
+          var isActive = String(u.status).toLowerCase() === 'active';
+          var dotColor = isActive ? 'var(--forest)' : 'var(--muted)';
+          return '<div class="stg-user-row">' +
+            '<div class="stg-user-avatar" style="background:var(--burg);font-size:14px;">⚡</div>' +
+            '<div class="stg-user-info">' +
+              '<div class="stg-user-name" style="direction:ltr;text-align:right;">' + escHtml(displayName) + '</div>' +
+              '<div class="stg-user-meta">' + escHtml(u.meterType || '') + (u.tag ? ' · ' + escHtml(u.tag) : '') + '</div>' +
+            '</div>' +
+            '<div class="stg-user-actions">' +
+              '<span style="font-size:9px;color:' + dotColor + ';font-weight:700;">● ' + (u.status || '') + '</span>' +
+              '<div style="display:flex;gap:4px;">' +
+                '<button class="stg-user-btn" onclick="editUtility(\'' + escHtml(u.nameEn) + '\')">تعديل</button>' +
+                (isActive
+                  ? '<button class="stg-user-btn danger" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',false)">إيقاف</button>'
+                  : '<button class="stg-user-btn" onclick="toggleUtility(\'' + escHtml(u.nameEn) + '\',true)">تفعيل</button>') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+        // Invalidate dependent caches in background
+        _feeLookupsCache = null;
+      } else {
+        // New utility — must reload to get formula-generated combined name from sheet
+        invalidateCache('utility');
+        invalidateCache('fees');
+        if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['utility'] = null;
+        if (_settingsCache && typeof _settingsCache === 'object') _settingsCache['incomeCategories'] = null;
+        _utilityCache = [];
+        _feeLookupsCache = null;
+        loadUtility();
+      }
     })
     .catch(function(e) {
       showUtilityErr('❌ ' + (e.message || 'Save failed'));

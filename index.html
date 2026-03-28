@@ -6940,6 +6940,40 @@ function editUtility(nameEn) {
 function toggleUtility(nameEn, activate) {
   if (!sessionValid()) return;
 
+  // Show confirmation dialog before deactivating
+  if (!activate) {
+    // Check if Active fee rule exists in _feesCache
+    var blockingFee = null;
+    if (_feesCache && _feesCache.length) {
+      // Find combined name for this utility from _utilityCache
+      var utilEntry = (_utilityCache || []).find(function(u) {
+        return String(u.nameEn).trim() === String(nameEn).trim();
+      });
+      var combinedName = utilEntry ? (utilEntry.combinedName || utilEntry.name || '') : '';
+      if (combinedName) {
+        blockingFee = _feesCache.find(function(f) {
+          return String(f.status || '').toLowerCase() === 'active' &&
+                 String(f.meterRef || '').trim() === combinedName;
+        });
+      }
+    }
+
+    if (blockingFee) {
+      // Block immediately — no backend call needed
+      toast('❌ Cannot deactivate "' + nameEn + '" — Active fee rule "' +
+        (blockingFee.name || blockingFee.feeId || '') + '" exists. ' +
+        'Cancel or expire the fee rule first. / ' +
+        'لا يمكن إيقاف هذه الخدمة — توجد قاعدة رسوم نشطة مرتبطة بها.', 'fail');
+      return;
+    }
+
+    // No blocking fee found in cache — show confirmation dialog
+    if (!confirm('Are you sure you want to deactivate "' + nameEn + '"?\n' +
+                 'هل أنت متأكد من إيقاف هذه الخدمة؟')) {
+      return;
+    }
+  }
+
   // Find the clicked button and show spinner
   var buttons = document.querySelectorAll('.stg-user-btn');
   var clickedBtn = null;

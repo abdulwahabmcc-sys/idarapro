@@ -3705,6 +3705,8 @@ var _mtrPendingConfirm = null;
 var _mtrPendingOverride = null;
 var _mtrSelectedType = null; // 'Building' or 'Individual'
 
+var _chargedReadingIds = {}; // cache of charged Reading-IDs
+
 function loadMtrReadings() {
   var el = document.getElementById('mtr-list');
   if (!el) return;
@@ -3712,9 +3714,15 @@ function loadMtrReadings() {
 
   var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
 
-  gasPost({ action: 'getSettingsMeters', token: _session.token })
-    .then(function(rows) {
-      _mtrCache = rows || [];
+  // Fetch readings and charged IDs in parallel
+  Promise.all([
+    gasPost({ action: 'getSettingsMeters',     token: _session.token }),
+    gasPost({ action: 'getChargedReadingIds',  token: _session.token })
+  ])
+    .then(function(results) {
+      _mtrCache          = results[0] || [];
+      _chargedReadingIds = {};
+      (results[1] || []).forEach(function(id) { _chargedReadingIds[id] = true; });
 
       // Show filters for Admin/Management
       var filtersEl = document.getElementById('mtr-filters');
@@ -3798,6 +3806,15 @@ function renderMtrList(rows, isAdmin) {
                     : r.status === 'Opening'    ? 'var(--muted)'
                     : 'var(--muted)';
 
+    // Unpriced badge — Confirmed/Overridden with no Receivables row
+    var unpricedBadge = '';
+    if ((r.status === 'Confirmed' || r.status === 'Overridden') &&
+        r.readingId && !_chargedReadingIds[r.readingId]) {
+      unpricedBadge = '<span style="font-size:9px;font-weight:700;color:var(--burg);' +
+        'background:rgba(139,26,46,0.08);border:1px solid rgba(139,26,46,0.2);' +
+        'border-radius:6px;padding:2px 6px;margin-right:6px;">⚠️ Unpriced</span>';
+    }
+
     var actionBtns = '';
     if (isAdmin && r.status === 'Pending') {
       actionBtns = '<div style="display:flex;gap:6px;margin-top:8px;">' +
@@ -3816,7 +3833,10 @@ function renderMtrList(rows, isAdmin) {
               : escHtml(r.contractId || '') + (r.unit ? ' · ' + escHtml(r.unit) : '') + (r.name ? ' · ' + escHtml(r.name) : '')) + 
           '</div>' +
         '</div>' +
-        '<span style="font-size:10px;font-weight:700;color:' + statusColor + ';">● ' + (r.status || '') + '</span>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
+          unpricedBadge +
+          '<span style="font-size:10px;font-weight:700;color:' + statusColor + ';">● ' + (r.status || '') + '</span>' +
+        '</div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;margin-bottom:4px;">' +
         '<div><span style="color:var(--muted);">Prev:</span> <strong>' + (r.prevReading || '—') + '</strong></div>' +
@@ -4315,9 +4335,13 @@ function reprocessUnpricedReadings() {
     token: _session.token
   })
     .then(function(result) {
-      toast(result.message || '✅ Done', result.stillUnpriced > 0 ? 'info' : 'ok');
+      var toastMsg = result.message || '✅ Done';
+      var toastType = (result.stillUnpriced > 0 && result.processed === 0) ? 'fail'
+                    : result.stillUnpriced > 0 ? 'info' : 'ok';
+      toast(toastMsg, toastType);
       if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-process Unpriced'; }
-      // Reload readings to reflect new charges
+      // Clear charged IDs cache — force refresh on reload
+      _chargedReadingIds = {};
       loadMtrReadings();
     })
     .catch(function(e) {

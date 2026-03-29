@@ -3724,7 +3724,7 @@ function loadMtrReadings() {
 
       // Show Re-process button for Admin only
       var reprocessBtn = document.getElementById('mtr-reprocess-btn');
-      if (reprocessBtn) reprocessBtn.style.display = isAdmin ? 'block' : 'none';
+      if (reprocessBtn) reprocessBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
       // Stats — always from full _mtrCache
       var pending   = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Pending'; }).length;

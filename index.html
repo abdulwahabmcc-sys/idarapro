@@ -2108,7 +2108,10 @@
             <div style="font-size:15px;font-weight:700;color:var(--navy);">قراءات العداد / Meter Readings</div>
             <div style="font-size:11px;color:var(--muted);direction:ltr;text-align:left;" id="mtr-stats"></div>
           </div>
-          <button class="stg-add-btn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="openMtrSheet()">＋ إضافة قراءة</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="mtr-reprocess-btn" class="stg-user-btn" style="font-size:11px;padding:6px 10px;display:none;" onclick="reprocessUnpricedReadings()">🔄 Re-process Unpriced</button>
+            <button class="stg-add-btn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="openMtrSheet()">＋ إضافة قراءة</button>
+          </div>
         </div>
 
         <!-- Admin/Management filters -->
@@ -3719,6 +3722,10 @@ function loadMtrReadings() {
 
       if (isAdmin) populateMtrFilters(_mtrCache);
 
+      // Show Re-process button for Admin only
+      var reprocessBtn = document.getElementById('mtr-reprocess-btn');
+      if (reprocessBtn) reprocessBtn.style.display = isAdmin ? 'block' : 'none';
+
       // Stats — always from full _mtrCache
       var pending   = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Pending'; }).length;
       var confirmed = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Confirmed'; }).length;
@@ -4294,6 +4301,28 @@ function confirmMtrReading() {
         renderMtrList(_mtrCache.filter(function(x) { return x.readBy === _session.name; }), false);
       }
       toast('❌ ' + e.message, 'fail');
+    });
+}
+
+function reprocessUnpricedReadings() {
+  if (!sessionValid()) return;
+  var btn = document.getElementById('mtr-reprocess-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Processing...'; }
+
+  gasPost({
+    action: 'reprocessUnpricedReadings',
+    payload: {},
+    token: _session.token
+  })
+    .then(function(result) {
+      toast(result.message || '✅ Done', result.stillUnpriced > 0 ? 'info' : 'ok');
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-process Unpriced'; }
+      // Reload readings to reflect new charges
+      loadMtrReadings();
+    })
+    .catch(function(e) {
+      toast('❌ ' + e.message, 'fail');
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-process Unpriced'; }
     });
 }
 

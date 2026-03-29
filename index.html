@@ -1904,6 +1904,26 @@
     }
 
     #dt-topbar, #dt-main { display: none; }
+
+   /* ── NOTIFICATION BANNERS ─────────────────────────────── */
+    .notif-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      gap: 8px;
+    }
+    .notif-banner.amber  { background: rgba(184,154,62,0.12); border: 1px solid rgba(184,154,62,0.4); color: #7a6010; }
+    .notif-banner.orange { background: rgba(200,100,0,0.10);  border: 1px solid rgba(200,100,0,0.35); color: #8B4500; }
+    .notif-banner.red    { background: rgba(139,26,46,0.10);  border: 1px solid rgba(139,26,46,0.35); color: var(--burg); }
+    .notif-banner-msg    { flex: 1; line-height: 1.4; }
+    .notif-banner-close  { cursor: pointer; font-size: 14px; opacity: 0.6; flex-shrink: 0; padding: 0 4px; }
+    .notif-banner-close:hover { opacity: 1; }
+ 
   </style>
 </head>
 <body>
@@ -2264,6 +2284,8 @@
 </div>
 
   <div id="dt-content">
+    <!-- Notification Banners -->
+    <div id="notification-banners" style="display:none;padding:0 0 8px 0;"></div>
     <div id="dt-tabs">
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
         <span class="dt-tab-ico">💰</span> قبض / Income
@@ -2673,6 +2695,16 @@ function launchApp(auth) {
   // Start dashboard refresh
   refreshDash();
   _rtimer = setInterval(refreshDash, 30000);
+
+  // Load notification banners (Admin + Management only)
+  setTimeout(function() {
+    loadNotificationBanners();
+  }, 1500);
+
+  // Load notification banners (Admin + Management only)
+  setTimeout(function() {
+    loadNotificationBanners();
+  }, 1500); // slight delay to not compete with initial app load
 
   // Silent background pre-load for faster settings experience
   setTimeout(function() {
@@ -3749,6 +3781,144 @@ function loadMtrReadings() {
     .catch(function() {
       el.innerHTML = '<div style="text-align:center;color:var(--burg);padding:20px;">⚠️ Failed to load. Check connection.</div>';
     });
+}
+
+var _activeNotifications = [];
+
+/**
+ * loadNotificationBanners()
+ * Fetches active notifications and renders banners + gear badge
+ * Called on app init after login
+ */
+function loadNotificationBanners() {
+  var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
+  if (!isAdmin) return; // Only Admin + Management see banners
+
+  gasPost({ action: 'getActiveNotifications', token: _session.token })
+    .then(function(notifications) {
+      _activeNotifications = notifications || [];
+      renderNotificationBanners();
+      updateGearBadge();
+    })
+    .catch(function() {
+      // Silently fail — banners are non-critical
+    });
+}
+
+/**
+ * renderNotificationBanners()
+ * Renders stacked banners from _activeNotifications
+ */
+function renderNotificationBanners() {
+  var container = document.getElementById('notification-banners');
+  if (!container) return;
+
+  if (!_activeNotifications.length) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  container.style.display = 'block';
+  container.innerHTML = _activeNotifications.map(function(n) {
+    // Determine urgency color
+    var colorClass = 'amber';
+    var icon = '⚠️';
+    if (n.type === 'N3' || n.type === 'N4') {
+      colorClass = 'red'; icon = '🚨';
+    } else if (n.subject.indexOf('URGENT') !== -1 || n.subject.indexOf('TODAY') !== -1 ||
+               n.subject.indexOf('EXPIRED') !== -1) {
+      colorClass = 'red'; icon = '🚨';
+    } else if (n.subject.indexOf('2 Day') !== -1) {
+      colorClass = 'orange'; icon = '⚠️';
+    }
+
+    // Shorten subject for display
+    var displayMsg = n.subject.replace('🚨 idara360 — ', '').replace('⚠️ idara360 — ', '');
+
+    return '<div class="notif-banner ' + colorClass + '" id="banner-' + n.rowIndex + '">' +
+      '<span style="font-size:14px;flex-shrink:0;">' + icon + '</span>' +
+      '<div class="notif-banner-msg">' +
+        '<div>' + escHtml(displayMsg) + '</div>' +
+        '<div style="font-size:10px;font-weight:400;margin-top:2px;opacity:0.8;">' + escHtml(n.itemName) + '</div>' +
+      '</div>' +
+      '<span class="notif-banner-close" onclick="dismissBanner(' + n.rowIndex + ')">✕</span>' +
+    '</div>';
+  }).join('');
+}
+
+/**
+ * dismissBanner()
+ * Dismisses a banner and acknowledges the notification
+ */
+function dismissBanner(rowIndex) {
+  // Remove from local array
+  _activeNotifications = _activeNotifications.filter(function(n) {
+    return n.rowIndex !== rowIndex;
+  });
+
+  // Remove from DOM
+  var el = document.getElementById('banner-' + rowIndex);
+  if (el) el.remove();
+
+  // Hide container if empty
+  if (!_activeNotifications.length) {
+    var container = document.getElementById('notification-banners');
+    if (container) container.style.display = 'none';
+  }
+
+  // Update gear badge
+  updateGearBadge();
+
+  // Acknowledge in backend
+  gasPost({
+    action: 'acknowledgeNotification',
+    payload: { rowIndex: rowIndex },
+    token: _session.token
+  }).catch(function() {}); // Silently fail
+}
+
+/**
+ * updateGearBadge()
+ * Updates the red badge count on Settings gear icon
+ * Only counts critical notifications (N3, N4, day-of, day-after)
+ */
+function updateGearBadge() {
+  var criticalCount = _activeNotifications.filter(function(n) {
+    return n.type === 'N3' || n.type === 'N4' ||
+           n.subject.indexOf('TODAY') !== -1 ||
+           n.subject.indexOf('EXPIRED') !== -1 ||
+           n.subject.indexOf('Daily Reminder') !== -1;
+  }).length;
+
+  // Handle both mobile (sb-gear) and desktop (dt-gear) gear buttons
+  var gearBtns = [
+    document.getElementById('dt-gear'),
+    document.getElementById('sb-gear')
+  ];
+
+  gearBtns.forEach(function(gearBtn) {
+    if (!gearBtn) return;
+    var badgeId = 'gear-badge-' + gearBtn.id;
+    var badge   = document.getElementById(badgeId);
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = badgeId;
+      badge.style.cssText = 'position:absolute;top:-4px;right:-4px;' +
+        'background:var(--burg);color:#fff;border-radius:50%;' +
+        'width:16px;height:16px;font-size:9px;font-weight:700;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'pointer-events:none;';
+      gearBtn.style.position = 'relative';
+      gearBtn.appendChild(badge);
+    }
+    if (criticalCount > 0) {
+      badge.textContent = criticalCount > 9 ? '9+' : String(criticalCount);
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  });
 }
 
 function populateMtrFilters(rows) {

@@ -2109,7 +2109,7 @@
             <div style="font-size:11px;color:var(--muted);direction:ltr;text-align:left;" id="mtr-stats"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <button id="mtr-reprocess-btn" class="stg-user-btn" style="font-size:11px;padding:6px 10px;display:none;" onclick="reprocessUnpricedReadings()">🔄 Re-process Unpriced</button>
+            <button id="mtr-reprocess-btn" class="stg-user-btn" style="font-size:11px;padding:6px 10px;display:none;white-space:nowrap;" onclick="reprocessUnpricedReadings()">🔄 Re-process Unpriced</button>
             <button class="stg-add-btn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="openMtrSheet()">＋ إضافة قراءة</button>
           </div>
         </div>
@@ -3724,7 +3724,7 @@ function loadMtrReadings() {
 
       // Show Re-process button for Admin only
       var reprocessBtn = document.getElementById('mtr-reprocess-btn');
-      if (reprocessBtn) reprocessBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      if (reprocessBtn) reprocessBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
       // Stats — always from full _mtrCache
       var pending   = _mtrCache.filter(function(r) { return String(r.status).trim() === 'Pending'; }).length;

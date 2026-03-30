@@ -2753,6 +2753,18 @@ function launchApp(auth) {
     loadNotificationBanners();
   }, 1500);
 
+  // Refresh notifications every 5 minutes (cross-device sync)
+  setInterval(function() {
+    if (_session && _session.token) loadNotificationBanners();
+  }, 5 * 60 * 1000);
+
+  // Refresh when tab becomes visible (user switches back to app)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && _session && _session.token) {
+      loadNotificationBanners();
+    }
+  });
+
   // Silent background pre-load for faster settings experience
   setTimeout(function() {
     if (_session && _session.token) {
@@ -7125,6 +7137,11 @@ function doSaveFee(payload) {
       }
       toast('✅ Fee rule saved successfully / تم حفظ الرسم بنجاح', 'ok');
       closeFeeSheet();
+      // Refresh notifications if fee status changed to inactive
+      if (payload.status === 'Suspended' || payload.status === 'Expired' ||
+          payload.status === 'Cancelled') {
+        setTimeout(function() { loadNotificationBanners(); }, 800);
+      }
       if (feeId) {
         // Edit — update cache and re-render instantly
         var cached = _feesCache.find(function(x) { return x.feeId === feeId; });

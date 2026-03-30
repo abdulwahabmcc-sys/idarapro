@@ -4600,6 +4600,19 @@ function confirmMtrReading() {
     payload: { readingId: readingId, confirmedBy: confirmedBy, notes: notes },
     token: _session.token
   })
+    .then(function() {
+      // Refresh charged IDs so ⚠️ Unpriced badge updates immediately
+      gasPost({ action: 'getChargedReadingIds', token: _session.token })
+        .then(function(ids) {
+          _chargedReadingIds = {};
+          (ids || []).forEach(function(id) { _chargedReadingIds[id] = true; });
+          // Re-render to remove Unpriced badge
+          var isAdmin2 = _session && (_session.role === 'Admin' || _session.role === 'Management');
+          if (isAdmin2) { applyMtrFilters(); }
+          else { renderMtrList(_mtrCache.filter(function(x) { return x.readBy === _session.name; }), false); }
+        })
+        .catch(function() {});
+    })
     .catch(function(e) {
       // Revert on failure
       if (r) r.status = 'Pending';

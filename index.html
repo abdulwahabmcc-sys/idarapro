@@ -1924,6 +1924,46 @@
     .notif-banner-close  { cursor: pointer; font-size: 14px; opacity: 0.6; flex-shrink: 0; padding: 0 4px; }
     .notif-banner-close:hover { opacity: 1; }
  
+/* ── NOTIFICATION BELL ─────────────────────────── */
+.dt-bell {
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid var(--bdr);
+  border-radius: 6px;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.dt-bell:hover { border-color: var(--gold); background: var(--bg); }
+
+.sb-bell {
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid var(--bdr);
+  border-radius: 6px;
+}
+
+/* ── NOTIFICATION PANEL CARDS ──────────────────── */
+.notif-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+.notif-card.red    { border-color: rgba(139,26,46,0.3);  background: rgba(139,26,46,0.04); }
+.notif-card.orange { border-color: rgba(200,100,0,0.3);  background: rgba(200,100,0,0.04); }
+.notif-card.amber  { border-color: rgba(184,154,62,0.3); background: rgba(184,154,62,0.04); }
+.notif-card-title  { font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.notif-card-meta   { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.notif-card-action { font-size: 11px; color: var(--navy); margin-bottom: 8px; }
+.notif-card-btns   { display: flex; gap: 6px; justify-content: flex-end; }
+.notif-btn-goto    { font-size: 11px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--navy); background: var(--navy); color: #fff; cursor: pointer; font-family: var(--font); }
+.notif-btn-done    { font-size: 11px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); }
+.notif-btn-goto:hover { opacity: 0.85; }
+.notif-btn-done:hover { color: var(--navy); border-color: var(--navy); }
+
   </style>
 </head>
 <body>
@@ -2034,6 +2074,13 @@
     <div class="sb-role" id="sb-role"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;direction:ltr;">
+    <div class="sb-bell" id="sb-bell" onclick="toggleNotifPanel()" style="display:none;position:relative;">
+      🔔
+      <span id="bell-badge-mb" style="display:none;position:absolute;top:-4px;right:-4px;
+        background:var(--burg);color:#fff;border-radius:50%;width:16px;height:16px;
+        font-size:9px;font-weight:700;align-items:center;justify-content:center;
+        pointer-events:none;"></span>
+    </div>
     <div class="sb-gear" id="sb-gear" onclick="openSettings()">⚙️</div>
     <div class="sb-logout" onclick="doLogout()">خروج / Logout</div>
   </div>
@@ -2251,6 +2298,13 @@
       <div class="dt-session-name" id="dt-session-name"></div>
       <div class="dt-session-role" id="dt-session-role"></div>
     </div>
+    <div class="dt-bell" id="dt-bell" onclick="toggleNotifPanel()" style="display:none;position:relative;">
+      🔔
+      <span id="bell-badge-dt" style="display:none;position:absolute;top:-4px;right:-4px;
+        background:var(--burg);color:#fff;border-radius:50%;width:16px;height:16px;
+        font-size:9px;font-weight:700;align-items:center;justify-content:center;
+        pointer-events:none;"></span>
+    </div>
     <div class="dt-gear" id="dt-gear" onclick="openSettings()" style="display:none;">⚙️</div>
     <div class="dt-logout" onclick="doLogout()">خروج / Logout</div>
   </div>
@@ -2284,8 +2338,6 @@
 </div>
 
   <div id="dt-content">
-    <!-- Notification Banners -->
-    <div id="notification-banners" style="display:none;padding:0 0 8px 0;"></div>
     <div id="dt-tabs">
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
         <span class="dt-tab-ico">💰</span> قبض / Income
@@ -2700,11 +2752,6 @@ function launchApp(auth) {
   setTimeout(function() {
     loadNotificationBanners();
   }, 1500);
-
-  // Load notification banners (Admin + Management only)
-  setTimeout(function() {
-    loadNotificationBanners();
-  }, 1500); // slight delay to not compete with initial app load
 
   // Silent background pre-load for faster settings experience
   setTimeout(function() {
@@ -3220,20 +3267,40 @@ function closeModal() {
 // SETTINGS PANEL — 14 sections
 // ══════════════════════════════════════════════════════════════════════════════
 
-function openSettings() {
+function openSettings(sectionId) {
   if (!sessionValid()) return;
   if (_session.role !== 'Admin') return;
   document.getElementById('settings-panel').classList.add('open');
 
+  // If section specified — open and scroll to it
+  if (sectionId) {
+    setTimeout(function() {
+      var sectionEl = document.getElementById(sectionId);
+      if (sectionEl) {
+        // Open section if collapsed
+        var body = sectionEl.querySelector('.stg-sec-body');
+        if (body && body.style.display === 'none') {
+          toggleSection(sectionId);
+        }
+        // Scroll to section
+        sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Brief gold highlight pulse
+        sectionEl.style.transition = 'box-shadow 0.3s';
+        sectionEl.style.boxShadow = '0 0 0 3px rgba(184,154,62,0.5)';
+        setTimeout(function() {
+          sectionEl.style.boxShadow = '';
+        }, 1500);
+      }
+    }, 350);
+  }
+
   // Preload all settings data in one batch call if not already cached
   if (!_settingsCache) {
-    _settingsCache = 'loading'; // prevent duplicate calls
+    _settingsCache = 'loading';
     gasGet('getSettingsAll', _session.token)
-      .then(function(d) {
-        _settingsCache = d;
-      })
+      .then(function(d) { _settingsCache = d; })
       .catch(function() {
-        _settingsCache = null; // reset so retry is possible
+        _settingsCache = null;
         toast('⚠️ Could not preload settings data', 'fail');
       });
   }
@@ -3784,141 +3851,183 @@ function loadMtrReadings() {
 }
 
 var _activeNotifications = [];
+var _notifPanelOpen = false;
+
+// ── Notification routing map ──────────────────────────────────────────────
+var NOTIF_ROUTING = {
+  'N1': { section: 'stg-uup',  action: 'Set new price before expiry to avoid billing gap' },
+  'N2': { section: 'stg-fees', action: 'Extend end date or create a new fee rule' },
+  'N3': { section: 'stg-fees', action: 'Create a new fee rule to resume billing' },
+  'N4': { section: 'stg-uup',  action: 'Set a new price to resume charge generation' }
+};
 
 /**
  * loadNotificationBanners()
- * Fetches active notifications and renders banners + gear badge
- * Called on app init after login
+ * Fetches active notifications — called after login
  */
 function loadNotificationBanners() {
   var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
-  if (!isAdmin) return; // Only Admin + Management see banners
+  if (!isAdmin) return;
 
   gasPost({ action: 'getActiveNotifications', token: _session.token })
     .then(function(notifications) {
       _activeNotifications = notifications || [];
-      renderNotificationBanners();
-      updateGearBadge();
+      updateBellState();
     })
-    .catch(function() {
-      // Silently fail — banners are non-critical
-    });
+    .catch(function() {}); // Silently fail
 }
 
 /**
- * renderNotificationBanners()
- * Renders stacked banners from _activeNotifications
+ * updateBellState()
+ * Shows/hides bell and updates badge count + color
  */
-function renderNotificationBanners() {
-  var container = document.getElementById('notification-banners');
-  if (!container) return;
+function updateBellState() {
+  var count = _activeNotifications.length;
+  var bells = [
+    document.getElementById('dt-bell'),
+    document.getElementById('sb-bell')
+  ];
+  var badgeIds = ['bell-badge-dt', 'bell-badge-mb'];
+
+  // Determine highest urgency color
+  var hasCritical = _activeNotifications.some(function(n) {
+    return n.type === 'N3' || n.type === 'N4' ||
+           n.subject.indexOf('TODAY') !== -1 ||
+           n.subject.indexOf('EXPIRED') !== -1 ||
+           n.subject.indexOf('Daily Reminder') !== -1;
+  });
+  var hasOrange = _activeNotifications.some(function(n) {
+    return n.subject.indexOf('URGENT') !== -1 || n.subject.indexOf('2 Day') !== -1;
+  });
+
+  var bellColor = hasCritical ? 'var(--burg)' : hasOrange ? '#C86400' : 'var(--gold)';
+
+  bells.forEach(function(bell, idx) {
+    if (!bell) return;
+    if (count > 0) {
+      bell.style.display = 'inline-flex';
+      bell.style.color   = bellColor;
+      bell.style.borderColor = bellColor;
+      var badge = document.getElementById(badgeIds[idx]);
+      if (badge) {
+        badge.textContent    = count > 9 ? '9+' : String(count);
+        badge.style.display  = 'flex';
+        badge.style.background = bellColor;
+      }
+    } else {
+      bell.style.display = 'none';
+      var badge2 = document.getElementById(badgeIds[idx]);
+      if (badge2) badge2.style.display = 'none';
+    }
+  });
+
+  // Update panel if open
+  if (_notifPanelOpen) renderNotifPanel();
+}
+
+/**
+ * toggleNotifPanel()
+ */
+function toggleNotifPanel() {
+  _notifPanelOpen = !_notifPanelOpen;
+  var panel   = document.getElementById('notif-panel');
+  var overlay = document.getElementById('notif-overlay');
+  if (_notifPanelOpen) {
+    renderNotifPanel();
+    panel.style.display   = 'block';
+    overlay.style.display = 'block';
+  } else {
+    panel.style.display   = 'none';
+    overlay.style.display = 'none';
+  }
+}
+
+/**
+ * renderNotifPanel()
+ * Renders notification cards in the panel
+ */
+function renderNotifPanel() {
+  var body  = document.getElementById('notif-panel-body');
+  var title = document.getElementById('notif-panel-title');
+  if (!body) return;
 
   if (!_activeNotifications.length) {
-    container.style.display = 'none';
-    container.innerHTML = '';
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">✅ No active notifications</div>';
+    if (title) title.textContent = 'Notifications / إشعارات';
     return;
   }
 
-  container.style.display = 'block';
-  container.innerHTML = _activeNotifications.map(function(n) {
-    // Determine urgency color
+  if (title) title.textContent = 'Notifications (' + _activeNotifications.length + ') / إشعارات';
+
+  body.innerHTML = _activeNotifications.map(function(n) {
+    // Determine urgency
     var colorClass = 'amber';
     var icon = '⚠️';
-    if (n.type === 'N3' || n.type === 'N4') {
+    var urgencyLabel = 'Attention Required / يستوجب الانتباه';
+    if (n.type === 'N3' || n.type === 'N4' ||
+        n.subject.indexOf('TODAY') !== -1 ||
+        n.subject.indexOf('EXPIRED') !== -1 ||
+        n.subject.indexOf('Daily Reminder') !== -1) {
       colorClass = 'red'; icon = '🚨';
-    } else if (n.subject.indexOf('URGENT') !== -1 || n.subject.indexOf('TODAY') !== -1 ||
-               n.subject.indexOf('EXPIRED') !== -1) {
-      colorClass = 'red'; icon = '🚨';
-    } else if (n.subject.indexOf('2 Day') !== -1) {
+      urgencyLabel = 'Immediate Action Required / يستوجب تدخلاً فورياً';
+    } else if (n.subject.indexOf('URGENT') !== -1 || n.subject.indexOf('2 Day') !== -1) {
       colorClass = 'orange'; icon = '⚠️';
+      urgencyLabel = 'Urgent / عاجل';
     }
 
-    // Shorten subject for display
-    var displayMsg = n.subject.replace('🚨 idara360 — ', '').replace('⚠️ idara360 — ', '');
+    // Clean subject for display
+    var displaySubject = n.subject
+      .replace('🚨 idara360 — ', '')
+      .replace('⚠️ idara360 — ', '');
 
-    return '<div class="notif-banner ' + colorClass + '" id="banner-' + n.rowIndex + '">' +
-      '<span style="font-size:14px;flex-shrink:0;">' + icon + '</span>' +
-      '<div class="notif-banner-msg">' +
-        '<div>' + escHtml(displayMsg) + '</div>' +
-        '<div style="font-size:10px;font-weight:400;margin-top:2px;opacity:0.8;">' + escHtml(n.itemName) + '</div>' +
+    // Get action text and section
+    var routing = NOTIF_ROUTING[n.type] || {};
+    var actionText = routing.action || 'Review and take action';
+    var sectionId  = routing.section || '';
+
+    // Go to button label
+    var gotoLabel = sectionId === 'stg-fees' ? '→ Fee Rules' : '→ Utility Prices';
+
+    return '<div class="notif-card ' + colorClass + '" id="ncard-' + n.rowIndex + '">' +
+      '<div class="notif-card-title">' + icon + ' ' + urgencyLabel + '</div>' +
+      '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px;">' +
+        escHtml(displaySubject) +
       '</div>' +
-      '<span class="notif-banner-close" onclick="dismissBanner(' + n.rowIndex + ')">✕</span>' +
+      '<div class="notif-card-meta">' + escHtml(n.itemName) + '</div>' +
+      '<div class="notif-card-action">⚡ ' + actionText + '</div>' +
+      '<div class="notif-card-btns">' +
+        (sectionId ? '<button class="notif-btn-goto" onclick="notifGoTo(\'' + sectionId + '\',' + n.rowIndex + ')">' + gotoLabel + '</button>' : '') +
+        '<button class="notif-btn-done" onclick="notifDismiss(' + n.rowIndex + ')">✓ Done</button>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
 
 /**
- * dismissBanner()
- * Dismisses a banner and acknowledges the notification
+ * notifGoTo()
+ * Navigates to relevant settings section and closes panel
  */
-function dismissBanner(rowIndex) {
-  // Remove from local array
+function notifGoTo(sectionId, rowIndex) {
+  toggleNotifPanel(); // close panel
+  openSettings(sectionId); // open settings at section
+}
+
+/**
+ * notifDismiss()
+ * Acknowledges notification and removes from list
+ */
+function notifDismiss(rowIndex) {
   _activeNotifications = _activeNotifications.filter(function(n) {
     return n.rowIndex !== rowIndex;
   });
-
-  // Remove from DOM
-  var el = document.getElementById('banner-' + rowIndex);
-  if (el) el.remove();
-
-  // Hide container if empty
-  if (!_activeNotifications.length) {
-    var container = document.getElementById('notification-banners');
-    if (container) container.style.display = 'none';
-  }
-
-  // Update gear badge
-  updateGearBadge();
+  updateBellState();
 
   // Acknowledge in backend
   gasPost({
     action: 'acknowledgeNotification',
     payload: { rowIndex: rowIndex },
     token: _session.token
-  }).catch(function() {}); // Silently fail
-}
-
-/**
- * updateGearBadge()
- * Updates the red badge count on Settings gear icon
- * Only counts critical notifications (N3, N4, day-of, day-after)
- */
-function updateGearBadge() {
-  var criticalCount = _activeNotifications.filter(function(n) {
-    return n.type === 'N3' || n.type === 'N4' ||
-           n.subject.indexOf('TODAY') !== -1 ||
-           n.subject.indexOf('EXPIRED') !== -1 ||
-           n.subject.indexOf('Daily Reminder') !== -1;
-  }).length;
-
-  // Handle both mobile (sb-gear) and desktop (dt-gear) gear buttons
-  var gearBtns = [
-    document.getElementById('dt-gear'),
-    document.getElementById('sb-gear')
-  ];
-
-  gearBtns.forEach(function(gearBtn) {
-    if (!gearBtn) return;
-    var badgeId = 'gear-badge-' + gearBtn.id;
-    var badge   = document.getElementById(badgeId);
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.id = badgeId;
-      badge.style.cssText = 'position:absolute;top:-4px;right:-4px;' +
-        'background:var(--burg);color:#fff;border-radius:50%;' +
-        'width:16px;height:16px;font-size:9px;font-weight:700;' +
-        'display:flex;align-items:center;justify-content:center;' +
-        'pointer-events:none;';
-      gearBtn.style.position = 'relative';
-      gearBtn.appendChild(badge);
-    }
-    if (criticalCount > 0) {
-      badge.textContent = criticalCount > 9 ? '9+' : String(criticalCount);
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
-    }
-  });
+  }).catch(function() {});
 }
 
 function populateMtrFilters(rows) {
@@ -8001,6 +8110,18 @@ function showGear(isAdmin) {
   if (sbGear) sbGear.style.display = isAdmin ? 'block' : 'none';
   var dtGear = document.getElementById('dt-gear');
   if (dtGear) dtGear.style.display = isAdmin ? 'block' : 'none';
+  // Bell hidden on logout — shown by loadNotificationBanners() after login
+  var sbBell = document.getElementById('sb-bell');
+  if (sbBell) sbBell.style.display = 'none';
+  var dtBell = document.getElementById('dt-bell');
+  if (dtBell) dtBell.style.display = 'none';
+  // Reset notification state
+  _activeNotifications = [];
+  _notifPanelOpen = false;
+  var panel = document.getElementById('notif-panel');
+  if (panel) panel.style.display = 'none';
+  var overlay = document.getElementById('notif-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────
@@ -9472,6 +9593,31 @@ function fmtMoney(val) {
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════
+     NOTIFICATION PANEL
+══════════════════════════════════════════════ -->
+<div id="notif-panel" style="display:none;position:fixed;top:64px;right:0;
+  width:380px;max-width:95vw;max-height:70vh;overflow-y:auto;
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:0 0 16px 16px;box-shadow:0 8px 32px rgba(27,42,74,0.18);
+  z-index:8000;direction:rtl;">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:14px;font-weight:700;color:var(--navy);">
+      🔔 <span id="notif-panel-title">Notifications / إشعارات</span>
+    </div>
+    <span onclick="toggleNotifPanel()" style="cursor:pointer;font-size:18px;
+      color:var(--muted);padding:0 4px;">✕</span>
+  </div>
+  <div id="notif-panel-body" style="padding:12px;"></div>
+</div>
+
+<!-- Click outside to close notif panel -->
+<div id="notif-overlay" onclick="toggleNotifPanel()" style="display:none;
+  position:fixed;inset:0;z-index:7999;"></div>
+
+
 
 </body>
 </html>

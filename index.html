@@ -4623,6 +4623,11 @@ function confirmMtrReading() {
       _chargedReadingIds[readingId] = true;
       optimisticallyCharged = true;
     }
+    // If not charged — ensure readingId is NOT in _chargedReadingIds
+    // so ⚠️ Unpriced badge shows immediately on re-render
+    else {
+      delete _chargedReadingIds[readingId];
+    }
   }
 
   // Update stats instantly

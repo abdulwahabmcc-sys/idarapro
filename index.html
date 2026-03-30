@@ -2774,6 +2774,12 @@ function launchApp(auth) {
       gasGet('getSettingsUtility', _session.token)
         .then(function(data) { if (data) _utilityCache = data || []; })
         .catch(function() {});
+      gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
+        .then(function(data) { if (data) _uupCache = data || []; })
+        .catch(function() {});
+      gasPost({ action: 'getSettingsFees', token: _session.token })
+        .then(function(data) { if (data) _feesCache = data || []; })
+        .catch(function() {});
     }
   }, 2000);
 }
@@ -4582,7 +4588,7 @@ function confirmMtrReading() {
     var today = new Date(); today.setHours(0,0,0,0);
 
     var hasActiveFee = (!_feesCache || !_feesCache.length)
-      ? true // cache not loaded — assume fee exists
+      ? false // cache not loaded — show Unpriced until cache loads
       : (_feesCache || []).some(function(f) {
           if (String(f.status).toLowerCase() !== 'active') return false;
           if (String(f.meterRef || '').trim() !== utilityName) return false;
@@ -4598,7 +4604,7 @@ function confirmMtrReading() {
         });
 
     var hasActivePrice = (!_uupCache || !_uupCache.length)
-      ? true // cache not loaded — assume price exists
+      ? false // cache not loaded — show Unpriced until cache loads
       : (_uupCache || []).some(function(u) {
           if (String(u.status).toLowerCase() !== 'active') return false;
           if (String(u.utilityName || '').trim() !== utilityName) return false;

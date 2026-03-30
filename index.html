@@ -4569,11 +4569,60 @@ function confirmMtrReading() {
 
   // Optimistic UI — update cache instantly
   var r = _mtrCache.find(function(x) { return x.readingId === readingId; });
+  var optimisticallyCharged = false;
   if (r) {
     r.status         = 'Confirmed';
     r.confirmedBy    = confirmedBy;
     r.dateConfirmed  = new Date().toISOString().slice(0, 10);
     r.confirmeeNotes = notes;
+
+    // Optimistically mark as charged if active fee rule + active UUP price exist
+    // Gap 1 & 2: if caches not loaded → assume priced (safe fallback, avoid false Unpriced badge)
+    var utilityName = r.utilityName || '';
+    var today = new Date(); today.setHours(0,0,0,0);
+
+    var hasActiveFee = (!_feesCache || !_feesCache.length)
+      ? true // cache not loaded — assume fee exists
+      : (_feesCache || []).some(function(f) {
+          if (String(f.status).toLowerCase() !== 'active') return false;
+          if (String(f.meterRef || '').trim() !== utilityName) return false;
+          // Gap 4: check fee rule start date <= reading date
+          if (f.startDate) {
+            var fStart = new Date(f.startDate);
+            fStart.setHours(0,0,0,0);
+            var rDate = r.date ? new Date(r.date) : today;
+            rDate.setHours(0,0,0,0);
+            if (fStart > rDate) return false;
+          }
+          return true;
+        });
+
+    var hasActivePrice = (!_uupCache || !_uupCache.length)
+      ? true // cache not loaded — assume price exists
+      : (_uupCache || []).some(function(u) {
+          if (String(u.status).toLowerCase() !== 'active') return false;
+          if (String(u.utilityName || '').trim() !== utilityName) return false;
+          // Gap 3: check price end date is not in the past
+          if (u.endDate) {
+            var uEnd = new Date(u.endDate);
+            uEnd.setHours(0,0,0,0);
+            if (uEnd < today) return false;
+          }
+          // Gap 3: check price effective date is not in the future
+          if (u.effectiveDate) {
+            var uStart = new Date(u.effectiveDate);
+            uStart.setHours(0,0,0,0);
+            var rDate2 = r.date ? new Date(r.date) : today;
+            rDate2.setHours(0,0,0,0);
+            if (uStart > rDate2) return false;
+          }
+          return true;
+        });
+
+    if (hasActiveFee && hasActivePrice) {
+      _chargedReadingIds[readingId] = true;
+      optimisticallyCharged = true;
+    }
   }
 
   // Update stats instantly
@@ -4600,22 +4649,11 @@ function confirmMtrReading() {
     payload: { readingId: readingId, confirmedBy: confirmedBy, notes: notes },
     token: _session.token
   })
-    .then(function() {
-      // Refresh charged IDs so ⚠️ Unpriced badge updates immediately
-      gasPost({ action: 'getChargedReadingIds', token: _session.token })
-        .then(function(ids) {
-          _chargedReadingIds = {};
-          (ids || []).forEach(function(id) { _chargedReadingIds[id] = true; });
-          // Re-render to remove Unpriced badge
-          var isAdmin2 = _session && (_session.role === 'Admin' || _session.role === 'Management');
-          if (isAdmin2) { applyMtrFilters(); }
-          else { renderMtrList(_mtrCache.filter(function(x) { return x.readBy === _session.name; }), false); }
-        })
-        .catch(function() {});
-    })
     .catch(function(e) {
       // Revert on failure
       if (r) r.status = 'Pending';
+      // Gap 5: revert optimistic charge mark if backend failed
+      if (optimisticallyCharged) delete _chargedReadingIds[readingId];
       var pending2   = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Pending'; }).length;
       var confirmed2 = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Confirmed'; }).length;
       if (statsEl) statsEl.textContent = pending2 + ' pending · ' + confirmed2 + ' confirmed';

@@ -8170,6 +8170,10 @@ function doSaveUtilityUnitPrice(payload) {
           }
         }
         loadUtilityUnitPrices(); // re-render — fast since uses existing cache structure
+        // Refresh bell immediately if N4 may have fired on the backend
+        if (payload.status === 'Suspended' || payload.status === 'Expired') {
+          setTimeout(function() { loadNotificationBanners(); }, 800);
+        }
       } else {
         // New price — reload from backend
         loadUtilityUnitPrices();

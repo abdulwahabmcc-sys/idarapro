@@ -4703,16 +4703,13 @@ function confirmMtrReading() {
       delete _chargedReadingIds[readingId];
 
       Promise.all([
-        gasPost({ action: 'getSettingsFees', token: _session.token })
+        gasGet('getSettingsFees', _session.token)
           .then(function(data) { if (data) _feesCache = data || []; })
           .catch(function() {}),
         gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
           .then(function(data) { if (data) _uupCache = data || []; })
           .catch(function() {})
       ]).then(function() {
-        // Re-evaluate badge now that caches are populated.
-        // evaluateUnpricedBadge() guards against the backend having failed
-        // before this resolves — it checks _mtrCache status first.
         evaluateUnpricedBadge(readingId, r);
       });
 

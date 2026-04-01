@@ -2748,24 +2748,34 @@ function launchApp(auth) {
   refreshDash();
   _rtimer = setInterval(refreshDash, 30000);
 
-  // Load notification banners (Admin + Management only)
-  setTimeout(function() {
+  // ── TIER 2: Immediate background loads ───────────────────────────────────
+  // Fired in parallel with getAppData the moment launchApp() runs.
+  //
+  // Priority rationale:
+  //   _uupCache + _feesCache are badge-critical. Must be ready before admin
+  //   can reach the Meter tab confirm dialog. The natural navigation gap
+  //   (getAppData resolves → Income tab renders → admin clicks Meter →
+  //   loadMtrReadings resolves → confirm dialog opens) gives these ~4–7s
+  //   to complete before they are needed.
+  //   loadNotificationBanners fires immediately — no reason to delay 1500ms,
+  //   admin should see bell state as soon as the app is visible.
+  //
+  if (_session && _session.token) {
+    gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
+      .then(function(data) { if (data) _uupCache = data || []; })
+      .catch(function() {});
+    gasPost({ action: 'getSettingsFees', token: _session.token })
+      .then(function(data) { if (data) _feesCache = data || []; })
+      .catch(function() {});
     loadNotificationBanners();
-  }, 1500);
+  }
 
-  // Refresh notifications every 5 minutes (cross-device sync)
-  setInterval(function() {
-    if (_session && _session.token) loadNotificationBanners();
-  }, 5 * 60 * 1000);
 
-  // Refresh when tab becomes visible (user switches back to app)
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && _session && _session.token) {
-      loadNotificationBanners();
-    }
-  });
-
-  // Silent background pre-load for faster settings experience
+  // ── TIER 3: Deferred background loads ────────────────────────────────────
+  // Form helpers — only needed when admin opens Fee Settings or Utility
+  // Master forms. Not time-critical. Pushed to 3s to avoid competing with
+  // Tier 2 calls at the busiest moment of login.
+  //
   setTimeout(function() {
     if (_session && _session.token) {
       gasGet('getFeeLookups', _session.token)
@@ -2774,14 +2784,20 @@ function launchApp(auth) {
       gasGet('getSettingsUtility', _session.token)
         .then(function(data) { if (data) _utilityCache = data || []; })
         .catch(function() {});
-      gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
-        .then(function(data) { if (data) _uupCache = data || []; })
-        .catch(function() {});
-      gasPost({ action: 'getSettingsFees', token: _session.token })
-        .then(function(data) { if (data) _feesCache = data || []; })
-        .catch(function() {});
     }
-  }, 2000);
+  }, 3000);
+
+
+  // ── Cross-device sync + visibility polling (unchanged) ───────────────────
+  setInterval(function() {
+    if (_session && _session.token) loadNotificationBanners();
+  }, 5 * 60 * 1000);
+
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && _session && _session.token) {
+      loadNotificationBanners();
+    }
+  });
 }
 
 function applyPermissionUI(auth) {
@@ -3884,6 +3900,7 @@ var NOTIF_ROUTING = {
  * Fetches active notifications — called after login
  */
 function loadNotificationBanners() {
+  if (!_session || !_session.token) return; // Gap 1: self-defending token guard
   var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
   if (!isAdmin) return;
 
@@ -4567,6 +4584,86 @@ function closeMtrConfirmDialog() {
   _mtrPendingConfirm = null;
 }
 
+// ── evaluateUnpricedBadge(readingId, r) ──────────────────────────────────
+//
+// Called by confirmMtrReading() only when caches were cold at confirm time
+// and had to be loaded on-demand via Promise.all. Re-checks badge state for
+// a single reading after caches are now populated, and re-renders only if
+// the badge needs to clear.
+//
+// Race condition guard (New Gap): the gasPost (confirmMeterReading backend)
+// and Promise.all (cache loads) run in parallel. If the backend fails fast
+// and .catch() fires before Promise.all resolves, the revert has already
+// set r.status back to 'Pending' in _mtrCache. Checking status here ensures
+// evaluateUnpricedBadge() does not incorrectly mark a failed confirmation
+// as charged after .catch() already cleaned it up.
+//
+function evaluateUnpricedBadge(readingId, r) {
+  if (!r || !_feesCache || !_uupCache) return;
+
+  // New Gap fix: if backend failed, .catch() already reverted status to
+  // 'Pending' — do not mark as charged or re-render badge as cleared.
+  var cachedReading = (_mtrCache || []).find(function(x) {
+    return x.readingId === readingId;
+  });
+  if (!cachedReading || cachedReading.status !== 'Confirmed') return;
+
+  var utilityName = r.utilityName || '';
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  var hasActiveFee = (_feesCache || []).some(function(f) {
+    if (String(f.status).toLowerCase() !== 'active') return false;
+    if (String(f.meterRef || '').trim() !== utilityName) return false;
+    if (f.startDate) {
+      var fStart = new Date(f.startDate); fStart.setHours(0,0,0,0);
+      var rDate  = r.date ? new Date(r.date) : today; rDate.setHours(0,0,0,0);
+      if (fStart > rDate) return false;
+    }
+    return true;
+  });
+
+  var hasActivePrice = (_uupCache || []).some(function(u) {
+    if (String(u.status).toLowerCase() !== 'active') return false;
+    if (String(u.utilityName || '').trim() !== utilityName) return false;
+    // Gap 3 fix: compare against reading date, not today
+    if (u.endDate) {
+      var readingDateForEnd = r.date ? new Date(r.date) : today;
+      readingDateForEnd.setHours(0,0,0,0);
+      var uEnd = new Date(u.endDate); uEnd.setHours(0,0,0,0);
+      if (uEnd < readingDateForEnd) return false;
+    }
+    if (u.effectiveDate) {
+      var readingDateForEffective = r.date ? new Date(r.date) : today;
+      readingDateForEffective.setHours(0,0,0,0);
+      var uStart = new Date(u.effectiveDate); uStart.setHours(0,0,0,0);
+      if (uStart > readingDateForEffective) return false;
+    }
+    return true;
+  });
+
+  if (hasActiveFee && hasActivePrice) {
+    // Charge exists — clear badge and re-render
+    _chargedReadingIds[readingId] = true;
+    var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
+    // Gap 2 fix: guard against admin having navigated away from Meter tab
+    var mtrEl = document.getElementById('mtr-list');
+    if (!mtrEl) return;
+    if (isAdmin) {
+      var filterEl = document.getElementById('mtr-filter-status');
+      if (filterEl) {
+        applyMtrFilters();
+      } else {
+        renderMtrList(_mtrCache, true);
+      }
+    } else {
+      renderMtrList(_mtrCache.filter(function(x) {
+        return x.readBy === _session.name;
+      }), false);
+    }
+  }
+  // If still no fee or price — badge stays showing, which is correct
+}
+
 function confirmMtrReading() {
   if (!_mtrPendingConfirm) return;
   var notes       = document.getElementById('mtr-confirm-notes').value.trim();
@@ -4587,52 +4684,80 @@ function confirmMtrReading() {
     var utilityName = r.utilityName || '';
     var today = new Date(); today.setHours(0,0,0,0);
 
-    var hasActiveFee = (!_feesCache || !_feesCache.length)
-      ? false // cache not loaded — show Unpriced until cache loads
-      : (_feesCache || []).some(function(f) {
-          if (String(f.status).toLowerCase() !== 'active') return false;
-          if (String(f.meterRef || '').trim() !== utilityName) return false;
-          // Gap 4: check fee rule start date <= reading date
-          if (f.startDate) {
-            var fStart = new Date(f.startDate);
-            fStart.setHours(0,0,0,0);
-            var rDate = r.date ? new Date(r.date) : today;
-            rDate.setHours(0,0,0,0);
-            if (fStart > rDate) return false;
-          }
-          return true;
-        });
+    // ── Part B: Cache-warm safety net ────────────────────────────────────
+    // Tier 2 loading in launchApp() fires _uupCache + _feesCache immediately
+    // at login. By the time admin navigates to Meter tab and opens a confirm
+    // dialog, caches are populated in the vast majority of cases (warm path).
+    //
+    // Cold path handles the edge case: slow connection, very fast admin, or
+    // first login on a slow network. Caches loaded on-demand, badge evaluated
+    // after Promise.all resolves via evaluateUnpricedBadge().
+    //
+    var cachesReady = (_feesCache && _feesCache.length > 0) &&
+                      (_uupCache  && _uupCache.length  > 0);
 
-    var hasActivePrice = (!_uupCache || !_uupCache.length)
-      ? false // cache not loaded — show Unpriced until cache loads
-      : (_uupCache || []).some(function(u) {
-          if (String(u.status).toLowerCase() !== 'active') return false;
-          if (String(u.utilityName || '').trim() !== utilityName) return false;
-          // Gap 3: check price end date is not in the past
-          if (u.endDate) {
-            var uEnd = new Date(u.endDate);
-            uEnd.setHours(0,0,0,0);
-            if (uEnd < today) return false;
-          }
-          // Gap 3: check price effective date is not in the future
-          if (u.effectiveDate) {
-            var uStart = new Date(u.effectiveDate);
-            uStart.setHours(0,0,0,0);
-            var rDate2 = r.date ? new Date(r.date) : today;
-            rDate2.setHours(0,0,0,0);
-            if (uStart > rDate2) return false;
-          }
-          return true;
-        });
-
-    if (hasActiveFee && hasActivePrice) {
-      _chargedReadingIds[readingId] = true;
-      optimisticallyCharged = true;
-    }
-    // If not charged — ensure readingId is NOT in _chargedReadingIds
-    // so ⚠️ Unpriced badge shows immediately on re-render
-    else {
+    if (!cachesReady) {
+      // ── COLD PATH ──────────────────────────────────────────────────────
+      // Caches not warm — show badge conservatively while loads complete.
+      // evaluateUnpricedBadge() will clear it if charge is confirmed valid.
       delete _chargedReadingIds[readingId];
+
+      Promise.all([
+        gasPost({ action: 'getSettingsFees', token: _session.token })
+          .then(function(data) { if (data) _feesCache = data || []; })
+          .catch(function() {}),
+        gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
+          .then(function(data) { if (data) _uupCache = data || []; })
+          .catch(function() {})
+      ]).then(function() {
+        // Re-evaluate badge now that caches are populated.
+        // evaluateUnpricedBadge() guards against the backend having failed
+        // before this resolves — it checks _mtrCache status first.
+        evaluateUnpricedBadge(readingId, r);
+      });
+
+    } else {
+      // ── WARM PATH ──────────────────────────────────────────────────────
+      // Caches ready — evaluate badge immediately.
+      var hasActiveFee = (_feesCache || []).some(function(f) {
+        if (String(f.status).toLowerCase() !== 'active') return false;
+        if (String(f.meterRef || '').trim() !== utilityName) return false;
+        // Check fee rule start date <= reading date
+        if (f.startDate) {
+          var fStart = new Date(f.startDate); fStart.setHours(0,0,0,0);
+          var rDate  = r.date ? new Date(r.date) : today; rDate.setHours(0,0,0,0);
+          if (fStart > rDate) return false;
+        }
+        return true;
+      });
+
+      var hasActivePrice = (_uupCache || []).some(function(u) {
+        if (String(u.status).toLowerCase() !== 'active') return false;
+        if (String(u.utilityName || '').trim() !== utilityName) return false;
+        // Gap 3 fix: compare end date against reading date, not today.
+        // A price with end date 2026-03-15 is valid for a reading on 2026-03-15.
+        if (u.endDate) {
+          var readingDateForEnd = r.date ? new Date(r.date) : today;
+          readingDateForEnd.setHours(0,0,0,0);
+          var uEnd = new Date(u.endDate); uEnd.setHours(0,0,0,0);
+          if (uEnd < readingDateForEnd) return false;
+        }
+        if (u.effectiveDate) {
+          var readingDateForEffective = r.date ? new Date(r.date) : today;
+          readingDateForEffective.setHours(0,0,0,0);
+          var uStart = new Date(u.effectiveDate); uStart.setHours(0,0,0,0);
+          if (uStart > readingDateForEffective) return false;
+        }
+        return true;
+      });
+
+      if (hasActiveFee && hasActivePrice) {
+        _chargedReadingIds[readingId] = true;
+        optimisticallyCharged = true;
+      } else {
+        // Genuinely unpriced — badge shows correctly
+        delete _chargedReadingIds[readingId];
+      }
     }
   }
 
@@ -4664,7 +4789,13 @@ function confirmMtrReading() {
       // Revert on failure
       if (r) r.status = 'Pending';
       // Gap 5: revert optimistic charge mark if backend failed
-      if (optimisticallyCharged) delete _chargedReadingIds[readingId];
+      // Gap 4 fix: unconditional delete — correct on failure regardless of
+      // which cache path ran. If warm path set optimisticallyCharged, this
+      // cleans it up. If cold path ran and evaluateUnpricedBadge() later set
+      // _chargedReadingIds[readingId], evaluateUnpricedBadge() guards against
+      // this via the _mtrCache status check (New Gap fix) so it will not
+      // re-set after this delete fires.
+      delete _chargedReadingIds[readingId];
       var pending2   = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Pending'; }).length;
       var confirmed2 = _mtrCache.filter(function(x) { return String(x.status).trim() === 'Confirmed'; }).length;
       if (statsEl) statsEl.textContent = pending2 + ' pending · ' + confirmed2 + ' confirmed';

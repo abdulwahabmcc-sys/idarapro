@@ -2891,7 +2891,8 @@ function applyPermissionUI(auth) {
 
 function initApp(d) {
   if (!d) return;
-  window._cats = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
+  window._cats  = { income: d.incomeCategories || [], expense: d.expenseCategories || [] };
+  window._legal = d.legal || {};  // store legal settings globally for fiscal year access
   if (d.legal && d.legal['BUILDING_NAME']) {
     document.getElementById('bldName').textContent    = d.legal['BUILDING_NAME'];
     document.getElementById('dt-bldName').textContent = d.legal['BUILDING_NAME'];
@@ -5055,8 +5056,25 @@ function openBalSheet() {
   document.getElementById('bal-unit').value        = '';
   document.getElementById('bal-name').value        = '';
   document.getElementById('bal-notes').value       = '';
-  document.getElementById('bal-year').value        = new Date().getFullYear();
-  document.getElementById('bal-date').value        = todayStr();
+  // ── Derive fiscal year from Legal_Settings ────────────────────────────────
+  var fyStr    = (window._legal && window._legal['FISCAL_YEAR_START']) || '1/1';
+  var fyParts  = fyStr.split('/');
+  var fyMonth  = parseInt(fyParts[0]) - 1;  // 0-indexed
+  var fyDay    = parseInt(fyParts[1]) || 1;
+  var fyNow    = new Date();
+  var fyDate   = new Date(fyNow.getFullYear(), fyMonth, fyDay);
+  if (fyDate > fyNow) fyDate = new Date(fyNow.getFullYear() - 1, fyMonth, fyDay);
+  var fyYear   = fyDate.getFullYear();
+  var fyDateStr = fyDate.getFullYear() + '-' +
+    String(fyDate.getMonth() + 1).padStart(2, '0') + '-' +
+    String(fyDate.getDate()).padStart(2, '0');
+
+  document.getElementById('bal-year').value        = fyYear;
+  document.getElementById('bal-date').value        = fyDateStr;
+  document.getElementById('bal-year').readOnly     = true;
+  document.getElementById('bal-year').style.opacity = '0.6';
+  document.getElementById('bal-date').readOnly     = true;
+  document.getElementById('bal-date').style.opacity = '0.6';
   document.getElementById('bal-type').value        = '';
   document.getElementById('bal-amount').value      = '';
 
@@ -5100,6 +5118,12 @@ function editBalance(r) {
   var contractSel = document.getElementById('bal-contract');
   contractSel.disabled      = true;
   contractSel.style.opacity = '0.6';
+
+  // Lock fiscal year and date — must always match fiscal year start
+  document.getElementById('bal-year').readOnly      = true;
+  document.getElementById('bal-year').style.opacity = '0.6';
+  document.getElementById('bal-date').readOnly      = true;
+  document.getElementById('bal-date').style.opacity = '0.6';
 
   var btn = document.getElementById('bal-submit');
   btn.disabled = false; btn.textContent = 'حفظ التعديل / Save Changes';
@@ -9062,7 +9086,7 @@ function fmtMoney(val) {
         <input class="inp" type="text" id="bal-unit" readonly style="opacity:0.6;direction:rtl;">
       </div>
       <div class="cs-field">
-        <div class="cs-lbl">Year <span class="req">*</span></div>
+        <div class="cs-lbl">Fiscal Year <span class="req">*</span></div>
         <input class="inp" type="number" id="bal-year" placeholder="2026" min="2000" max="2100">
       </div>
     </div>

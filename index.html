@@ -2162,13 +2162,6 @@
       </div>
     </div>
 
-    <div class="card" id="f-amt">
-      <div class="lbl"><span class="l-ar">المبلغ</span><span class="l-en">Amount $</span></div>
-      <input type="number" step="0.01" min="0" class="inp inp-amt" id="inp-amt" placeholder="0.00" inputmode="decimal">
-    </div>
-
-<!-- Statements section — Task 3 Phase 10B -->
-    <div style="height:1px;background:var(--bdr);margin:12px 0;"></div>
     <div class="card" id="stmt-actions-card">
       <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
@@ -2193,7 +2186,14 @@
       </div>
     </div>
 
-    <!-- Meter Reading Panel -->
+    </div><!-- /f-rep -->
+
+    <div class="card" id="f-amt">
+      <div class="lbl"><span class="l-ar">المبلغ</span><span class="l-en">Amount $</span></div>
+      <input type="number" step="0.01" min="0" class="inp inp-amt" id="inp-amt" placeholder="0.00" inputmode="decimal">
+    </div>
+
+<!-- Meter Reading Panel -->
     <div class="hide" id="f-mtr">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -2230,8 +2230,9 @@
       </div>
     </div>
     
-    <!-- Communications Panel — Task 3/4 Phase 10B -->
-    <div class="hide" id="f-com">
+    <!-- /Communications Panel moved outside form below -->
+
+    <!-- Submit button — no more PIN field -->
       <div class="card">
         <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px;">
           مراسلات / Communications
@@ -2929,10 +2930,16 @@ function applyPermissionUI(auth) {
   var dtMtr = document.getElementById('dt-t-mtr');
   var dtSet = document.getElementById('dt-t-set');
 
-  // Admin — show everything including meter tab
+  // Admin — show everything including meter and communications tabs
   if (role === 'Admin') {
     if (tMtr) tMtr.classList.remove('hide');
     if (dtMtr) dtMtr.classList.remove('hide');
+    var tCom2  = document.getElementById('t-com');
+    var dtCom2 = document.getElementById('dt-t-com');
+    if (tCom2)  tCom2.classList.remove('hide');
+    if (dtCom2) dtCom2.classList.remove('hide');
+    var stmtCard = document.getElementById('stmt-actions-card');
+    if (stmtCard) stmtCard.classList.remove('hide');
     return;
   }
   

@@ -3537,7 +3537,7 @@ function doSubmit() {
     var reportType = document.getElementById('sel-rep').value;
     var dateFrom   = document.getElementById('sel-month-from') ? document.getElementById('sel-month-from').value : '';
     var dateTo     = document.getElementById('sel-month-to')   ? document.getElementById('sel-month-to').value   : '';
-    gasGet('checkDirtyFlag', _session.token)
+    gasPost({ action: 'checkDirtyFlag', token: _session.token })
       .then(function(flagResult) {
         if (flagResult && flagResult.dirty) {
           toast('⏳ تحديث الرسوم... / Updating fees, please wait...', 'info');

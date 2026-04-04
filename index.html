@@ -1870,6 +1870,7 @@
       #scroll .card    { max-width: 520px; }
       #scroll .r-grid  { max-width: 520px; }
       #scroll #f-rep > .card { max-width: 520px; }
+      #scroll #f-com > .card { max-width: 520px; }
 
       .dash-card { margin-bottom: 0; border-radius: 16px; }
 
@@ -3075,7 +3076,7 @@ function setTab(type) {
   TAB = type;
   document.getElementById('eType').value = type;
 
-  ['t-inc','t-exp','t-rep','t-mtr'].forEach(function(id) {
+  ['t-inc','t-exp','t-rep','t-mtr','t-com'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
@@ -3084,7 +3085,7 @@ function setTab(type) {
     }
   });
 
-  ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr'].forEach(function(id) {
+  ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
@@ -3093,7 +3094,7 @@ function setTab(type) {
     }
   });
 
-  ['f-inc','f-exp','f-rep','f-amt','f-mtr'].forEach(function(id) {
+  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.classList.add('hide');
   });
@@ -3144,6 +3145,7 @@ function setTab(type) {
     if (dtCom) dtCom.classList.add('dt-rep');
     document.getElementById('f-com').classList.remove('hide');
     document.getElementById('btn-sub').style.display = 'none';
+    document.getElementById('scroll').scrollTop = 0;
     loadComData();
     return;
   }

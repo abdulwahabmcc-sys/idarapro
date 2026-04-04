@@ -8820,16 +8820,33 @@ function escHtml(s) {
 
 function formatStmtDate(dateStr) {
   if (!dateStr || dateStr === 'undefined' || dateStr.trim() === '') return '—';
+  // Timestamps from GAS are already in building timezone as 'yyyy-MM-dd HH:mm:ss'
+  // Parse directly without browser timezone conversion
+  var parts = String(dateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})[\sT](\d{2}):(\d{2})/);
+  if (parts) {
+    var dd   = parts[3];
+    var mm   = parts[2];
+    var yyyy = parts[1];
+    var hh   = parseInt(parts[4]);
+    var min  = parts[5];
+    var ampm = hh >= 12 ? 'PM' : 'AM';
+    var hr12 = hh % 12 || 12;
+    return dd + '/' + mm + '/' + yyyy + ' ' + hr12 + ':' + min + ampm;
+  }
+  // Fallback for ISO format dates (reviewedAt set client-side via new Date().toISOString())
   var d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  var dd   = String(d.getDate()).padStart(2, '0');
-  var mm   = String(d.getMonth() + 1).padStart(2, '0');
-  var yyyy = d.getFullYear();
-  var hh   = String(d.getHours()).padStart(2, '0');
-  var min  = String(d.getMinutes()).padStart(2, '0');
-  var ampm = d.getHours() >= 12 ? 'PM' : 'AM';
-  var hr12 = d.getHours() % 12 || 12;
-  return dd + '/' + mm + '/' + yyyy + ' ' + hr12 + ':' + min + ampm;
+  var tz = (window._legal && window._legal['TIMEZONE']) || 'Asia/Beirut';
+  var formatted = d.toLocaleString('en-GB', {
+    timeZone: tz,
+    day:   '2-digit',
+    month: '2-digit',
+    year:  'numeric',
+    hour:  'numeric',
+    minute:'2-digit',
+    hour12: true
+  });
+  return formatted;
 }
 
 function fmtMoney(val) {

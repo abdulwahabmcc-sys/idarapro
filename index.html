@@ -3541,7 +3541,7 @@ function doSubmit() {
       .then(function(flagResult) {
         if (flagResult && flagResult.dirty) {
           toast('⏳ تحديث الرسوم... / Updating fees, please wait...', 'info');
-          return gasGet('runApplyFees', _session.token);
+          return gasPost({ action: 'runApplyFees', token: _session.token });
         }
         return Promise.resolve({ ok: true });
       })

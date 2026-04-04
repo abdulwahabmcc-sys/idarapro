@@ -3282,8 +3282,22 @@ function renderStmtList() {
   }
 
   var filtered = _stmtFilter === 'All'
-    ? _stmtCache
+    ? _stmtCache.slice()
     : _stmtCache.filter(function(s) { return s.status === _stmtFilter; });
+
+  filtered.sort(function(a, b) {
+    var dateA, dateB;
+    var status = _stmtFilter === 'All' ? a.status : _stmtFilter;
+    function getSortDate(s) {
+      if (s.status === 'Approved') return s.reviewedAt  || s.generatedAt || '';
+      if (s.status === 'Sent')     return s.sentAt      || s.generatedAt || '';
+      if (s.status === 'Skipped')  return s.sentAt      || s.generatedAt || '';
+      return s.generatedAt || '';
+    }
+    dateA = getSortDate(a);
+    dateB = getSortDate(b);
+    return dateB > dateA ? 1 : dateB < dateA ? -1 : 0;
+  });
 
   if (!filtered.length) {
     listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px;">' +

@@ -2161,32 +2161,29 @@
           <option value="Journal">دفتر اليومية / Journal</option>
         </select>
       </div>
-    </div>
-
-    <div class="card" id="stmt-actions-card">
-      <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-        <button id="stmt-generate-btn" class="btn-sub b-rep"
-          style="height:46px;font-size:13px;margin-top:0;" onclick="generateStatements()">
-          🗂️ إنشاء / Generate
-        </button>
-        <button id="stmt-review-btn" class="btn-sub"
-          style="height:46px;font-size:13px;margin-top:0;background:var(--forest);" onclick="openStmtReview()">
-          👁️ مراجعة / Review
-        </button>
+      <div class="card hide" id="stmt-actions-card">
+        <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <button id="stmt-generate-btn" class="btn-sub b-rep"
+            style="height:46px;font-size:13px;margin-top:0;" onclick="generateStatements()">
+            🗂️ إنشاء / Generate
+          </button>
+          <button id="stmt-review-btn" class="btn-sub"
+            style="height:46px;font-size:13px;margin-top:0;background:var(--forest);" onclick="openStmtReview()">
+            👁️ مراجعة / Review
+          </button>
+        </div>
+        <div id="stmt-review-area" style="display:none;margin-top:12px;">
+          <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+          <div id="stmt-list" style="min-height:40px;"></div>
+          <button id="stmt-queue-all-btn" onclick="approveAllStatements()"
+            style="display:none;width:100%;height:46px;border:none;border-radius:10px;
+            background:var(--forest);color:#fff;font-family:var(--font);font-size:14px;
+            font-weight:700;cursor:pointer;margin-top:10px;">
+            ✅ Queue All Reviewed / انتظار الجميع
+          </button>
+        </div>
       </div>
-      <div id="stmt-review-area" style="display:none;margin-top:12px;">
-        <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-        <div id="stmt-list" style="min-height:40px;"></div>
-        <button id="stmt-queue-all-btn" onclick="approveAllStatements()"
-          style="display:none;width:100%;height:46px;border:none;border-radius:10px;
-          background:var(--forest);color:#fff;font-family:var(--font);font-size:14px;
-          font-weight:700;cursor:pointer;margin-top:10px;">
-          ✅ Queue All Reviewed / انتظار الجميع
-        </button>
-      </div>
-    </div>
-
     </div><!-- /f-rep -->
 
     <div class="card" id="f-amt">
@@ -2231,13 +2228,10 @@
       </div>
     </div>
     
-    <!-- /Communications Panel moved outside form below -->
-
-    <!-- Submit button — no more PIN field -->
-      <div class="card">
-        <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px;">
-          مراسلات / Communications
-        </div>
+    <div class="card hide" id="f-com">
+      <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px;">
+        مراسلات / Communications
+      </div>
         <div style="font-size:11px;color:var(--muted);direction:ltr;margin-bottom:16px;">
           Send reports and messages to occupants
         </div>
@@ -2307,8 +2301,7 @@
               Sent history — coming in full Communications build</div>
           </div>
         </div>
-      </div>
-    </div>
+    </div><!-- /f-com -->
 
     <!-- Submit button — no more PIN field -->
     <div class="card">
@@ -3125,6 +3118,8 @@ function setTab(type) {
     document.getElementById('t-rep').classList.add('n-rep');
     if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
+    var stmtCard = document.getElementById('stmt-actions-card');
+    if (stmtCard && _session && _session.role === 'Admin') stmtCard.classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
     ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';

@@ -3363,7 +3363,14 @@ function approveSingleStatement(rowIndex) {
       if (s) {
         s.status     = 'Approved';
         s.reviewedBy = _session.name;
-        s.reviewedAt = new Date().toISOString();
+        var now = new Date();
+var tz  = (window._legal && window._legal['TIMEZONE']) || 'Asia/Beirut';
+s.reviewedAt = now.toLocaleString('en-GB', {
+  timeZone: tz,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+  hour12: false
+}).replace(/(\d{2})\/(\d{2})\/(\d{4}),?\s/, '$3-$2-$1 ');
       }
       renderStmtList();
       toast('✅ Approved / تم الموافقة', 'ok');
@@ -8833,20 +8840,21 @@ function formatStmtDate(dateStr) {
     var hr12 = hh % 12 || 12;
     return dd + '/' + mm + '/' + yyyy + ' ' + hr12 + ':' + min + ampm;
   }
-  // Fallback for ISO format dates (reviewedAt set client-side via new Date().toISOString())
+  // Fallback — extract what we can
   var d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  if (isNaN(d.getTime())) return '—';
   var tz = (window._legal && window._legal['TIMEZONE']) || 'Asia/Beirut';
-  var formatted = d.toLocaleString('en-GB', {
-    timeZone: tz,
-    day:   '2-digit',
-    month: '2-digit',
-    year:  'numeric',
-    hour:  'numeric',
-    minute:'2-digit',
-    hour12: true
-  });
-  return formatted;
+  try {
+    var p = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      day: 'numeric', month: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    }).formatToParts(d);
+    var get = function(t) { return (p.find(function(x){return x.type===t;})||{value:''}).value; };
+    return get('month') + '/' + get('day') + '/' + get('year') + ' ' + get('hour') + ':' + get('minute') + get('dayPeriod');
+  } catch(e) {
+    return d.toLocaleDateString();
+  }
 }
 
 function fmtMoney(val) {

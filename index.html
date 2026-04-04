@@ -2164,23 +2164,23 @@
       <div class="card hide" id="stmt-actions-card">
         <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-          <button id="stmt-generate-btn" class="btn-sub b-rep"
-            style="height:46px;font-size:13px;margin-top:0;" onclick="generateStatements()">
+          <button type="button" id="stmt-generate-btn" class="btn-sub b-rep"
+             style="height:46px;font-size:13px;margin-top:0;" onclick="generateStatements()">
             🗂️ إنشاء / Generate
           </button>
-          <button id="stmt-review-btn" class="btn-sub"
-            style="height:46px;font-size:13px;margin-top:0;background:var(--forest);" onclick="openStmtReview()">
+          <button type="button" id="stmt-review-btn" class="btn-sub"
+             style="height:46px;font-size:13px;margin-top:0;background:var(--forest);" onclick="openStmtReview()">
             👁️ مراجعة / Review
           </button>
         </div>
         <div id="stmt-review-area" style="display:none;margin-top:12px;">
           <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
           <div id="stmt-list" style="min-height:40px;"></div>
-          <button id="stmt-queue-all-btn" onclick="approveAllStatements()"
+          <button type="button" id="stmt-queue-all-btn" onclick="approveAllStatements()"
             style="display:none;width:100%;height:46px;border:none;border-radius:10px;
             background:var(--forest);color:#fff;font-family:var(--font);font-size:14px;
             font-weight:700;cursor:pointer;margin-top:10px;">
-            ✅ Queue All Reviewed / انتظار الجميع
+            ✅ Approve All / الموافقة على الجميع
           </button>
         </div>
       </div>
@@ -2238,19 +2238,19 @@
 
         <!-- Sub-navigation -->
         <div id="com-subnav" style="display:flex;gap:6px;margin-bottom:16px;">
-          <button onclick="setComSubnav('all')" id="com-nav-all"
+          <button type="button" onclick="setComSubnav('all')" id="com-nav-all"
             style="flex:1;padding:8px 6px;border-radius:8px;border:1px solid var(--navy);
             background:var(--navy);color:#fff;font-family:var(--font);font-size:11px;
             font-weight:700;cursor:pointer;">
             All Sections
           </button>
-          <button onclick="setComSubnav('one')" id="com-nav-one"
+          <button type="button" onclick="setComSubnav('one')" id="com-nav-one"
             style="flex:1;padding:8px 6px;border-radius:8px;border:1px solid var(--bdr);
             background:transparent;color:var(--muted);font-family:var(--font);
             font-size:11px;font-weight:700;cursor:pointer;">
             One Section
           </button>
-          <button onclick="setComSubnav('history')" id="com-nav-history"
+          <button type="button" onclick="setComSubnav('history')" id="com-nav-history"
             style="flex:1;padding:8px 6px;border-radius:8px;border:1px solid var(--bdr);
             background:transparent;color:var(--muted);font-family:var(--font);
             font-size:11px;font-weight:700;cursor:pointer;">
@@ -3119,7 +3119,10 @@ function setTab(type) {
     if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
     var stmtCard = document.getElementById('stmt-actions-card');
-    if (stmtCard && _session && _session.role === 'Admin') stmtCard.classList.remove('hide');
+    if (stmtCard && _session && _session.role === 'Admin') {
+      stmtCard.classList.remove('hide');
+      openStmtReview();
+    }
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
     ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';
@@ -3304,16 +3307,28 @@ function renderStmtList() {
                     : s.status === 'Skipped'  ? 'var(--burg)'
                     : 'var(--gold)';
     var actionBtn = s.status === 'Draft'
-      ? '<button class="stg-user-btn" style="background:var(--forest);color:#fff;border-color:var(--forest);" ' +
-        'onclick="approveSingleStatement(' + s.rowIndex + ')">✅ Queue</button>'
+      ? '<button type="button" class="stg-user-btn" style="background:var(--forest);color:#fff;border-color:var(--forest);" ' +
+'onclick="approveSingleStatement(' + s.rowIndex + ')">✅ Approve</button>'
       : s.status === 'Approved'
-      ? '<button class="stg-user-btn danger" onclick="revokeSingleStatement(' + s.rowIndex + ')">Undo</button>'
+      ? '<button type="button" class="stg-user-btn danger" onclick="revokeSingleStatement(' + s.rowIndex + ')">Undo</button>'
       : '';
     return '<div style="border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
         '<div>' +
           '<div style="font-size:13px;font-weight:700;color:var(--navy);">' + escHtml(s.section) + ' — ' + escHtml(s.occupantName) + '</div>' +
           '<div style="font-size:10px;color:var(--muted);">' + escHtml(s.period) + ' · ' + (s.email || '❌ No email') + '</div>' +
+(s.status === 'Draft' ? 
+  '<div style="font-size:9px;color:var(--muted);margin-top:2px;">Generated: ' + formatStmtDate(s.generatedAt) + '</div>' 
+  : '') +
+(s.status === 'Approved' && s.reviewedBy ? 
+  '<div style="font-size:9px;color:var(--forest);margin-top:2px;">Approved: ' + formatStmtDate(s.reviewedAt) + ' by ' + escHtml(s.reviewedBy) + '</div>' 
+  : '') +
+(s.status === 'Sent' && s.sentAt ? 
+  '<div style="font-size:9px;color:var(--navy);margin-top:2px;">Sent: ' + formatStmtDate(s.sentAt) + '</div>' 
+  : '') +
+(s.status === 'Skipped' ? 
+  '<div style="font-size:9px;color:var(--burg);margin-top:2px;">Skipped: ' + escHtml(s.notes) + '</div>' 
+  : '') +
 (s.driveFileId ? '<a href="https://drive.google.com/file/d/' + escHtml(s.driveFileId) + '/view" target="_blank" style="font-size:10px;color:var(--navy);text-decoration:underline;">📄 View PDF</a>' : '') +
         '</div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
@@ -3329,26 +3344,36 @@ function setStmtFilter(f) { _stmtFilter = f; renderStmtList(); }
 
 function approveSingleStatement(rowIndex) {
   if (!sessionValid()) return;
+  var btn = document.querySelector('[onclick="approveSingleStatement(' + rowIndex + ')"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   gasPost({ action: 'approveStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
       var s = _stmtCache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) s.status = 'Approved';
       renderStmtList();
-      toast('✅ Queued for sending / تم وضعه في الانتظار', 'ok');
+      toast('✅ Approved / تم الموافقة', 'ok');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve'; }
+      toast('❌ ' + e.message, 'fail');
+    });
 }
 
 function revokeSingleStatement(rowIndex) {
   if (!sessionValid()) return;
+  var btn = document.querySelector('[onclick="revokeSingleStatement(' + rowIndex + ')"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   gasPost({ action: 'revokeStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
       var s = _stmtCache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) s.status = 'Draft';
       renderStmtList();
-      toast('↩️ Reverted to Draft', 'info');
+      toast('↩️ Reverted to Draft / تم الإلغاء', 'info');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Undo'; }
+      toast('❌ ' + e.message, 'fail');
+    });
 }
 
 function approveAllStatements() {
@@ -3397,14 +3422,15 @@ function loadComData() {
   }
   var countEl = document.getElementById('com-recipients-count');
   if (countEl) {
+    countEl.textContent = 'Loading...';
     gasPost({ action: 'getSettingsOccupancy', token: _session.token })
       .then(function(rows) {
         var active = (rows || []).filter(function(o) {
           return String(o.status).toLowerCase() === 'active';
         }).length;
-        countEl.textContent = active + ' active sections. Only those with a configured email will receive the message.';
+        countEl.textContent = active + ' active section(s). Only those with a configured email will receive the message.';
       })
-      .catch(function() { countEl.textContent = 'Unable to load recipients'; });
+      .catch(function(e) { countEl.textContent = '❌ Failed to load: ' + e.message; });
   }
 }
 
@@ -8775,6 +8801,16 @@ function showGear(isAdmin) {
 // ── Utility ───────────────────────────────────────────────────────────────────
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatStmtDate(dateStr) {
+  if (!dateStr || dateStr === 'undefined' || dateStr.trim() === '') return '—';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  var dd = String(d.getDate()).padStart(2, '0');
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var yyyy = d.getFullYear();
+  return dd + '/' + mm + '/' + yyyy;
 }
 
 function fmtMoney(val) {

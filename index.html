@@ -3008,7 +3008,7 @@ function setTab(type) {
     document.getElementById('f-rep').classList.remove('hide');
     pickReport('YTD');
     btn.className = 'btn-sub b-rep';
-    ico.textContent = '📧'; txt.textContent = 'إرسال التقرير / Send Report';
+    ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';
 
   } else if (type === 'Meter') {
     if (document.getElementById('t-mtr')) document.getElementById('t-mtr').classList.add('n-mtr');
@@ -3030,6 +3030,62 @@ function setTab(type) {
 // ══════════════════════════════════════════════════════════════════════════════
 // REPORT CARDS
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ── Report viewer overlay ─────────────────────────────────────────────────
+var _repViewerReportType = '';
+var _repViewerDateFrom   = '';
+var _repViewerDateTo     = '';
+
+function openRepViewer(html, title, reportType, dateFrom, dateTo) {
+  var overlay = document.getElementById('rep-viewer-overlay');
+  var content = document.getElementById('rep-viewer-content');
+  var titleEl = document.getElementById('rep-viewer-title');
+  if (!overlay || !content) return;
+  _repViewerReportType = reportType;
+  _repViewerDateFrom   = dateFrom;
+  _repViewerDateTo     = dateTo;
+  if (titleEl) titleEl.textContent = title || 'Report';
+  content.innerHTML = html;
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRepViewer() {
+  var overlay = document.getElementById('rep-viewer-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function downloadRepPdf() {
+  if (!sessionValid()) return;
+  var btn = document.getElementById('rep-dl-btn');
+  var origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التحضير...'; }
+
+  gasPost({
+    action:     'generateReportPdf',
+    reportType: _repViewerReportType,
+    dateFrom:   _repViewerDateFrom || '',
+    dateTo:     _repViewerDateTo   || '',
+    token:      _session.token
+  })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      if (!parsed.ok) { toast('❌ ' + parsed.error, 'fail'); return; }
+      var a = document.createElement('a');
+      a.href     = 'data:application/pdf;base64,' + parsed.base64;
+      a.download = parsed.filename || 'report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('✅ PDF downloaded / تم تحميل التقرير', 'ok');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
+    });
+}
+
 
 function pickReport(type) {
   REPORT = type;
@@ -3131,7 +3187,8 @@ function doSubmit() {
 
   if (type === 'Report') {
     var reportType = document.getElementById('sel-rep').value;
-    // Check dirty flag first — run fee engine if needed before report
+    var dateFrom   = document.getElementById('sel-month-from') ? document.getElementById('sel-month-from').value : '';
+    var dateTo     = document.getElementById('sel-month-to')   ? document.getElementById('sel-month-to').value   : '';
     gasGet('checkDirtyFlag', _session.token)
       .then(function(flagResult) {
         if (flagResult && flagResult.dirty) {
@@ -3141,15 +3198,22 @@ function doSubmit() {
         return Promise.resolve({ ok: true });
       })
       .then(function() {
+        var proc = document.getElementById('btn-proc-txt');
+        if (proc) proc.textContent = 'جاري التحميل... / Loading...';
         return gasPost({
-          action: 'sendReport',
+          action:     'getReportData',
           reportType: reportType,
-          token: _session.token
+          dateFrom:   dateFrom || '',
+          dateTo:     dateTo   || '',
+          token:      _session.token
         });
       })
       .then(function(r) {
         clearTimeout(tmout);
-        onOk(r.msg || r);
+        setBtnProcessing(false);
+        var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+        if (!parsed.ok) { onFail({ message: parsed.error }); return; }
+        openRepViewer(parsed.html, parsed.subTitle, reportType, dateFrom, dateTo);
       })
       .catch(function(e) { clearTimeout(tmout); onFail(e); });
 
@@ -9852,7 +9916,46 @@ function fmtMoney(val) {
 <div id="notif-overlay" onclick="toggleNotifPanel()" style="display:none;
   position:fixed;inset:0;z-index:7999;"></div>
 
+<!-- REPORT VIEWER OVERLAY — Task 1 Phase 10B -->
+<div id="rep-viewer-overlay" style="display:none;position:fixed;inset:0;z-index:8500;
+  background:#fff;flex-direction:column;overflow:hidden;">
 
+  <div style="flex-shrink:0;background:var(--navy);padding:12px 16px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding-top:calc(12px + env(safe-area-inset-top));">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="closeRepViewer()" style="width:32px;height:32px;border-radius:50%;
+        border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);
+        color:rgba(255,255,255,0.7);font-size:16px;cursor:pointer;display:flex;
+        align-items:center;justify-content:center;">✕</button>
+      <div id="rep-viewer-title" style="font-size:15px;font-weight:700;color:#fff;
+        direction:rtl;max-width:240px;overflow:hidden;text-overflow:ellipsis;
+        white-space:nowrap;"></div>
+    </div>
+    <button id="rep-dl-btn" onclick="downloadRepPdf()"
+      style="height:36px;padding:0 16px;border:none;border-radius:10px;
+      background:var(--gold);color:var(--navy);font-family:var(--font);
+      font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">
+      ⬇️ تحميل PDF / Download PDF
+    </button>
+  </div>
+
+  <div id="rep-viewer-content" style="flex:1;min-height:0;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;background:#f5f5f5;">
+  </div>
+
+</div>
+
+<style>
+  @media (min-width: 769px) {
+    #rep-viewer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    }
+  }
+</style>
 
 </body>
 </html>

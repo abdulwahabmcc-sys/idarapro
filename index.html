@@ -2163,19 +2163,13 @@
       </div>
       <div class="card hide" id="stmt-actions-card">
         <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-          <button type="button" id="stmt-generate-btn" class="btn-sub b-rep"
-             style="height:46px;font-size:13px;margin-top:0;" onclick="generateStatements()">
-            🗂️ إنشاء / Generate
-          </button>
-          <button type="button" id="stmt-review-btn" class="btn-sub"
-             style="height:46px;font-size:13px;margin-top:0;background:var(--forest);" onclick="openStmtReview()">
-            👁️ مراجعة / Review
-          </button>
-        </div>
+        <button type="button" id="stmt-generate-btn" class="btn-sub b-rep"
+  style="height:46px;font-size:13px;margin-top:0;width:100%;" onclick="generateStatements()">
+  🗂️ إنشاء بيانات الأقسام / Generate Section Statements
+</button>
         <div id="stmt-review-area" style="display:none;margin-top:12px;">
-          <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-          <div id="stmt-list" style="min-height:40px;"></div>
+  <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+  <div id="stmt-list" style="min-height:40px;max-height:320px;overflow-y:auto;padding-right:4px;scrollbar-width:thin;"></div>
           <button type="button" id="stmt-queue-all-btn" onclick="approveAllStatements()"
             style="display:none;width:100%;height:46px;border:none;border-radius:10px;
             background:var(--forest);color:#fff;font-family:var(--font);font-size:14px;
@@ -3307,8 +3301,11 @@ function renderStmtList() {
                     : s.status === 'Skipped'  ? 'var(--burg)'
                     : 'var(--gold)';
     var actionBtn = s.status === 'Draft'
-      ? '<button type="button" class="stg-user-btn" style="background:var(--forest);color:#fff;border-color:var(--forest);" ' +
-'onclick="approveSingleStatement(' + s.rowIndex + ')">✅ Approve</button>'
+      ? '<button type="button" class="stg-user-btn" ' +
+'style="background:transparent;color:var(--forest);border:1.5px solid var(--forest);font-weight:700;transition:all 0.15s;" ' +
+'onmouseover="this.style.background=\'var(--forest)\';this.style.color=\'#fff\';" ' +
+'onmouseout="this.style.background=\'transparent\';this.style.color=\'var(--forest)\';" ' +
+'onclick="approveSingleStatement(' + s.rowIndex + ')">Approve</button>'
       : s.status === 'Approved'
       ? '<button type="button" class="stg-user-btn danger" onclick="revokeSingleStatement(' + s.rowIndex + ')">Undo</button>'
       : '';
@@ -3349,7 +3346,11 @@ function approveSingleStatement(rowIndex) {
   gasPost({ action: 'approveStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
       var s = _stmtCache.find(function(x) { return x.rowIndex === rowIndex; });
-      if (s) s.status = 'Approved';
+      if (s) {
+        s.status     = 'Approved';
+        s.reviewedBy = _session.name;
+        s.reviewedAt = new Date().toISOString();
+      }
       renderStmtList();
       toast('✅ Approved / تم الموافقة', 'ok');
     })
@@ -8807,10 +8808,14 @@ function formatStmtDate(dateStr) {
   if (!dateStr || dateStr === 'undefined' || dateStr.trim() === '') return '—';
   var d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  var dd = String(d.getDate()).padStart(2, '0');
-  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd   = String(d.getDate()).padStart(2, '0');
+  var mm   = String(d.getMonth() + 1).padStart(2, '0');
   var yyyy = d.getFullYear();
-  return dd + '/' + mm + '/' + yyyy;
+  var hh   = String(d.getHours()).padStart(2, '0');
+  var min  = String(d.getMinutes()).padStart(2, '0');
+  var ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+  var hr12 = d.getHours() % 12 || 12;
+  return dd + '/' + mm + '/' + yyyy + ' ' + hr12 + ':' + min + ampm;
 }
 
 function fmtMoney(val) {

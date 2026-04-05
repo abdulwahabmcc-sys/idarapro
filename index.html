@@ -2141,43 +2141,206 @@
     </div>
 
     <div class="hide" id="f-rep">
-      <div class="r-grid">
-        <div class="rcard on" id="rc-ytd" onclick="pickReport('YTD')">
-          <span class="r-icon">📊</span><span class="r-title">YTD</span><span class="r-sub">تراكمي</span>
-        </div>
-        <div class="rcard" id="rc-month" onclick="pickReport('CurrentMonth')">
-          <span class="r-icon">📅</span><span class="r-title">هذا الشهر</span><span class="r-sub">This Month</span>
-        </div>
-        <div class="rcard" id="rc-journal" onclick="pickReport('Journal')">
-          <span class="r-icon">📖</span><span class="r-title">اليومية</span><span class="r-sub">Journal</span>
-        </div>
+
+      <!-- World Toggle -->
+      <div class="world-seg">
+        <button type="button" class="w-btn on" id="w-btn-building"
+          onclick="setStmtWorld('building')">
+          🏢 تقارير المبنى / Building Statements
+        </button>
+        <button type="button" class="w-btn" id="w-btn-section"
+          onclick="setStmtWorld('section')">
+          📋 بيانات الأقسام / Section Statements
+        </button>
       </div>
-      <div class="card">
-        <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
-        <select class="inp" id="sel-rep" onchange="pickReport(this.value)">
-          <option value="YTD">YTD — تراكمي سنوي</option>
-          <option value="CurrentMonth">هذا الشهر / This Month</option>
-          <option value="LastMonth">الشهر الماضي / Last Month</option>
-          <option value="Journal">دفتر اليومية / Journal</option>
-        </select>
-      </div>
-      <div class="card hide" id="stmt-actions-card">
-        <div class="lbl"><span class="l-ar">بيانات الأقسام</span><span class="l-en">Section Statements</span></div>
-        <button type="button" id="stmt-generate-btn" class="btn-sub b-rep"
-  style="height:46px;font-size:13px;margin-top:0;width:100%;" onclick="generateStatements()">
-  🗂️ إنشاء بيانات الأقسام / Generate Section Statements
-</button>
-        <div id="stmt-review-area" style="display:none;margin-top:12px;">
-  <div id="stmt-filter-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-  <div id="stmt-list" style="min-height:40px;max-height:320px;overflow-y:auto;padding-right:4px;scrollbar-width:thin;"></div>
-          <button type="button" id="stmt-queue-all-btn" onclick="approveAllStatements()"
-            style="display:none;width:100%;height:46px;border:none;border-radius:10px;
-            background:var(--forest);color:#fff;font-family:var(--font);font-size:14px;
-            font-weight:700;cursor:pointer;margin-top:10px;">
-            ✅ Approve All / الموافقة على الجميع
+
+      <!-- ══ BUILDING PANEL ══ -->
+      <div class="main-panel" id="stmt-building-panel">
+        <div class="panel-hdr">
+          <div class="panel-htitle">تقارير المبنى <span class="panel-badge">BUILDING</span></div>
+          <div class="panel-hsub">Building Statements · generate, approve and dispatch</div>
+        </div>
+        <div class="sub-tabs">
+          <button type="button" class="stab on" id="bld-stab-generate" onclick="setStmtSubtab('building','generate')">إنشاء / Generate</button>
+          <button type="button" class="stab" id="bld-stab-draft"    onclick="setStmtSubtab('building','draft')">مسودة / Draft</button>
+          <button type="button" class="stab" id="bld-stab-approved" onclick="setStmtSubtab('building','approved')">معتمد / Approved</button>
+          <button type="button" class="stab" id="bld-stab-sent"     onclick="setStmtSubtab('building','sent')">مُرسَل / Sent</button>
+          <button type="button" class="stab" id="bld-stab-unprocessed" onclick="setStmtSubtab('building','unprocessed')">معلّق / Unprocessed</button>
+        </div>
+
+        <!-- Building → Generate -->
+        <div class="panel-body" id="bld-pane-generate">
+          <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
+          <select class="inp" id="bld-rep-type" style="margin-bottom:14px;">
+            <option value="YTD">YTD — تراكمي سنوي</option>
+            <option value="CurrentMonth">هذا الشهر / This Month</option>
+            <option value="LastMonth">الشهر الماضي / Last Month</option>
+          </select>
+          <button type="button" class="btn-sub b-rep" id="bld-generate-btn" onclick="generateBuildingStatement()">
+            <span class="btn-label"><span>🏢</span><span>إنشاء بيان المبنى / Generate Building Statement</span></span>
+          </button>
+          <div style="margin-top:18px;">
+            <div class="log-lbl">سجل الإنشاء / Generation Log</div>
+            <div class="log-scroll" id="bld-gen-log">
+              <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Building → Draft -->
+        <div class="panel-body hide" id="bld-pane-draft">
+          <div class="stmt-scroll" id="bld-draft-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <button type="button" class="btn-sub b-forest hide" id="bld-approve-all-btn"
+            onclick="approveAllBuildingStatements()" style="margin-top:10px;">
+            ✅ اعتماد الجميع / Approve All
           </button>
         </div>
-      </div>
+
+        <!-- Building → Approved -->
+        <div class="panel-body hide" id="bld-pane-approved">
+          <div class="bulk-row">
+            <div class="bulk-lbl">Default dispatch:</div>
+            <select class="dispatch-sel" id="bld-default-dispatch">
+              <option value="Email">Email</option>
+              <option value="Manual">يدوي / Manual</option>
+              <option value="WhatsApp">WhatsApp</option>
+            </select>
+            <button type="button" class="navy-btn" onclick="applyBldDefaultDispatch()">تطبيق للجميع</button>
+          </div>
+          <div class="stmt-scroll" id="bld-approved-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <button type="button" class="btn-sub b-rep hide" id="bld-export-btn"
+            onclick="exportAllPdfs('building')" style="margin-top:10px;">
+            📤 تصدير PDF / Export All PDFs
+          </button>
+        </div>
+
+        <!-- Building → Sent -->
+        <div class="panel-body hide" id="bld-pane-sent">
+          <div class="stmt-scroll" id="bld-sent-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+        </div>
+
+        <!-- Building → Unprocessed -->
+        <div class="panel-body hide" id="bld-pane-unprocessed">
+          <div class="stmt-scroll" id="bld-unprocessed-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <div class="info-box">تختفي البطاقات تلقائياً عند المعالجة الكاملة · لا يمكن الحذف اليدوي</div>
+        </div>
+      </div><!-- /building panel -->
+
+      <!-- ══ SECTION PANEL (Admin only) ══ -->
+      <div class="main-panel hide" id="stmt-section-panel">
+        <div class="panel-hdr">
+          <div class="panel-htitle">بيانات الأقسام <span class="panel-badge">ADMIN</span></div>
+          <div class="panel-hsub">Section Statements · per-occupant PDF statements</div>
+        </div>
+        <div class="sub-tabs">
+          <button type="button" class="stab on" id="sec-stab-generate"    onclick="setStmtSubtab('section','generate')">إنشاء / Generate</button>
+          <button type="button" class="stab" id="sec-stab-draft"          onclick="setStmtSubtab('section','draft')">مسودة / Draft</button>
+          <button type="button" class="stab" id="sec-stab-approved"       onclick="setStmtSubtab('section','approved')">معتمد / Approved</button>
+          <button type="button" class="stab" id="sec-stab-sent"           onclick="setStmtSubtab('section','sent')">مُرسَل / Sent</button>
+          <button type="button" class="stab" id="sec-stab-unprocessed"    onclick="setStmtSubtab('section','unprocessed')">معلّق / Unprocessed</button>
+        </div>
+
+        <!-- Section → Generate -->
+        <div class="panel-body" id="sec-pane-generate">
+          <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
+          <select class="inp" id="sel-rep" onchange="pickReport(this.value)" style="margin-bottom:12px;">
+            <option value="YTD">YTD — تراكمي سنوي</option>
+            <option value="CurrentMonth">هذا الشهر / This Month</option>
+            <option value="LastMonth">الشهر الماضي / Last Month</option>
+            <option value="Journal">دفتر اليومية / Journal</option>
+          </select>
+          <div style="margin-bottom:12px;">
+            <div class="log-lbl" style="margin-bottom:6px;">النطاق / Scope</div>
+            <div class="scope-row">
+              <label class="scope-opt">
+                <input type="radio" name="stmt-scope" value="all" id="scope-all" checked onchange="onStmtScopeChange()">
+                جميع الأقسام / All Sections
+              </label>
+              <label class="scope-opt">
+                <input type="radio" name="stmt-scope" value="specific" id="scope-specific" onchange="onStmtScopeChange()">
+                قسم محدد / Specific Section
+              </label>
+            </div>
+            <div id="scope-contract-wrap" style="display:none;margin-top:8px;">
+              <select class="inp" id="scope-contract-sel" style="font-size:13px;">
+                <option value="" disabled selected>اختر القسم / Select section...</option>
+              </select>
+            </div>
+          </div>
+          <div class="warn-box hide" id="sec-conflict-warn">
+            <strong>⚠️ مسودة موجودة لهذا القسم والفترة</strong>
+            احذف المسودة من تبويب "مسودة" قبل الإنشاء من جديد.
+          </div>
+          <div class="block-box hide" id="sec-block-warn">
+            <strong>لا يمكن الإنشاء — بيان مُرسَل مسبقاً</strong>
+            تم إرسال بيان لهذا القسم والفترة. لا يمكن إعادة الإنشاء بعد الإرسال.
+          </div>
+          <button type="button" class="btn-sub b-rep" id="stmt-generate-btn" onclick="generateStatements()">
+            <span class="btn-label"><span>🗂️</span><span>إنشاء بيانات الأقسام / Generate</span></span>
+          </button>
+          <div style="margin-top:18px;">
+            <div class="log-lbl">سجل الإنشاء / Generation Log</div>
+            <div class="log-scroll" id="sec-gen-log">
+              <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section → Draft -->
+        <div class="panel-body hide" id="sec-pane-draft">
+          <div class="stmt-scroll" id="sec-draft-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <button type="button" class="btn-sub b-forest hide" id="sec-approve-all-btn"
+            onclick="approveAllStatements()" style="margin-top:10px;">
+            ✅ اعتماد الجميع / Approve All
+          </button>
+        </div>
+
+        <!-- Section → Approved -->
+        <div class="panel-body hide" id="sec-pane-approved">
+          <div class="bulk-row">
+            <div class="bulk-lbl">Default dispatch:</div>
+            <select class="dispatch-sel" id="sec-default-dispatch">
+              <option value="Email">Email</option>
+              <option value="Manual">يدوي / Manual</option>
+              <option value="WhatsApp">WhatsApp</option>
+            </select>
+            <button type="button" class="navy-btn" onclick="applySecDefaultDispatch()">تطبيق للجميع</button>
+          </div>
+          <div class="stmt-scroll" id="sec-approved-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <button type="button" class="btn-sub b-rep hide" id="sec-export-btn"
+            onclick="exportAllPdfs('section')" style="margin-top:10px;">
+            📤 تصدير PDF / Export All PDFs
+          </button>
+        </div>
+
+        <!-- Section → Sent -->
+        <div class="panel-body hide" id="sec-pane-sent">
+          <div class="stmt-scroll" id="sec-sent-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+        </div>
+
+        <!-- Section → Unprocessed -->
+        <div class="panel-body hide" id="sec-pane-unprocessed">
+          <div class="stmt-scroll" id="sec-unprocessed-list">
+            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+          </div>
+          <div class="info-box">تختفي البطاقات تلقائياً عند المعالجة الكاملة · لا يمكن الحذف اليدوي</div>
+        </div>
+      </div><!-- /section panel -->
+
     </div><!-- /f-rep -->
 
     <div class="card" id="f-amt">
@@ -2940,8 +3103,6 @@ function applyPermissionUI(auth) {
     var dtCom2 = document.getElementById('dt-t-com');
     if (tCom2)  tCom2.classList.remove('hide');
     if (dtCom2) dtCom2.classList.remove('hide');
-    var stmtCard = document.getElementById('stmt-actions-card');
-    if (stmtCard) stmtCard.classList.remove('hide');
     return;
   }
   
@@ -3126,12 +3287,7 @@ function setTab(type) {
     document.getElementById('t-rep').classList.add('n-rep');
     if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
     document.getElementById('f-rep').classList.remove('hide');
-    var stmtCard = document.getElementById('stmt-actions-card');
-    if (stmtCard && _session && _session.role === 'Admin') {
-      stmtCard.classList.remove('hide');
-      openStmtReview();
-    }
-    pickReport('YTD');
+    initReportTab();
     btn.className = 'btn-sub b-rep';
     ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';
 
@@ -3222,203 +3378,513 @@ function downloadRepPdf() {
     });
 }
 
-// ── Section Statements ──────────────────────────────────────────────────────
+// ── Statement Panel — Phase 4 ───────────────────────────────────────────────
+var _stmtWorld         = 'building';
+var _stmtSubtab        = { building: 'generate', section: 'generate' };
 var _stmtCache         = [];
-var _stmtFilter        = 'All';
+var _bldStmtCache      = [];
 var _stmtCurrentPeriod = '';
+var _genLogCache       = { building: [], section: [] };
 
-function generateStatements() {
+function initReportTab() {
   if (!sessionValid()) return;
-  var reportType = document.getElementById('sel-rep').value;
-  var dateFrom   = document.getElementById('sel-month-from') ? document.getElementById('sel-month-from').value : '';
-  var dateTo     = document.getElementById('sel-month-to')   ? document.getElementById('sel-month-to').value   : '';
-  var genBtn = document.getElementById('stmt-generate-btn');
-  if (genBtn) { genBtn.disabled = true; genBtn.textContent = '⏳ جاري الإنشاء...'; }
+  var isAdmin = _session && _session.role === 'Admin';
+  var wBtnSection = document.getElementById('w-btn-section');
+  if (wBtnSection) wBtnSection.style.display = isAdmin ? '' : 'none';
+  setStmtWorld('building');
+}
 
-  gasPost({
-    action:     'generateSectionStatements',
-    reportType: reportType,
-    dateFrom:   dateFrom,
-    dateTo:     dateTo,
-    token:      _session.token
-  })
-    .then(function(r) {
-      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
-      if (!parsed.ok && !parsed.generated) {
-        toast('❌ ' + (parsed.error || parsed.message || 'Generation failed'), 'fail');
+function setStmtWorld(world) {
+  _stmtWorld = world;
+  document.getElementById('w-btn-building').classList.toggle('on', world === 'building');
+  document.getElementById('w-btn-section').classList.toggle('on',  world === 'section');
+  var bldPanel = document.getElementById('stmt-building-panel');
+  var secPanel = document.getElementById('stmt-section-panel');
+  if (bldPanel) bldPanel.classList.toggle('hide', world !== 'building');
+  if (secPanel) secPanel.classList.toggle('hide', world !== 'section');
+  _loadStmtSubtabData(world, _stmtSubtab[world]);
+}
+
+function setStmtSubtab(world, tab) {
+  _stmtSubtab[world] = tab;
+  var prefix = world === 'building' ? 'bld' : 'sec';
+  var tabs   = ['generate', 'draft', 'approved', 'sent', 'unprocessed'];
+  tabs.forEach(function(t) {
+    var btn  = document.getElementById(prefix + '-stab-' + t);
+    var pane = document.getElementById(prefix + '-pane-' + t);
+    if (btn)  btn.classList.toggle('on', t === tab);
+    if (pane) pane.classList.toggle('hide', t !== tab);
+  });
+  _loadStmtSubtabData(world, tab);
+}
+
+function _loadStmtSubtabData(world, tab) {
+  if (!sessionValid()) return;
+  if (world === 'building') {
+    if (tab === 'generate')    { renderGenerationLog('building'); return; }
+    if (tab === 'draft')       { renderBldStmtList('draft');      return; }
+    if (tab === 'approved')    { renderBldStmtList('approved');   return; }
+    if (tab === 'sent')        { renderBldStmtList('sent');       return; }
+    if (tab === 'unprocessed') { renderBldUnprocessed();          return; }
+  } else {
+    if (tab === 'generate')    { renderGenerationLog('section');  return; }
+    if (tab === 'draft')       { renderSecStmtList('draft');      return; }
+    if (tab === 'approved')    { renderSecStmtList('approved');   return; }
+    if (tab === 'sent')        { renderSecStmtList('sent');       return; }
+    if (tab === 'unprocessed') { renderSecUnprocessed();          return; }
+  }
+}
+
+function renderGenerationLog(world) {
+  if (!sessionValid()) return;
+  var elId = world === 'building' ? 'bld-gen-log' : 'sec-gen-log';
+  var el   = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">جاري التحميل...</div>';
+  gasPost({ action: 'getGenerationLog', payload: { world: world }, token: _session.token })
+    .then(function(rows) {
+      _genLogCache[world] = rows || [];
+      if (!rows || !rows.length) {
+        el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;font-style:italic;">لا توجد سجلات / No generation history</div>';
         return;
       }
-      _stmtCurrentPeriod = parsed.periodLabel || '';
-      toast('✅ ' + (parsed.message || 'Statements generated'),
-        parsed.missingEmail && parsed.missingEmail.length ? 'info' : 'ok');
-      openStmtReview();
-    })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
-    .finally(function() {
-      if (genBtn) { genBtn.disabled = false; genBtn.textContent = '🗂️ إنشاء / Generate'; }
-    });
-}
-
-function openStmtReview() {
-  if (!sessionValid()) return;
-  var reviewArea = document.getElementById('stmt-review-area');
-  var listEl     = document.getElementById('stmt-list');
-  if (reviewArea) reviewArea.style.display = 'block';
-  if (listEl) listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;">Loading...</div>';
-
-  gasPost({ action: 'getSectionStatements', token: _session.token })
-    .then(function(r) {
-      _stmtCache = Array.isArray(r) ? r : (r.data || []);
-      _stmtFilter = 'All';
-      renderStmtList();
+      el.innerHTML = rows.map(function(r) {
+        return '<div class="log-row">' +
+          '<div>' +
+            '<div class="log-main">' + escHtml(r.periodLabel || r.reportType || '—') + ' · ' + escHtml(r.scope || '') + '</div>' +
+            '<div class="log-sub">' + escHtml(r.generatedAt || '') + ' · ' + escHtml(r.generatedBy || '') + '</div>' +
+          '</div>' +
+          '<div class="log-count">' + (r.count || 0) + '</div>' +
+        '</div>';
+      }).join('');
     })
     .catch(function(e) {
-      if (listEl) listEl.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>';
+      el.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
     });
 }
 
-function renderStmtList() {
-  var chips  = document.getElementById('stmt-filter-chips');
-  var listEl = document.getElementById('stmt-list');
-  var qAll   = document.getElementById('stmt-queue-all-btn');
+function renderBldStmtList(status) {
+  if (!sessionValid()) return;
+  var listEl        = document.getElementById('bld-' + status + '-list');
+  var approveAllBtn = document.getElementById('bld-approve-all-btn');
+  var exportBtn     = document.getElementById('bld-export-btn');
   if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+  gasPost({ action: 'getSectionStatements', payload: { world: 'building', status: status }, token: _session.token })
+    .then(function(rows) {
+      _bldStmtCache = rows || [];
+      var filtered = _bldStmtCache.filter(function(s) {
+        return String(s.status).toLowerCase() === status;
+      });
+      if (!filtered.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+        if (approveAllBtn) approveAllBtn.classList.add('hide');
+        if (exportBtn)     exportBtn.classList.add('hide');
+        return;
+      }
+      var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
+      var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
+      if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
+      if (exportBtn)     exportBtn.classList.toggle('hide', !hasApproved);
+      listEl.innerHTML = filtered.map(function(s) { return _renderStmtCard(s, 'building'); }).join('');
+    })
+    .catch(function(e) {
+      listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
+    });
+}
 
-  var statuses = ['All', 'Draft', 'Approved', 'Sent', 'Skipped'];
-  if (chips) {
-    chips.innerHTML = statuses.map(function(s) {
-      var active = _stmtFilter === s;
-      var bg  = active ? 'var(--navy)' : 'var(--bg)';
-      var col = active ? '#fff' : 'var(--muted)';
-      return '<span onclick="setStmtFilter(\'' + s + '\')" style="cursor:pointer;font-size:11px;' +
-             'font-weight:700;padding:4px 10px;border-radius:20px;background:' + bg +
-             ';color:' + col + ';border:1px solid var(--bdr);">' + s + '</span>';
-    }).join('');
+function renderSecStmtList(status) {
+  if (!sessionValid()) return;
+  var listEl        = document.getElementById('sec-' + status + '-list');
+  var approveAllBtn = document.getElementById('sec-approve-all-btn');
+  var exportBtn     = document.getElementById('sec-export-btn');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+  gasPost({ action: 'getSectionStatements', payload: { world: 'section', status: status }, token: _session.token })
+    .then(function(rows) {
+      _stmtCache = rows || [];
+      var filtered = _stmtCache.filter(function(s) {
+        return String(s.status).toLowerCase() === status;
+      });
+      if (!filtered.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+        if (approveAllBtn) approveAllBtn.classList.add('hide');
+        if (exportBtn)     exportBtn.classList.add('hide');
+        return;
+      }
+      var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
+      var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
+      if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
+      if (exportBtn)     exportBtn.classList.toggle('hide', !hasApproved);
+      listEl.innerHTML = filtered.map(function(s) { return _renderStmtCard(s, 'section'); }).join('');
+    })
+    .catch(function(e) {
+      listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
+    });
+}
+
+function _renderStmtCard(s, world) {
+  var status = String(s.status || '').toLowerCase();
+
+  var leftContent = '';
+  if (status === 'draft') {
+    leftContent += '<div class="draft-status">Draft ●</div>';
+    leftContent += '<button type="button" class="approve-btn" onclick="approveSingleStatement(' + s.rowIndex + ',\'' + world + '\')">Approve</button>';
+  } else if (status === 'approved') {
+    leftContent += '<div style="font-size:11px;font-weight:700;color:var(--forest);">Approved ●</div>';
+    leftContent +=
+      '<div class="dispatch-row">' +
+        '<div class="dispatch-lbl">Dispatch:</div>' +
+        '<select class="dispatch-sel" onchange="assignDispatcher(' + s.rowIndex + ',this.value)">' +
+          '<option value="Email"'    + (s.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+          '<option value="Manual"'   + (s.dispatchChannel === 'Manual'   ? ' selected' : '') + '>يدوي / Manual</option>' +
+          '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+        '</select>' +
+      '</div>';
+    if (!s.pdfFileId) {
+      leftContent += '<span class="pending-tag" style="margin-top:4px;">⏳ PDF pending</span>';
+    } else {
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
+    }
+    leftContent += '<button type="button" class="muted-btn" style="margin-top:4px;" onclick="revokeSingleStatement(' + s.rowIndex + ',\'' + world + '\')">تراجع / Undo</button>';
+  } else if (status === 'sent') {
+    leftContent += '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>';
+    if (s.pdfFileId) {
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
+    }
+  } else if (status === 'skipped') {
+    leftContent += '<span class="pill pill-skip">تخطّى</span>';
   }
 
-  var filtered = _stmtFilter === 'All'
-    ? _stmtCache.slice()
-    : _stmtCache.filter(function(s) { return s.status === _stmtFilter; });
+  var rightContent =
+    '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
+    '<div class="stmt-meta">' + escHtml(s.period || '') + ' · ' + (s.email || '❌ No email') + '</div>';
 
-  filtered.sort(function(a, b) {
-    var dateA, dateB;
-    var status = _stmtFilter === 'All' ? a.status : _stmtFilter;
-    function getSortDate(s) {
-      if (s.status === 'Approved') return s.reviewedAt  || s.generatedAt || '';
-      if (s.status === 'Sent')     return s.sentAt      || s.generatedAt || '';
-      if (s.status === 'Skipped')  return s.sentAt      || s.generatedAt || '';
-      return s.generatedAt || '';
-    }
-    dateA = getSortDate(a);
-    dateB = getSortDate(b);
-    return dateB > dateA ? 1 : dateB < dateA ? -1 : 0;
+  if (status === 'draft') {
+    rightContent += '<div class="stmt-date">Generated: ' + formatStmtDate(s.generatedAt) + '</div>';
+    rightContent +=
+      '<div class="stmt-actions">' +
+        (s.htmlFileId
+          ? '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+            'onclick="openStmtPreview(\'' + escHtml(s.htmlFileId) + '\')">معاينة / Preview</span>'
+          : '') +
+        '<button type="button" class="danger-btn" style="font-size:9px;padding:3px 9px;" ' +
+          'onclick="deleteStatement(' + s.rowIndex + ',\'' + world + '\')">حذف / Delete</button>' +
+      '</div>';
+  }
+  if (status === 'approved') {
+    rightContent += '<div class="stmt-date" style="color:var(--forest);">معتمد: ' +
+      formatStmtDate(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</div>';
+  }
+  if (status === 'sent') {
+    rightContent += '<div class="stmt-date" style="color:var(--navy);">أُرسل: ' +
+      formatStmtDate(s.sentAt) + (s.dispatchChannel ? ' · ' + escHtml(s.dispatchChannel) : '') + '</div>';
+  }
+
+  return '<div class="stmt-card">' +
+    '<div class="stmt-inner">' +
+      '<div class="stmt-left">' + leftContent + '</div>' +
+      '<div class="stmt-right">' + rightContent + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderBldUnprocessed() {
+  if (!sessionValid()) return;
+  var el = document.getElementById('bld-unprocessed-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+  gasPost({ action: 'getSectionStatements', payload: { world: 'building', status: 'all' }, token: _session.token })
+    .then(function(rows) { _renderUnprocessedList(el, rows || [], 'building'); })
+    .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
+}
+
+function renderSecUnprocessed() {
+  if (!sessionValid()) return;
+  var el = document.getElementById('sec-unprocessed-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+  gasPost({ action: 'getSectionStatements', payload: { world: 'section', status: 'all' }, token: _session.token })
+    .then(function(rows) { _renderUnprocessedList(el, rows || [], 'section'); })
+    .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
+}
+
+function _renderUnprocessedList(el, rows, world) {
+  var unprocessed = [];
+  rows.forEach(function(s) {
+    var status  = String(s.status || '').toLowerCase();
+    var reasons = [];
+    if (status === 'draft')    { reasons.push({ text: 'بانتظار المراجعة ← تبويب مسودة', cls: 'rt-amber' }); }
+    if (status === 'approved' && !s.pdfFileId) { reasons.push({ text: 'PDF لم يُصدَّر ← تصدير PDF', cls: 'rt-amber' }); }
+    if (status === 'approved' &&  s.pdfFileId && !s.dispatchChannel) { reasons.push({ text: 'بانتظار التسليم — عيِّن مُوصِّلاً', cls: 'rt-amber' }); }
+    if (status === 'skipped')  { reasons.push({ text: 'لا يوجد بريد — أضف للجهة المعنية', cls: 'rt-red' }); }
+    if (reasons.length) unprocessed.push({ s: s, reasons: reasons });
   });
 
-  if (!filtered.length) {
-    listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px;">' +
-      'لم يتم إنشاء بيانات بعد / No statements found</div>';
-    if (qAll) qAll.style.display = 'none';
+  if (!unprocessed.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--forest);padding:24px;font-size:13px;font-weight:700;">✅ كل شيء تمت معالجته / All processed</div>';
     return;
   }
 
-  var hasDraft = _stmtCache.some(function(s) { return s.status === 'Draft'; });
-  if (qAll) qAll.style.display = hasDraft ? '' : 'none';
-
-  listEl.innerHTML = filtered.map(function(s) {
-    var statusColor = s.status === 'Approved' ? 'var(--forest)'
-                    : s.status === 'Sent'     ? 'var(--navy)'
-                    : s.status === 'Skipped'  ? 'var(--burg)'
-                    : 'var(--gold)';
-    var actionBtn = s.status === 'Draft'
-      ? '<button type="button" class="stg-user-btn" ' +
-'style="background:transparent;color:var(--forest);border:1.5px solid var(--forest);font-weight:700;transition:all 0.15s;" ' +
-'onmouseover="this.style.background=\'var(--forest)\';this.style.color=\'#fff\';" ' +
-'onmouseout="this.style.background=\'transparent\';this.style.color=\'var(--forest)\';" ' +
-'onclick="approveSingleStatement(' + s.rowIndex + ')">Approve</button>'
-      : s.status === 'Approved'
-      ? '<button type="button" class="stg-user-btn danger" onclick="revokeSingleStatement(' + s.rowIndex + ')">Undo</button>'
-      : '';
-    return '<div style="border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
-        '<div>' +
-          '<div style="font-size:13px;font-weight:700;color:var(--navy);">' + escHtml(s.section) + ' — ' + escHtml(s.occupantName) + '</div>' +
-          '<div style="font-size:10px;color:var(--muted);">' + escHtml(s.period) + ' · ' + (s.email || '❌ No email') + '</div>' +
-(s.status === 'Draft' ? 
-  '<div style="font-size:9px;color:var(--muted);margin-top:2px;">Generated: ' + formatStmtDate(s.generatedAt) + '</div>' 
-  : '') +
-(s.status === 'Approved' && s.reviewedBy ? 
-  '<div style="font-size:9px;color:var(--forest);margin-top:2px;">Approved: ' + formatStmtDate(s.reviewedAt) + ' by ' + escHtml(s.reviewedBy) + '</div>' 
-  : '') +
-(s.status === 'Sent' && s.sentAt ? 
-  '<div style="font-size:9px;color:var(--navy);margin-top:2px;">Sent: ' + formatStmtDate(s.sentAt) + '</div>' 
-  : '') +
-(s.status === 'Skipped' ? 
-  '<div style="font-size:9px;color:var(--burg);margin-top:2px;">Skipped: ' + escHtml(s.notes) + '</div>' 
-  : '') +
-(s.driveFileId ? '<a href="https://drive.google.com/file/d/' + escHtml(s.driveFileId) + '/view" target="_blank" style="font-size:10px;color:var(--navy);text-decoration:underline;">📄 View PDF</a>' : '') +
+  el.innerHTML = unprocessed.map(function(item) {
+    var s       = item.s;
+    var status  = String(s.status || '').toLowerCase();
+    var pillCls = status === 'skipped' ? 'pill-skip' : status === 'approved' ? 'pill-approved' : 'pill-draft';
+    var statusAr = status === 'approved' ? 'معتمد' : status === 'draft' ? 'مسودة' : 'تخطّى';
+    var assignRow = '';
+    if (status === 'approved' && s.pdfFileId && !s.dispatchChannel) {
+      assignRow =
+        '<div class="dispatch-row" style="margin-top:6px;">' +
+          '<div class="dispatch-lbl">تعيين:</div>' +
+          '<select class="dispatch-sel" id="unproc-dispatch-' + s.rowIndex + '">' +
+            '<option value="">اختر...</option>' +
+            '<option value="Email">Email</option>' +
+            '<option value="Manual">يدوي / Manual</option>' +
+          '</select>' +
+          '<button type="button" class="navy-btn" ' +
+            'onclick="assignDispatcher(' + s.rowIndex + ',document.getElementById(\'unproc-dispatch-' + s.rowIndex + '\').value)">' +
+            'تعيين / Assign' +
+          '</button>' +
+        '</div>';
+    }
+    return '<div class="stmt-card">' +
+      '<div class="stmt-inner">' +
+        '<div class="stmt-left">' +
+          '<span class="pill ' + pillCls + '">' + statusAr + '</span>' +
+          assignRow +
         '</div>' +
-        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
-          '<span style="font-size:10px;font-weight:700;color:' + statusColor + ';">● ' + s.status + '</span>' +
-          actionBtn +
+        '<div class="stmt-right">' +
+          '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
+          '<div class="stmt-meta">' + escHtml(s.period || '') + (s.email ? ' · ' + escHtml(s.email) : ' · ❌ No email') + '</div>' +
+          item.reasons.map(function(r) { return '<span class="reason-tag ' + r.cls + '">' + r.text + '</span>'; }).join('') +
         '</div>' +
       '</div>' +
     '</div>';
   }).join('');
 }
 
-function setStmtFilter(f) { _stmtFilter = f; renderStmtList(); }
+function onStmtScopeChange() {
+  var specific = document.getElementById('scope-specific').checked;
+  var wrap     = document.getElementById('scope-contract-wrap');
+  if (wrap) wrap.style.display = specific ? 'block' : 'none';
+  if (specific) {
+    var sel = document.getElementById('scope-contract-sel');
+    if (sel && sel.options.length <= 1) {
+      gasPost({ action: 'getSettingsOccupancy', token: _session.token })
+        .then(function(rows) {
+          sel.innerHTML = '<option value="" disabled selected>اختر القسم / Select section...</option>';
+          (rows || []).filter(function(o) { return String(o.status).toLowerCase() === 'active'; })
+            .forEach(function(o) {
+              sel.innerHTML += '<option value="' + escHtml(o.contractId) + '">' +
+                escHtml(o.section || o.unitId || '') + ' — ' + escHtml(o.name || '') + '</option>';
+            });
+        })
+        .catch(function() {});
+    }
+  }
+}
 
-function approveSingleStatement(rowIndex) {
+function generateBuildingStatement() {
   if (!sessionValid()) return;
-  var btn = document.querySelector('[onclick="approveSingleStatement(' + rowIndex + ')"]');
+  var reportType = document.getElementById('bld-rep-type').value;
+  var btn = document.getElementById('bld-generate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...'; }
+  gasPost({ action: 'generateBuildingStatement', reportType: reportType, token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      toast('✅ ' + (parsed.message || 'Statement generated'), 'ok');
+      renderGenerationLog('building');
+      setStmtSubtab('building', 'draft');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.textContent = '🏢 إنشاء بيان المبنى / Generate Building Statement'; }
+    });
+}
+
+function generateStatements() {
+  if (!sessionValid()) return;
+  var reportType = document.getElementById('sel-rep') ? document.getElementById('sel-rep').value : 'YTD';
+  var specific   = document.getElementById('scope-specific') && document.getElementById('scope-specific').checked;
+  var contractId = specific ? (document.getElementById('scope-contract-sel') ? document.getElementById('scope-contract-sel').value : '') : '';
+  var conflictWarn = document.getElementById('sec-conflict-warn');
+  var blockWarn    = document.getElementById('sec-block-warn');
+  if (conflictWarn) conflictWarn.classList.add('hide');
+  if (blockWarn)    blockWarn.classList.add('hide');
+  var btn = document.getElementById('stmt-generate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...'; }
+
+  gasPost({ action: 'checkStatementConflict', payload: { reportType: reportType, contractId: contractId }, token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      if (parsed.blocked) {
+        if (blockWarn) { blockWarn.querySelector('strong').textContent = parsed.message || 'Cannot generate'; blockWarn.classList.remove('hide'); }
+        return Promise.resolve();
+      }
+      if (parsed.conflict) {
+        if (conflictWarn) conflictWarn.classList.remove('hide');
+        return Promise.resolve();
+      }
+      return gasPost({ action: 'generateSectionStatements', reportType: reportType, contractId: contractId || '', token: _session.token })
+        .then(function(res) {
+          var p = typeof res === 'string' ? JSON.parse(res) : res;
+          _stmtCurrentPeriod = p.periodLabel || '';
+          toast('✅ ' + (p.message || 'Statements generated'), (p.missingEmail && p.missingEmail.length) ? 'info' : 'ok');
+          renderGenerationLog('section');
+          setStmtSubtab('section', 'draft');
+        });
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.textContent = '🗂️ إنشاء بيانات الأقسام / Generate'; }
+    });
+}
+
+function approveSingleStatement(rowIndex, world) {
+  if (!sessionValid()) return;
+  var btn = document.querySelector('[onclick="approveSingleStatement(' + rowIndex + ',\'' + world + '\')"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   gasPost({ action: 'approveStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
-      var s = _stmtCache.find(function(x) { return x.rowIndex === rowIndex; });
+      var now = new Date();
+      var tz  = (window._legal && window._legal['TIMEZONE']) || 'Asia/Beirut';
+      var cache = world === 'building' ? _bldStmtCache : _stmtCache;
+      var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) {
         s.status     = 'Approved';
         s.reviewedBy = _session.name;
-        var now = new Date();
-var tz  = (window._legal && window._legal['TIMEZONE']) || 'Asia/Beirut';
-s.reviewedAt = now.toLocaleString('en-GB', {
-  timeZone: tz,
-  year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit',
-  hour12: false
-}).replace(/(\d{2})\/(\d{2})\/(\d{4}),?\s/, '$3-$2-$1 ');
+        s.reviewedAt = now.toLocaleString('en-GB', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).replace(/(\d{2})\/(\d{2})\/(\d{4}),?\s/, '$3-$2-$1 ');
       }
-      renderStmtList();
-      toast('✅ Approved / تم الموافقة', 'ok');
+      toast('✅ Approved / تم الاعتماد', 'ok');
+      if (world === 'building') renderBldStmtList('draft');
+      else renderSecStmtList('draft');
     })
     .catch(function(e) {
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve'; }
       toast('❌ ' + e.message, 'fail');
     });
 }
 
-function revokeSingleStatement(rowIndex) {
+function revokeSingleStatement(rowIndex, world) {
   if (!sessionValid()) return;
-  var btn = document.querySelector('[onclick="revokeSingleStatement(' + rowIndex + ')"]');
+  var btn = document.querySelector('[onclick="revokeSingleStatement(' + rowIndex + ',\'' + world + '\')"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   gasPost({ action: 'revokeStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
-      var s = _stmtCache.find(function(x) { return x.rowIndex === rowIndex; });
+      var cache = world === 'building' ? _bldStmtCache : _stmtCache;
+      var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) s.status = 'Draft';
-      renderStmtList();
       toast('↩️ Reverted to Draft / تم الإلغاء', 'info');
+      if (world === 'building') renderBldStmtList('approved');
+      else renderSecStmtList('approved');
     })
     .catch(function(e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Undo'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
       toast('❌ ' + e.message, 'fail');
     });
 }
 
 function approveAllStatements() {
   if (!sessionValid()) return;
+  var btn = document.getElementById('sec-approve-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري...'; }
   gasPost({ action: 'approveAllStatements', period: _stmtCurrentPeriod, token: _session.token })
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'All approved'), 'ok');
-      openStmtReview();
+      renderSecStmtList('draft');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
+}
+
+function approveAllBuildingStatements() {
+  if (!sessionValid()) return;
+  var btn = document.getElementById('bld-approve-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري...'; }
+  gasPost({ action: 'approveAllStatements', period: '', world: 'building', token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      toast('✅ ' + (parsed.message || 'All approved'), 'ok');
+      renderBldStmtList('draft');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
+}
+
+function deleteStatement(rowIndex, world) {
+  if (!sessionValid()) return;
+  if (!confirm('هل أنت متأكد من الحذف؟ / Confirm delete?')) return;
+  gasPost({ action: 'deleteStatement', rowIndex: rowIndex, token: _session.token })
+    .then(function() {
+      toast('🗑️ Deleted / تم الحذف', 'info');
+      if (world === 'building') renderBldStmtList('draft');
+      else renderSecStmtList('draft');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function exportAllPdfs(world) {
+  if (!sessionValid()) return;
+  var btnId = world === 'building' ? 'bld-export-btn' : 'sec-export-btn';
+  var btn   = document.getElementById(btnId);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري التصدير...'; }
+  gasPost({ action: 'exportApprovedPdfs', payload: { world: world }, token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      toast('✅ ' + (parsed.message || 'PDFs exported'), 'ok');
+      if (world === 'building') renderBldStmtList('approved');
+      else renderSecStmtList('approved');
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '📤 تصدير PDF / Export All PDFs'; } });
+}
+
+function assignDispatcher(rowIndex, channel) {
+  if (!sessionValid() || !channel) return;
+  gasPost({ action: 'assignDispatcher', payload: { rowIndex: rowIndex, channel: channel }, token: _session.token })
+    .then(function() { toast('✅ Dispatch assigned / تم التعيين', 'ok'); })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function applyBldDefaultDispatch() {
+  var channel = document.getElementById('bld-default-dispatch').value;
+  document.querySelectorAll('#bld-approved-list .dispatch-sel').forEach(function(sel) { sel.value = channel; });
+  toast('✅ Applied to all / تم التطبيق للجميع', 'ok');
+}
+
+function applySecDefaultDispatch() {
+  var channel = document.getElementById('sec-default-dispatch').value;
+  document.querySelectorAll('#sec-approved-list .dispatch-sel').forEach(function(sel) { sel.value = channel; });
+  toast('✅ Applied to all / تم التطبيق للجميع', 'ok');
+}
+
+function openStmtPreview(fileId) {
+  if (!sessionValid() || !fileId) return;
+  var dlBtn = document.getElementById('rep-dl-btn');
+  if (dlBtn) dlBtn.style.display = 'none';
+  gasPost({ action: 'getStatementFileContent', payload: { fileId: fileId, type: 'html' }, token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      openRepViewer(parsed.html || '', 'معاينة البيان / Statement Preview', '', '', '');
+      if (dlBtn) dlBtn.style.display = '';
+    })
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); if (dlBtn) dlBtn.style.display = ''; });
+}
+
+function downloadStmtPdf(fileId) {
+  if (!sessionValid() || !fileId) return;
+  gasPost({ action: 'getStatementFileContent', payload: { fileId: fileId, type: 'pdf' }, token: _session.token })
+    .then(function(r) {
+      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+      if (!parsed.base64) { toast('❌ PDF not available', 'fail'); return; }
+      var a = document.createElement('a');
+      a.href     = 'data:application/pdf;base64,' + parsed.base64;
+      a.download = parsed.filename || 'statement.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('✅ PDF downloaded / تم التحميل', 'ok');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
@@ -3502,11 +3968,6 @@ function pickReport(type) {
   REPORT = type;
   var sel = document.getElementById('sel-rep');
   if (sel) sel.value = type;
-  ['rc-ytd','rc-month','rc-journal'].forEach(function(id) {
-    document.getElementById(id).classList.remove('on');
-  });
-  var map = { 'YTD':'rc-ytd', 'CurrentMonth':'rc-month', 'Journal':'rc-journal' };
-  if (map[type]) document.getElementById(map[type]).classList.add('on');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -10408,6 +10869,91 @@ function fmtMoney(val) {
       box-shadow: 0 0 40px rgba(0,0,0,0.1);
     }
   }
+
+  /* ══════════════════════════════════════════════
+       PHASE 4 — REPORT TAB / STATEMENT PANEL CSS
+    ══════════════════════════════════════════════ */
+    .world-seg { display:flex; border:1.5px solid var(--bdr); border-radius:13px; overflow:hidden; margin-bottom:14px; background:var(--surf); }
+    .w-btn { flex:1; padding:11px 10px; font-family:var(--font); font-size:12px; font-weight:700; text-align:center; background:transparent; color:var(--muted); border:none; border-left:1px solid var(--bdr); cursor:pointer; transition:all 0.15s; }
+    .w-btn:last-child { border-left:none; }
+    .w-btn.on { background:var(--navy); color:#fff; }
+    .w-btn:active:not(.on) { background:var(--bg); }
+
+    .main-panel { background:var(--surf); border-radius:16px; border:1px solid var(--bdr); overflow:hidden; box-shadow:0 1px 4px rgba(27,42,74,0.05); margin-bottom:12px; }
+    .panel-hdr { padding:16px 20px 0; }
+    .panel-htitle { font-size:15px; font-weight:700; color:var(--navy); direction:rtl; }
+    .panel-hsub { font-size:9px; color:var(--muted); direction:ltr; margin-top:1px; margin-bottom:12px; }
+    .panel-badge { display:inline-block; font-family:var(--mono); font-size:8px; font-weight:500; padding:2px 8px; border-radius:5px; background:rgba(27,42,74,0.08); color:var(--navy); letter-spacing:0.5px; margin-right:6px; vertical-align:middle; }
+
+    .sub-tabs { display:flex; border-bottom:1px solid var(--bdr); overflow-x:auto; scrollbar-width:none; }
+    .sub-tabs::-webkit-scrollbar { display:none; }
+    .stab { flex:1; min-width:80px; padding:12px 6px; font-family:var(--font); font-size:12px; font-weight:700; text-align:center; color:var(--muted); border:none; background:transparent; border-bottom:2.5px solid transparent; white-space:nowrap; cursor:pointer; transition:all 0.15s; }
+    .stab.on { color:var(--navy); border-bottom-color:var(--navy); }
+    .stab:active:not(.on) { background:var(--bg); }
+    .panel-body { padding:16px 20px; }
+
+    .log-lbl { font-size:9px; font-weight:700; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; direction:ltr; margin-bottom:6px; }
+    .log-scroll { max-height:150px; overflow-y:auto; scrollbar-width:thin; }
+    .log-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--bdr); }
+    .log-row:last-child { border-bottom:none; }
+    .log-main { font-size:12px; font-weight:700; color:var(--navy); }
+    .log-sub { font-size:9px; color:var(--muted); margin-top:2px; direction:ltr; }
+    .log-count { font-family:var(--mono); font-size:15px; font-weight:500; color:var(--navy); flex-shrink:0; }
+
+    .stmt-scroll { max-height:360px; overflow-y:auto; scrollbar-width:thin; padding-right:2px; }
+    .stmt-card { background:var(--surf); border:1px solid var(--bdr); border-radius:16px; padding:16px; margin-bottom:10px; box-shadow:0 1px 4px rgba(27,42,74,0.04); }
+    .stmt-inner { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .stmt-left { display:flex; flex-direction:column; gap:6px; align-items:flex-start; flex-shrink:0; min-width:80px; }
+    .stmt-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex:1; min-width:0; }
+    .stmt-name { font-size:13px; font-weight:700; color:var(--navy); direction:rtl; text-align:right; }
+    .stmt-meta { font-size:9px; color:var(--muted); direction:ltr; text-align:right; }
+    .stmt-date { font-size:9px; color:var(--muted); direction:ltr; text-align:right; margin-top:1px; }
+    .stmt-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; margin-top:4px; }
+
+    .draft-status { font-family:var(--font); font-size:11px; font-weight:700; color:#C9A84C; }
+    .approve-btn { font-family:var(--font); font-size:12px; font-weight:700; padding:7px 14px; border-radius:10px; border:1.5px solid var(--forest); background:transparent; color:var(--forest); cursor:pointer; transition:all 0.15s; }
+    .approve-btn:hover { background:var(--forest); color:#fff; }
+    .approve-btn:active { opacity:0.8; }
+    .navy-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1.5px solid var(--navy); background:transparent; color:var(--navy); cursor:pointer; transition:all 0.12s; }
+    .navy-btn:hover { background:var(--navy); color:#fff; }
+    .danger-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1px solid rgba(155,35,53,0.25); background:transparent; color:var(--burg); cursor:pointer; transition:all 0.12s; }
+    .danger-btn:hover { background:var(--burg); color:#fff; }
+    .muted-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1px solid var(--bdr); background:var(--bg); color:var(--muted); cursor:pointer; transition:all 0.12s; }
+    .muted-btn:hover { color:var(--navy); border-color:var(--navy); }
+
+    .pill { font-family:var(--font); font-size:9px; font-weight:700; padding:3px 10px; border-radius:10px; white-space:nowrap; }
+    .pill-draft    { background:rgba(201,168,76,0.18);  color:#7a5c0a; }
+    .pill-approved { background:rgba(26,107,60,0.12);   color:var(--forest); }
+    .pill-sent     { background:rgba(27,42,74,0.09);    color:var(--navy); }
+    .pill-skip     { background:rgba(155,35,53,0.09);   color:var(--burg); }
+    .pill-single   { background:rgba(100,80,180,0.11);  color:#3C3489; }
+
+    .dispatch-row { display:flex; align-items:center; gap:7px; margin-top:5px; }
+    .dispatch-lbl { font-size:9px; color:var(--muted); font-weight:700; direction:ltr; }
+    .dispatch-sel { font-family:var(--font); font-size:11px; font-weight:600; padding:4px 10px; border:1px solid var(--bdr); border-radius:8px; background:var(--bg); color:var(--navy); appearance:none; }
+    .pending-tag { font-size:9px; font-weight:700; color:#7a5c0a; background:rgba(201,168,76,0.15); padding:3px 8px; border-radius:6px; }
+    .bulk-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--bdr); margin-bottom:12px; }
+    .bulk-lbl { font-size:10px; font-weight:700; color:var(--muted); direction:ltr; }
+
+    .reason-tag { display:inline-flex; align-items:center; font-size:9px; font-weight:700; padding:3px 9px; border-radius:7px; margin-top:4px; }
+    .rt-amber { background:rgba(201,168,76,0.14); color:#7a5c0a; }
+    .rt-red   { background:rgba(155,35,53,0.09);  color:var(--burg); }
+    .rt-navy  { background:rgba(27,42,74,0.08);   color:var(--navy); }
+
+    .scope-row { display:flex; gap:20px; margin-bottom:10px; }
+    .scope-opt { display:flex; align-items:center; gap:7px; font-family:var(--font); font-size:13px; font-weight:700; color:var(--navy); cursor:pointer; }
+    .scope-opt input { accent-color:var(--navy); transform:scale(1.1); }
+
+    .warn-box { background:rgba(201,168,76,0.09); border:1px solid rgba(201,168,76,0.32); border-radius:12px; padding:12px 16px; margin-bottom:12px; font-size:12px; color:#7a5c0a; direction:rtl; line-height:1.6; }
+    .warn-box strong { display:block; font-size:13px; margin-bottom:2px; }
+    .block-box { background:rgba(155,35,53,0.06); border:1px solid rgba(155,35,53,0.18); border-radius:12px; padding:12px 16px; margin-bottom:12px; font-size:12px; color:var(--burg); direction:rtl; line-height:1.6; }
+    .block-box strong { display:block; font-size:13px; margin-bottom:2px; }
+    .info-box { background:rgba(27,42,74,0.04); border:1px solid rgba(27,42,74,0.08); border-radius:12px; padding:12px 16px; margin-top:10px; font-size:11px; color:var(--muted); direction:rtl; line-height:1.5; }
+
+    @media (min-width: 769px) {
+      #scroll .world-seg  { max-width: 520px; }
+      #scroll .main-panel { max-width: 520px; }
+    }
 </style>
 
 </body>

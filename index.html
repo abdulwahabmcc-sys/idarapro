@@ -3470,11 +3470,11 @@ function renderBldStmtList(status) {
   var exportBtn     = document.getElementById('bld-export-btn');
   if (!listEl) return;
   listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { world: 'building', status: status }, token: _session.token })
+  gasPost({ action: 'getSectionStatements', token: _session.token })
     .then(function(rows) {
-      _bldStmtCache = rows || [];
+      _bldStmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
       var filtered = _bldStmtCache.filter(function(s) {
-        return String(s.status).toLowerCase() === status;
+        return String(s.status).toLowerCase() === status.toLowerCase();
       });
       if (!filtered.length) {
         listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
@@ -3500,11 +3500,11 @@ function renderSecStmtList(status) {
   var exportBtn     = document.getElementById('sec-export-btn');
   if (!listEl) return;
   listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { world: 'section', status: status }, token: _session.token })
+  gasPost({ action: 'getSectionStatements', token: _session.token })
     .then(function(rows) {
-      _stmtCache = rows || [];
+      _stmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
       var filtered = _stmtCache.filter(function(s) {
-        return String(s.status).toLowerCase() === status;
+        return String(s.status).toLowerCase() === status.toLowerCase();
       });
       if (!filtered.length) {
         listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
@@ -10951,8 +10951,8 @@ function fmtMoney(val) {
     .info-box { background:rgba(27,42,74,0.04); border:1px solid rgba(27,42,74,0.08); border-radius:12px; padding:12px 16px; margin-top:10px; font-size:11px; color:var(--muted); direction:rtl; line-height:1.5; }
 
     @media (min-width: 769px) {
-      #scroll .world-seg  { max-width: 520px; }
-      #scroll .main-panel { max-width: 520px; }
+      #scroll .world-seg  { max-width: 760px; }
+      #scroll .main-panel { max-width: 760px; }
     }
 </style>
 

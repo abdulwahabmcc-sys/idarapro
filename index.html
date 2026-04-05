@@ -2919,6 +2919,20 @@ function applyPermissionUI(auth) {
   var dtSet = document.getElementById('dt-t-set');
 
   // Admin — show everything including meter and communications tabs
+  // Dispatcher role — delivery queue only, no financial data
+  if (role === 'Dispatcher') {
+    ['t-inc','t-exp','t-rep','t-mtr','t-com'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('hide');
+    });
+    ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('hide');
+    });
+    var scroll = document.getElementById('scroll');
+    if (scroll) scroll.classList.add('hide');
+    return;
+  }
   if (role === 'Admin') {
     if (tMtr) tMtr.classList.remove('hide');
     if (dtMtr) dtMtr.classList.remove('hide');
@@ -5772,8 +5786,10 @@ function openUserSheet(name) {
     document.getElementById('usr-perm-lst').checked = !!u.perms.REP_LST;
     document.getElementById('usr-perm-jrn').checked = !!u.perms.REP_JRN;
     document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
+    document.getElementById('usr-perm-dispatch').checked = !!u.perms.DISPATCH;
+    document.getElementById('usr-perm-rep-sec').checked = !!u.perms.REP_SEC;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn','usr-perm-mtr']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
@@ -5859,7 +5875,9 @@ function submitUser() {
     REP_CUR: document.getElementById('usr-perm-cur').checked,
     REP_LST: document.getElementById('usr-perm-lst').checked,
     REP_JRN: document.getElementById('usr-perm-jrn').checked,
-    MTR_RED: document.getElementById('usr-perm-mtr').checked
+    MTR_RED:  document.getElementById('usr-perm-mtr').checked,
+    DISPATCH: document.getElementById('usr-perm-dispatch').checked,
+    REP_SEC:  document.getElementById('usr-perm-rep-sec').checked
   };
 
   var errEl = document.getElementById('usr-inline-err');
@@ -10309,6 +10327,12 @@ function fmtMoney(val) {
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-mtr"> Meter Readings
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <input type="checkbox" id="usr-perm-dispatch"> توصيل / Dispatch
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <input type="checkbox" id="usr-perm-rep-sec"> بيانات الأقسام / Statements
         </label>
       </div>
     </div>

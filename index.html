@@ -3445,7 +3445,8 @@ function renderGenerationLog(world) {
   var el   = document.getElementById(elId);
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getGenerationLog', payload: { world: world }, token: _session.token })
+  var scopeVal = world === 'building' ? 'Building' : 'Section';
+  gasPost({ action: 'getGenerationLog', payload: { scope: scopeVal }, token: _session.token })
     .then(function(rows) {
       _genLogCache[world] = rows || [];
       if (!rows || !rows.length) {

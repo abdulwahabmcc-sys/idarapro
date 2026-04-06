@@ -3391,6 +3391,9 @@ function initReportTab() {
   var isAdmin = _session && _session.role === 'Admin';
   var wBtnSection = document.getElementById('w-btn-section');
   if (wBtnSection) wBtnSection.style.display = isAdmin ? '' : 'none';
+  // Hide the main submit button — statement panels handle all actions
+  var btnSub = document.getElementById('btn-sub');
+  if (btnSub) btnSub.style.display = 'none';
   setStmtWorld('building');
 }
 
@@ -10888,7 +10891,7 @@ function fmtMoney(val) {
     .sub-tabs { display:flex; border-bottom:1px solid var(--bdr); overflow-x:auto; scrollbar-width:none; }
     .sub-tabs::-webkit-scrollbar { display:none; }
     .stab { flex:1; min-width:80px; padding:12px 6px; font-family:var(--font); font-size:12px; font-weight:700; text-align:center; color:var(--muted); border:none; background:transparent; border-bottom:2.5px solid transparent; white-space:nowrap; cursor:pointer; transition:all 0.15s; }
-    .stab.on { color:var(--navy); border-bottom-color:var(--navy); }
+    .stab.on { color:var(--navy); border-bottom-color:var(--navy); background:rgba(27,42,74,0.04); }
     .stab:active:not(.on) { background:var(--bg); }
     .panel-body { padding:16px 20px; }
 

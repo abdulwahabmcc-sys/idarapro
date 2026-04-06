@@ -3475,7 +3475,7 @@ function renderBldStmtList(status) {
   var exportBtn     = document.getElementById('bld-export-btn');
   if (!listEl) return;
   listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', token: _session.token })
+  gasPost({ action: 'getSectionStatements', payload: { scope: 'Building', status: status }, token: _session.token })
     .then(function(rows) {
       _bldStmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
       var filtered = _bldStmtCache.filter(function(s) {
@@ -3485,8 +3485,13 @@ function renderBldStmtList(status) {
         listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
         if (approveAllBtn) approveAllBtn.classList.add('hide');
         if (exportBtn)     exportBtn.classList.add('hide');
+        var bulkRow = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
+        if (bulkRow) bulkRow.style.display = 'none';
         return;
       }
+      // Show bulk-row if present
+      var bulkRowVisible = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
+      if (bulkRowVisible) bulkRowVisible.style.display = '';
       var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
       var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
       if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
@@ -3505,7 +3510,7 @@ function renderSecStmtList(status) {
   var exportBtn     = document.getElementById('sec-export-btn');
   if (!listEl) return;
   listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', token: _session.token })
+  gasPost({ action: 'getSectionStatements', payload: { scope: 'Section', status: status }, token: _session.token })
     .then(function(rows) {
       _stmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
       var filtered = _stmtCache.filter(function(s) {
@@ -3599,7 +3604,7 @@ function renderBldUnprocessed() {
   var el = document.getElementById('bld-unprocessed-list');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { world: 'building', status: 'all' }, token: _session.token })
+  gasPost({ action: 'getSectionStatements', payload: { scope: 'Building' }, token: _session.token })
     .then(function(rows) { _renderUnprocessedList(el, rows || [], 'building'); })
     .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
 }
@@ -3609,7 +3614,7 @@ function renderSecUnprocessed() {
   var el = document.getElementById('sec-unprocessed-list');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { world: 'section', status: 'all' }, token: _session.token })
+ gasPost({ action: 'getSectionStatements', payload: { scope: 'Section' }, token: _session.token })
     .then(function(rows) { _renderUnprocessedList(el, rows || [], 'section'); })
     .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
 }

@@ -2212,10 +2212,8 @@
           <div class="stmt-scroll" id="bld-approved-list">
             <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
           </div>
-          <button type="button" class="btn-sub b-rep hide" id="bld-export-btn"
-            onclick="exportAllPdfs('building')" style="margin-top:10px;">
-            📤 تصدير PDF / Export All PDFs
-          </button>
+          
+            
         </div>
 
         <!-- Building → Sent -->
@@ -2319,10 +2317,8 @@
           <div class="stmt-scroll" id="sec-approved-list">
             <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
           </div>
-          <button type="button" class="btn-sub b-rep hide" id="sec-export-btn"
-            onclick="exportAllPdfs('section')" style="margin-top:10px;">
-            📤 تصدير PDF / Export All PDFs
-          </button>
+        
+            
         </div>
 
         <!-- Section → Sent -->
@@ -3426,117 +3422,23 @@ function _loadStmtSubtabData(world, tab) {
   if (!sessionValid()) return;
   if (world === 'building') {
     if (tab === 'generate')    { renderGenerationLog('building'); return; }
-    if (tab === 'draft')       { renderBldStmtList('draft');      return; }
-    if (tab === 'approved')    { renderBldStmtList('approved');   return; }
-    if (tab === 'sent')        { renderBldStmtList('sent');       return; }
+    if (tab === 'draft')       { renderStmtList('building', 'Draft');      return; }
+    if (tab === 'approved')    { renderStmtList('building', 'Approved');   return; }
+    if (tab === 'sent')        { renderStmtList('building', 'Sent');       return; }
     if (tab === 'unprocessed') { renderBldUnprocessed();          return; }
   } else {
     if (tab === 'generate')    { renderGenerationLog('section');  return; }
-    if (tab === 'draft')       { renderSecStmtList('draft');      return; }
-    if (tab === 'approved')    { renderSecStmtList('approved');   return; }
-    if (tab === 'sent')        { renderSecStmtList('sent');       return; }
+    if (tab === 'draft')       { renderStmtList('section',  'Draft');      return; }
+    if (tab === 'approved')    { renderStmtList('section',  'Approved');   return; }
+    if (tab === 'sent')        { renderStmtList('section',  'Sent');       return; }
     if (tab === 'unprocessed') { renderSecUnprocessed();          return; }
   }
 }
 
-function renderGenerationLog(world) {
-  if (!sessionValid()) return;
-  var elId = world === 'building' ? 'bld-gen-log' : 'sec-gen-log';
-  var el   = document.getElementById(elId);
-  if (!el) return;
-  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">جاري التحميل...</div>';
-  var scopeVal = world === 'building' ? 'Building' : 'Section';
-  gasPost({ action: 'getGenerationLog', payload: { scope: scopeVal }, token: _session.token })
-    .then(function(rows) {
-      _genLogCache[world] = rows || [];
-      if (!rows || !rows.length) {
-        el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;font-style:italic;">لا توجد سجلات / No generation history</div>';
-        return;
-      }
-      el.innerHTML = rows.map(function(r) {
-        return '<div class="log-row">' +
-          '<div>' +
-            '<div class="log-main">' + escHtml(r.periodLabel || r.reportType || '—') + ' · ' + escHtml(r.scope || '') + '</div>' +
-            '<div class="log-sub">' + escHtml(r.generatedAt || '') + ' · ' + escHtml(r.generatedBy || '') + '</div>' +
-          '</div>' +
-          '<div class="log-count">' + (r.count || 0) + '</div>' +
-        '</div>';
-      }).join('');
-    })
-    .catch(function(e) {
-      el.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
-    });
-}
 
-function renderBldStmtList(status) {
-  if (!sessionValid()) return;
-  var listEl        = document.getElementById('bld-' + status + '-list');
-  var approveAllBtn = document.getElementById('bld-approve-all-btn');
-  var exportBtn     = document.getElementById('bld-export-btn');
-  if (!listEl) return;
-  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { scope: 'Building', status: status }, token: _session.token })
-    .then(function(rows) {
-      _bldStmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
-      var filtered = _bldStmtCache.filter(function(s) {
-        return String(s.status).toLowerCase() === status.toLowerCase();
-      });
-      if (!filtered.length) {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
-        if (approveAllBtn) approveAllBtn.classList.add('hide');
-        if (exportBtn)     exportBtn.classList.add('hide');
-        var bulkRow = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
-        if (bulkRow) bulkRow.style.display = 'none';
-        return;
-      }
-      // Show bulk-row if present
-      var bulkRowVisible = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
-      if (bulkRowVisible) bulkRowVisible.style.display = '';
-      var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
-      var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
-      if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
-      if (exportBtn)     exportBtn.classList.toggle('hide', !hasApproved);
-      listEl.innerHTML = filtered.map(function(s) { return _renderStmtCard(s, 'building'); }).join('');
-    })
-    .catch(function(e) {
-      listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
-    });
-}
 
-function renderSecStmtList(status) {
-  if (!sessionValid()) return;
-  var listEl        = document.getElementById('sec-' + status + '-list');
-  var approveAllBtn = document.getElementById('sec-approve-all-btn');
-  var exportBtn     = document.getElementById('sec-export-btn');
-  if (!listEl) return;
-  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { scope: 'Section', status: status }, token: _session.token })
-    .then(function(rows) {
-      _stmtCache = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
-      var filtered = _stmtCache.filter(function(s) {
-        return String(s.status).toLowerCase() === status.toLowerCase();
-      });
-      if (!filtered.length) {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
-        if (approveAllBtn) approveAllBtn.classList.add('hide');
-        if (exportBtn)     exportBtn.classList.add('hide');
-        var bulkRow = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
-        if (bulkRow) bulkRow.style.display = 'none';
-        return;
-      }
-      // Show bulk-row if present
-      var bulkRowVisible = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
-      if (bulkRowVisible) bulkRowVisible.style.display = '';
-      var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
-      var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
-      if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
-      if (exportBtn)     exportBtn.classList.toggle('hide', !hasApproved);
-      listEl.innerHTML = filtered.map(function(s) { return _renderStmtCard(s, 'section'); }).join('');
-    })
-    .catch(function(e) {
-      listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
-    });
-}
+
+
 
 function _renderStmtCard(s, world) {
   var status = String(s.status || '').toLowerCase();
@@ -3550,7 +3452,7 @@ function _renderStmtCard(s, world) {
     leftContent +=
       '<div class="dispatch-row">' +
         '<div class="dispatch-lbl">Dispatch:</div>' +
-        '<select class="dispatch-sel" onchange="assignDispatcher(' + s.rowIndex + ',this.value)">' +
+        '<select class="dispatch-sel" data-row-index="' + s.rowIndex + '" onchange="assignDispatcher(' + s.rowIndex + ',this.value)">' +
           '<option value="Email"'    + (s.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
           '<option value="Manual"'   + (s.dispatchChannel === 'Manual'   ? ' selected' : '') + '>يدوي / Manual</option>' +
           '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
@@ -3603,6 +3505,277 @@ function _renderStmtCard(s, world) {
     '</div>' +
   '</div>';
 }
+
+// ============================================================
+// A2 — STATEMENT LIST RENDERER — unified for both worlds
+// Replaces renderSecStmtList and provides correct scope param
+// ============================================================
+
+function renderStmtList(world, status) {
+  if (!sessionValid()) return;
+  var scopeVal    = (world === 'building') ? 'Building' : 'Section';
+  var prefix      = (world === 'building') ? 'bld' : 'sec';
+  var statusKey   = status.toLowerCase();
+  var containerId = prefix + '-' + statusKey + '-list';
+  var listEl      = document.getElementById(containerId);
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+
+  gasPost({
+    action:  'getSectionStatements',
+    payload: { scope: scopeVal, status: status },
+    token:   _session.token
+  }).then(function(rows) {
+    var data = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
+
+    if (world === 'building') { _bldStmtCache = data; }
+    else                      { _stmtCache    = data; }
+
+    var filtered = data.filter(function(s) {
+      return String(s.status).toLowerCase() === statusKey;
+    });
+
+    var panelBody     = listEl.closest('.panel-body');
+    var bulkRow       = panelBody ? panelBody.querySelector('.bulk-row')       : null;
+    var approveAllBtn = document.getElementById(prefix + '-approve-all-btn');
+    var exportBtn     = document.getElementById(prefix + '-export-btn');
+
+    if (!filtered.length) {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+      if (approveAllBtn) approveAllBtn.classList.add('hide');
+      if (exportBtn)     exportBtn.classList.add('hide');
+      if (bulkRow)       bulkRow.style.display = 'none';
+      return;
+    }
+
+    if (bulkRow) bulkRow.style.display = '';
+
+    var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
+    var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
+    if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);
+    if (exportBtn)     exportBtn.classList.toggle('hide', !hasApproved);
+
+    listEl.innerHTML = filtered.map(function(s) {
+      return _renderStmtCard(s, world);
+    }).join('');
+
+  }).catch(function(e) {
+    listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
+  });
+}
+
+
+// ============================================================
+// A7 — GENERATION LOG RENDERER — corrected scope + payload
+// ============================================================
+
+function renderGenerationLog(world) {
+  if (!sessionValid()) return;
+  var scopeVal  = (world === 'building') ? 'Building' : 'Section';
+  var prefix    = (world === 'building') ? 'bld' : 'sec';
+  var container = document.getElementById(prefix + '-gen-log');
+  if (!container) return;
+
+  container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+
+  gasPost({
+    action:  'getGenerationLog',
+    payload: { scope: scopeVal },
+    token:   _session.token
+  }).then(function(res) {
+    var rows = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+
+    if (!_genLogCache) _genLogCache = { building: [], section: [] };
+    _genLogCache[world] = rows;
+
+    if (!rows.length) {
+      container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">لا توجد سجلات.</div>';
+      return;
+    }
+
+    var html = '<table style="width:100%;font-size:12px;border-collapse:collapse;">';
+    html += '<tr style="background:#f0ede8;font-weight:600;">'
+          + '<td style="padding:6px 8px;">Run ID</td>'
+          + '<td style="padding:6px 8px;">التاريخ</td>'
+          + '<td style="padding:6px 8px;">بواسطة</td>'
+          + '<td style="padding:6px 8px;">النوع</td>'
+          + '<td style="padding:6px 8px;">الفترة</td>'
+          + '<td style="padding:6px 8px;">العدد</td>'
+          + '</tr>';
+
+    rows.forEach(function(r, i) {
+      var bg = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+      html += '<tr style="background:' + bg + ';">'
+            + '<td style="padding:6px 8px;">' + escHtml(r.runId || '')          + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.generatedAt || '')    + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy || '')    + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.reportType || '')     + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.period || '')         + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.statementCount || '') + '</td>'
+            + '</tr>';
+    });
+    html += '</table>';
+    container.innerHTML = html;
+
+  }).catch(function(e) {
+    container.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
+  });
+}
+
+
+// ============================================================
+// A3 — STATEMENT PREVIEW — HTML only via openRepViewer
+// PDF download handled separately by downloadStmtPdf()
+// ============================================================
+
+function openStmtPreview(fileId) {
+  if (!fileId || fileId === 'undefined' || String(fileId).trim() === '') {
+    toast('❌ معاينة غير متاحة — لم يتم إنشاء الملف بعد', 'fail');
+    return;
+  }
+
+  toast('⏳ جارٍ تحميل المعاينة...', 'info');
+
+  gasPost({
+    action:  'getStatementFileContent',
+    payload: { fileId: String(fileId).trim(), type: 'html' },
+    token:   _session.token
+  }).then(function(r) {
+    var parsed = (typeof r === 'string') ? JSON.parse(r) : r;
+    if (!parsed || !parsed.html) {
+      toast('❌ الملف فارغ أو غير متاح', 'fail');
+      return;
+    }
+    openRepViewer(parsed.html, 'معاينة البيان / Statement Preview', '', '', '');
+  }).catch(function(e) {
+    toast('❌ ' + (e.message || e), 'fail');
+  });
+}
+
+
+// ============================================================
+// A4 — SCOPE CHANGE — rewritten around actual radio pattern
+// Always reloads contract dropdown on every call
+// ============================================================
+
+function onStmtScopeChange() {
+  var specific    = document.getElementById('scope-specific');
+  var wrap        = document.getElementById('scope-contract-wrap');
+  var contractSel = document.getElementById('scope-contract-sel');
+
+  if (!specific || !wrap || !contractSel) return;
+
+  if (!specific.checked) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = '';
+
+  // A4 FIX: always clear and reload — no length guard
+  contractSel.innerHTML = '<option value="" disabled selected>اختر القسم / Select section...</option>';
+
+  gasPost({
+    action: 'getSettingsOccupancy',
+    token:  _session.token
+  }).then(function(rows) {
+    (rows || []).filter(function(o) {
+      return String(o.status).toLowerCase() === 'active';
+    }).forEach(function(o) {
+      contractSel.innerHTML +=
+        '<option value="' + escHtml(o.contractId) + '">' +
+        escHtml(o.section || o.unitId || '') + ' — ' + escHtml(o.name || '') +
+        '</option>';
+    });
+    if (contractSel.options.length <= 1) {
+      contractSel.innerHTML += '<option disabled>⚠️ لا توجد عقود نشطة</option>';
+    }
+  }).catch(function() {
+    contractSel.innerHTML += '<option disabled>❌ خطأ في التحميل</option>';
+  });
+}
+
+
+// ============================================================
+// A6 — APPLY ALL DISPATCH — wired to backend, sequential
+// Option (a): calls assignDispatcher for every visible card.
+// Sequential .then() chaining — no Promise.all.
+// ============================================================
+
+function applyBldDefaultDispatch() {
+  _applyDefaultDispatch('building');
+}
+
+function applySecDefaultDispatch() {
+  _applyDefaultDispatch('section');
+}
+
+function _applyDefaultDispatch(world) {
+  var prefix     = (world === 'building') ? 'bld' : 'sec';
+  var defaultSel = document.getElementById(prefix + '-default-dispatch');
+  if (!defaultSel) return;
+
+  var channel = defaultSel.value;
+  if (!channel) {
+    toast('يرجى اختيار قناة الإرسال أولاً', 'warn');
+    return;
+  }
+
+  var containerId = prefix + '-approved-list';
+  var container   = document.getElementById(containerId);
+  if (!container) return;
+
+  var dropdowns = container.querySelectorAll('select.dispatch-sel');
+  if (!dropdowns || dropdowns.length === 0) {
+    toast('لا توجد بيانات معروضة', 'warn');
+    return;
+  }
+
+  for (var i = 0; i < dropdowns.length; i++) {
+    dropdowns[i].value = channel;
+  }
+
+  var chain   = Promise.resolve();
+  var total   = dropdowns.length;
+  var success = 0;
+  var failed  = 0;
+
+  toast('⏳ جارٍ تطبيق القناة على ' + total + ' بيان...', 'info');
+
+  for (var j = 0; j < dropdowns.length; j++) {
+    (function(dropdown) {
+      var rowIndex = parseInt(dropdown.getAttribute('data-row-index'), 10);
+      if (isNaN(rowIndex)) return;
+
+      chain = chain.then(function() {
+        return gasPost({
+          action:  'assignDispatcher',
+          payload: { rowIndex: rowIndex, channel: channel },
+          token:   _session.token
+        }).then(function(res) {
+          if (res && res.assigned) { success++; }
+          else {
+            failed++;
+            console.warn('assignDispatcher failed for rowIndex ' + rowIndex, res);
+          }
+        }).catch(function(err) {
+          failed++;
+          console.error('assignDispatcher error for rowIndex ' + rowIndex, err);
+        });
+      });
+    })(dropdowns[j]);
+  }
+
+  chain.then(function() {
+    if (failed === 0) {
+      toast('✅ تم تطبيق القناة على ' + success + ' بيان', 'ok');
+    } else {
+      toast('⚠️ ' + success + ' نجح · ' + failed + ' فشل', 'warn');
+    }
+  });
+}
+
 
 function renderBldUnprocessed() {
   if (!sessionValid()) return;
@@ -3678,26 +3851,7 @@ function _renderUnprocessedList(el, rows, world) {
   }).join('');
 }
 
-function onStmtScopeChange() {
-  var specific = document.getElementById('scope-specific').checked;
-  var wrap     = document.getElementById('scope-contract-wrap');
-  if (wrap) wrap.style.display = specific ? 'block' : 'none';
-  if (specific) {
-    var sel = document.getElementById('scope-contract-sel');
-    if (sel && sel.options.length <= 1) {
-      gasPost({ action: 'getSettingsOccupancy', token: _session.token })
-        .then(function(rows) {
-          sel.innerHTML = '<option value="" disabled selected>اختر القسم / Select section...</option>';
-          (rows || []).filter(function(o) { return String(o.status).toLowerCase() === 'active'; })
-            .forEach(function(o) {
-              sel.innerHTML += '<option value="' + escHtml(o.contractId) + '">' +
-                escHtml(o.section || o.unitId || '') + ' — ' + escHtml(o.name || '') + '</option>';
-            });
-        })
-        .catch(function() {});
-    }
-  }
-}
+
 
 function generateBuildingStatement() {
   if (!sessionValid()) return;
@@ -3771,8 +3925,8 @@ function approveSingleStatement(rowIndex, world) {
         s.reviewedAt = now.toLocaleString('en-GB', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).replace(/(\d{2})\/(\d{2})\/(\d{4}),?\s/, '$3-$2-$1 ');
       }
       toast('✅ Approved / تم الاعتماد', 'ok');
-      if (world === 'building') renderBldStmtList('draft');
-      else renderSecStmtList('draft');
+      if (world === 'building') renderStmtList('building', 'Draft');
+      else renderStmtList('section',  'Draft');
     })
     .catch(function(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Approve'; }
@@ -3790,8 +3944,8 @@ function revokeSingleStatement(rowIndex, world) {
       var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) s.status = 'Draft';
       toast('↩️ Reverted to Draft / تم الإلغاء', 'info');
-      if (world === 'building') renderBldStmtList('approved');
-      else renderSecStmtList('approved');
+      if (world === 'building') renderStmtList('building', 'Approved');
+      else renderStmtList('section',  'Approved');
     })
     .catch(function(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
@@ -3807,7 +3961,7 @@ function approveAllStatements() {
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'All approved'), 'ok');
-      renderSecStmtList('draft');
+      renderStmtList('section',  'Draft');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
@@ -3821,7 +3975,7 @@ function approveAllBuildingStatements() {
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'All approved'), 'ok');
-      renderBldStmtList('draft');
+      renderStmtList('building', 'Draft');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
@@ -3833,26 +3987,21 @@ function deleteStatement(rowIndex, world) {
   gasPost({ action: 'deleteStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
       toast('🗑️ Deleted / تم الحذف', 'info');
-      if (world === 'building') renderBldStmtList('draft');
-      else renderSecStmtList('draft');
+      if (world === 'building') renderStmtList('building', 'Draft');
+      else renderStmtList('section',  'Draft');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
 function exportAllPdfs(world) {
   if (!sessionValid()) return;
-  var btnId = world === 'building' ? 'bld-export-btn' : 'sec-export-btn';
-  var btn   = document.getElementById(btnId);
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري التصدير...'; }
-  gasPost({ action: 'exportApprovedPdfs', payload: { world: world }, token: _session.token })
+  gasPost({ action: 'exportApprovedPdfs', payload: { scope: world }, token: _session.token })
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'PDFs exported'), 'ok');
-      if (world === 'building') renderBldStmtList('approved');
-      else renderSecStmtList('approved');
+      renderStmtList(world, 'Approved');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
-    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '📤 تصدير PDF / Export All PDFs'; } });
+    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
 function assignDispatcher(rowIndex, channel) {
@@ -3862,30 +4011,11 @@ function assignDispatcher(rowIndex, channel) {
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-function applyBldDefaultDispatch() {
-  var channel = document.getElementById('bld-default-dispatch').value;
-  document.querySelectorAll('#bld-approved-list .dispatch-sel').forEach(function(sel) { sel.value = channel; });
-  toast('✅ Applied to all / تم التطبيق للجميع', 'ok');
-}
 
-function applySecDefaultDispatch() {
-  var channel = document.getElementById('sec-default-dispatch').value;
-  document.querySelectorAll('#sec-approved-list .dispatch-sel').forEach(function(sel) { sel.value = channel; });
-  toast('✅ Applied to all / تم التطبيق للجميع', 'ok');
-}
 
-function openStmtPreview(fileId) {
-  if (!sessionValid() || !fileId) return;
-  var dlBtn = document.getElementById('rep-dl-btn');
-  if (dlBtn) dlBtn.style.display = 'none';
-  gasPost({ action: 'getStatementFileContent', payload: { fileId: fileId, type: 'html' }, token: _session.token })
-    .then(function(r) {
-      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
-      openRepViewer(parsed.html || '', 'معاينة البيان / Statement Preview', '', '', '');
-      if (dlBtn) dlBtn.style.display = '';
-    })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); if (dlBtn) dlBtn.style.display = ''; });
-}
+
+
+
 
 function downloadStmtPdf(fileId) {
   if (!sessionValid() || !fileId) return;

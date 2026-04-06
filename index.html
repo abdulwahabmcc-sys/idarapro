@@ -2461,7 +2461,7 @@
     </div><!-- /f-com -->
 
     <!-- Submit button — no more PIN field -->
-    <div class="card">
+    <div class="card" id="submit-card">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
         <!-- Processing state -->
         <div class="btn-wave">
@@ -10954,6 +10954,10 @@ function fmtMoney(val) {
     .block-box strong { display:block; font-size:13px; margin-bottom:2px; }
     .info-box { background:rgba(27,42,74,0.04); border:1px solid rgba(27,42,74,0.08); border-radius:12px; padding:12px 16px; margin-top:10px; font-size:11px; color:var(--muted); direction:rtl; line-height:1.5; }
 
+/* Hide submit card when Report tab is active */
+    #f-rep:not(.hide) ~ #submit-card {
+      display: none !important;
+    }
 
     @media (min-width: 769px) {
       #scroll .world-seg  { max-width: 760px; }

@@ -3520,8 +3520,13 @@ function renderSecStmtList(status) {
         listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
         if (approveAllBtn) approveAllBtn.classList.add('hide');
         if (exportBtn)     exportBtn.classList.add('hide');
+        var bulkRow = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
+        if (bulkRow) bulkRow.style.display = 'none';
         return;
       }
+      // Show bulk-row if present
+      var bulkRowVisible = listEl.closest('.panel-body') && listEl.closest('.panel-body').querySelector('.bulk-row');
+      if (bulkRowVisible) bulkRowVisible.style.display = '';
       var hasDraft    = filtered.some(function(s) { return String(s.status).toLowerCase() === 'draft'; });
       var hasApproved = filtered.some(function(s) { return String(s.status).toLowerCase() === 'approved'; });
       if (approveAllBtn) approveAllBtn.classList.toggle('hide', !hasDraft);

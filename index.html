@@ -2172,9 +2172,7 @@
         <div class="panel-body" id="bld-pane-generate">
           <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
           <select class="inp" id="bld-rep-type" style="margin-bottom:14px;">
-            <option value="YTD">YTD — تراكمي سنوي</option>
-            <option value="CurrentMonth">هذا الشهر / This Month</option>
-            <option value="LastMonth">الشهر الماضي / Last Month</option>
+            <option value="" disabled selected>جاري التحميل... / Loading...</option>
           </select>
           <button type="button" class="btn-sub b-rep" id="bld-generate-btn" onclick="generateBuildingStatement()">
             <span class="btn-label"><span>🏢</span><span>إنشاء بيان المبنى / Generate Building Statement</span></span>
@@ -2250,10 +2248,7 @@
         <div class="panel-body" id="sec-pane-generate">
           <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
           <select class="inp" id="sel-rep" onchange="pickReport(this.value)" style="margin-bottom:12px;">
-            <option value="YTD">YTD — تراكمي سنوي</option>
-            <option value="CurrentMonth">هذا الشهر / This Month</option>
-            <option value="LastMonth">الشهر الماضي / Last Month</option>
-            <option value="Journal">دفتر اليومية / Journal</option>
+            <option value="" disabled selected>جاري التحميل... / Loading...</option>
           </select>
           <div style="margin-bottom:12px;">
             <div class="log-lbl" style="margin-bottom:6px;">النطاق / Scope</div>
@@ -3418,20 +3413,69 @@ function setStmtSubtab(world, tab) {
   _loadStmtSubtabData(world, tab);
 }
 
+function loadBldReportTypes() {
+  var sel = document.getElementById('bld-rep-type');
+  if (!sel) return;
+  gasPost({ action: 'getBuildingReportTypes', token: _session.token })
+    .then(function(types) {
+      sel.innerHTML = '';
+      (types || []).forEach(function(t, idx) {
+        var opt = document.createElement('option');
+        opt.value = t.value;
+        opt.textContent = t.label;
+        if (idx === 0) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (!sel.options.length) {
+        sel.innerHTML = '<option value="" disabled selected>⚠️ لا توجد أنواع تقارير</option>';
+      }
+    })
+    .catch(function() {
+      sel.innerHTML = '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
+                      '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
+                      '<option value="LastMonth">الشهر الماضي / Last Month</option>';
+    });
+}
+
+function loadSecReportTypes() {
+  var sel = document.getElementById('sel-rep');
+  if (!sel) return;
+  gasPost({ action: 'getSectionReportTypes', token: _session.token })
+    .then(function(types) {
+      sel.innerHTML = '';
+      (types || []).forEach(function(t, idx) {
+        var opt = document.createElement('option');
+        opt.value = t.value;
+        opt.textContent = t.label;
+        if (idx === 0) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (!sel.options.length) {
+        sel.innerHTML = '<option value="" disabled selected>⚠️ لا توجد أنواع تقارير</option>';
+      }
+    })
+    .catch(function() {
+      sel.innerHTML = '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
+                      '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
+                      '<option value="LastMonth">الشهر الماضي / Last Month</option>' +
+                      '<option value="Journal">دفتر اليومية / Journal</option>';
+    });
+}
+
 function _loadStmtSubtabData(world, tab) {
   if (!sessionValid()) return;
   if (world === 'building') {
-    if (tab === 'generate')    { renderGenerationLog('building'); return; }
+    if (tab === 'generate')    { loadBldReportTypes(); renderGenerationLog('building'); return; }
     if (tab === 'draft')       { renderStmtList('building', 'Draft');      return; }
     if (tab === 'approved')    { renderStmtList('building', 'Approved');   return; }
     if (tab === 'sent')        { renderStmtList('building', 'Sent');       return; }
-    if (tab === 'unprocessed') { renderBldUnprocessed();          return; }
+    if (tab === 'unprocessed') { renderBldUnprocessed();                   return; }
   } else {
-    if (tab === 'generate')    { renderGenerationLog('section');  return; }
+    if (tab === 'generate')    { loadSecReportTypes(); renderGenerationLog('section');  return; }
     if (tab === 'draft')       { renderStmtList('section',  'Draft');      return; }
     if (tab === 'approved')    { renderStmtList('section',  'Approved');   return; }
     if (tab === 'sent')        { renderStmtList('section',  'Sent');       return; }
-    if (tab === 'unprocessed') { renderSecUnprocessed();          return; }
+    if (tab === 'unprocessed') { renderSecUnprocessed();                   return; }
   }
 }
 

@@ -3433,7 +3433,7 @@ function renderGenerationLogFromData(logEl, rows, world) {
     var lbl = fmtReportLabel(r.reportType, r.period);
     html += '<tr style="background:' + bg + ';">'
           + '<td style="padding:6px 8px;">' + escHtml(r.runId          || '') + '</td>'
-          + '<td style="padding:6px 8px;">' + fmtDateTime(r.generatedAt || '') + '</td>'
+          + '<td style="padding:6px 8px;direction:ltr;text-align:left;">' + fmtDateTime(r.generatedAt || '') + '</td>'
           + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy    || '') + '</td>'
           + '<td style="padding:6px 8px;">' + escHtml(lbl.typeLabel    || '') + '</td>'
           + '<td style="padding:6px 8px;">' + escHtml(lbl.display      || '') + '</td>'
@@ -3699,7 +3699,7 @@ function renderGenerationLog(world) {
       var lbl = fmtReportLabel(r.reportType, r.period);
       html += '<tr style="background:' + bg + ';">'
             + '<td style="padding:6px 8px;">' + escHtml(r.runId          || '') + '</td>'
-            + '<td style="padding:6px 8px;">' + fmtDateTime(r.generatedAt || '') + '</td>'
+            + '<td style="padding:6px 8px;direction:ltr;text-align:left;">' + fmtDateTime(r.generatedAt || '') + '</td>'
             + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy    || '') + '</td>'
             + '<td style="padding:6px 8px;">' + escHtml(lbl.typeLabel    || '') + '</td>'
             + '<td style="padding:6px 8px;">' + escHtml(lbl.display      || '') + '</td>'

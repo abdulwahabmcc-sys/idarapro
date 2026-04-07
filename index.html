@@ -3429,13 +3429,14 @@ function renderGenerationLogFromData(logEl, rows, world) {
         + '<td style="padding:6px 8px;">العدد</td>'
         + '</tr>';
   rows.forEach(function(r, i) {
-    var bg = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+    var bg  = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+    var lbl = fmtReportLabel(r.reportType, r.period);
     html += '<tr style="background:' + bg + ';">'
           + '<td style="padding:6px 8px;">' + escHtml(r.runId          || '') + '</td>'
-          + '<td style="padding:6px 8px;">' + escHtml(r.generatedAt    || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + fmtDateTime(r.generatedAt || '') + '</td>'
           + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy    || '') + '</td>'
-          + '<td style="padding:6px 8px;">' + escHtml(r.reportType     || '') + '</td>'
-          + '<td style="padding:6px 8px;">' + escHtml(r.period         || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(lbl.typeLabel    || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(lbl.display      || '') + '</td>'
           + '<td style="padding:6px 8px;">' + escHtml(r.statementCount || '') + '</td>'
           + '</tr>';
   });
@@ -3561,12 +3562,13 @@ function _renderStmtCard(s, world) {
     leftContent += '<span class="pill pill-skip">تخطّى</span>';
   }
 
+  var lbl = fmtReportLabel(s.reportType, s.period);
   var rightContent =
     '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
-    '<div class="stmt-meta">' + escHtml(s.period || '') + ' · ' + (s.email || '❌ No email') + '</div>';
+    '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>';
 
   if (status === 'draft') {
-    rightContent += '<div class="stmt-date">Generated: ' + formatStmtDate(s.generatedAt) + '</div>';
+    rightContent += '<div class="stmt-date">Generated: ' + fmtDateTime(s.generatedAt) + '</div>';
     rightContent +=
       '<div class="stmt-actions">' +
         (s.htmlFileId
@@ -3579,11 +3581,11 @@ function _renderStmtCard(s, world) {
   }
   if (status === 'approved') {
     rightContent += '<div class="stmt-date" style="color:var(--forest);">معتمد: ' +
-      formatStmtDate(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</div>';
+      fmtDateTime(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</div>';
   }
   if (status === 'sent') {
     rightContent += '<div class="stmt-date" style="color:var(--navy);">أُرسل: ' +
-      formatStmtDate(s.sentAt) + (s.dispatchChannel ? ' · ' + escHtml(s.dispatchChannel) : '') + '</div>';
+      fmtDateTime(s.dispatchedAt) + (s.dispatchChannel ? ' · ' + escHtml(s.dispatchChannel) : '') + '</div>';
   }
 
   return '<div class="stmt-card">' +
@@ -3622,7 +3624,7 @@ function renderStmtList(world, status) {
 
     var filtered = data.filter(function(s) {
       return String(s.status).toLowerCase() === statusKey;
-    });
+    }).reverse();
 
     var panelBody     = listEl.closest('.panel-body');
     var bulkRow       = panelBody ? panelBody.querySelector('.bulk-row')       : null;
@@ -3693,13 +3695,14 @@ function renderGenerationLog(world) {
           + '</tr>';
 
     rows.forEach(function(r, i) {
-      var bg = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+      var bg  = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+      var lbl = fmtReportLabel(r.reportType, r.period);
       html += '<tr style="background:' + bg + ';">'
-            + '<td style="padding:6px 8px;">' + escHtml(r.runId || '')          + '</td>'
-            + '<td style="padding:6px 8px;">' + escHtml(r.generatedAt || '')    + '</td>'
-            + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy || '')    + '</td>'
-            + '<td style="padding:6px 8px;">' + escHtml(r.reportType || '')     + '</td>'
-            + '<td style="padding:6px 8px;">' + escHtml(r.period || '')         + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.runId          || '') + '</td>'
+            + '<td style="padding:6px 8px;">' + fmtDateTime(r.generatedAt || '') + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy    || '') + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(lbl.typeLabel    || '') + '</td>'
+            + '<td style="padding:6px 8px;">' + escHtml(lbl.display      || '') + '</td>'
             + '<td style="padding:6px 8px;">' + escHtml(r.statementCount || '') + '</td>'
             + '</tr>';
     });
@@ -3931,7 +3934,7 @@ function _renderUnprocessedList(el, rows, world) {
         '</div>' +
         '<div class="stmt-right">' +
           '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
-          '<div class="stmt-meta">' + escHtml(s.period || '') + (s.email ? ' · ' + escHtml(s.email) : ' · ❌ No email') + '</div>' +
+          '<div class="stmt-meta">' + (function(){ var l = fmtReportLabel(s.reportType, s.period); return escHtml(l.display) + ' · ' + escHtml(l.typeLabel); })() + '</div>' +
           item.reasons.map(function(r) { return '<span class="reason-tag ' + r.cls + '">' + r.text + '</span>'; }).join('') +
         '</div>' +
       '</div>' +
@@ -4735,7 +4738,7 @@ function renderOccupancy() {
     var dot = isActive
       ? '<span style="font-size:9px;color:var(--forest);font-weight:700;flex-shrink:0;white-space:nowrap;">● Active</span>'
       : '<span style="font-size:9px;color:var(--burg);font-weight:700;flex-shrink:0;white-space:nowrap;">● Inactive</span>';
-    var endInfo = c.endDate ? ' → ' + c.endDate : '';
+    var endInfo = c.endDate ? ' → ' + fmtDate(c.endDate) : '';
     return '<div class="stg-user-row" style="' + rowStyle + '">' +
       '<div class="stg-user-avatar" style="font-size:10px;background:' + (isActive ? 'var(--navy)' : 'var(--muted)') + ';">' +
         escHtml(c.section || '—') +
@@ -4744,7 +4747,7 @@ function renderOccupancy() {
         '<div class="stg-user-name">' + escHtml(c.name || '—') + '</div>' +
         '<div class="stg-user-meta">' +
           escHtml(c.role || '') + ' · ' + escHtml(c.contractId || '') +
-          '<br>' + (c.startDate || '') + endInfo +
+          '<br>' + fmtDate(c.startDate || '') + endInfo +
         '</div>' +
       '</div>' +
       dot +
@@ -4868,10 +4871,9 @@ function renderFeeCards(el, rows) {
       ? escHtml(f.targetType) + ': ' + escHtml(f.target)
       : escHtml(f.targetType || f.target || 'All');
 
-    var cleanDate = function(d) { return d ? String(d).trim().substring(0, 10) : ''; };
     var dates = '';
-    if (f.startDate) dates += '<span class="fee-chip">From ' + cleanDate(f.startDate) + '</span>';
-    if (f.endDate)   dates += '<span class="fee-chip" style="color:var(--burg);">Until ' + cleanDate(f.endDate) + '</span>';
+    if (f.startDate) dates += '<span class="fee-chip">From ' + fmtDate(f.startDate) + '</span>';
+    if (f.endDate)   dates += '<span class="fee-chip" style="color:var(--burg);">Until ' + fmtDate(f.endDate) + '</span>';
 
     var notes = f.notes ? '<div class="fee-notes">' + escHtml(f.notes) + '</div>' : '';
 
@@ -4988,7 +4990,7 @@ function loadMeters() {
         return '<div class="stg-meter-row">' +
           '<div class="stg-meter-top">' +
             '<div class="stg-meter-unit">' + escHtml(r.unit || '—') + ' — ' + escHtml(r.utilityType || '') + '</div>' +
-            '<div class="stg-meter-date">' + (r.date || '') + '</div>' +
+            '<div class="stg-meter-date">' + fmtDate(r.date || '') + '</div>' +
           '</div>' +
           '<div class="stg-meter-vals">' +
             '<div class="stg-meter-val">Prev: <strong>' + (r.prev || '—') + '</strong></div>' +
@@ -5327,7 +5329,7 @@ function renderMtrList(rows, isAdmin) {
         '<div><span style="color:var(--muted);">Curr:</span> <strong>' + (r.currReading || '—') + '</strong></div>' +
         '<div><span style="color:var(--forest);">Use:</span> <strong>' + (r.consumption || '—') + '</strong> ' + escHtml(r.utilityUnit || '') + '</div>' +
       '</div>' +
-      '<div style="font-size:10px;color:var(--muted);">' + (r.date || '') + ' · ' + escHtml(r.readBy || '') + (r.daysInCycle ? ' · ' + r.daysInCycle + ' days' : '') + '</div>' +
+      '<div style="font-size:10px;color:var(--muted);">' + fmtDate(r.date || '') + ' · ' + escHtml(r.readBy || '') + (r.daysInCycle ? ' · ' + r.daysInCycle + ' days' : '') + '</div>' +
       actionBtns +
     '</div>';
   }).join('');
@@ -9027,8 +9029,8 @@ function loadUtilityUnitPrices() {
                     : '') +
                 '</div>' +
                 '<div style="display:flex;gap:6px;align-items:center;">' +
-                  '<span style="font-size:10px;color:var(--muted);">From ' + active.effectiveDate + 
-                  (active.endDate ? ' → ' + active.endDate : '') + '</span>' +
+                  '<span style="font-size:10px;color:var(--muted);">From ' + fmtDate(active.effectiveDate) + 
+                  (active.endDate ? ' → ' + fmtDate(active.endDate) : '') + '</span>' +
                   '<button class="stg-user-btn" onclick="editUtilityUnitPrice(\'' + escHtml(utilName) + '\')">تعديل</button>' +
                 '</div>' +
               '</div>'
@@ -9042,8 +9044,8 @@ function loadUtilityUnitPrices() {
                     return '<div style="font-size:11px;color:var(--muted);padding:6px 0;border-top:1px solid var(--border);direction:ltr;">' +
                       '<span style="font-weight:600;">$' + h.pricePerUnit + '</span>' +
                       ' / ' + escHtml(h.unitOfMeasure) +
-                      ' · ' + h.effectiveDate + 
-                      (h.endDate ? ' → ' + h.endDate : ' → present') +
+                      ' · ' + fmtDate(h.effectiveDate) + 
+                      (h.endDate ? ' → ' + fmtDate(h.endDate) : ' → present') +
                       ' · <span style="color:' + statusColor + ';font-weight:600;">' + (h.status || 'Expired') + '</span>' +
                       (h.notes ? '<br><span style="color:var(--muted);">' + escHtml(h.notes) + '</span>' : '') +
                     '</div>';
@@ -9567,6 +9569,76 @@ function formatStmtDate(dateStr) {
   } catch(e) {
     return d.toLocaleDateString();
   }
+}
+
+// ── Global date/time formatters (Issue 1 — D/M/YYYY and H:MM AM/PM) ──────────
+function fmtDate(raw) {
+  if (!raw) return '';
+  var raw2 = String(raw).trim();
+  // GAS date format: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss — parse directly
+  var parts = raw2.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (parts) {
+    return parseInt(parts[3], 10) + '/' + parseInt(parts[2], 10) + '/' + parts[1];
+  }
+  // Fallback — JS Date object
+  var d = new Date(raw2);
+  if (isNaN(d.getTime())) return raw2;
+  return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+}
+
+function fmtDateTime(raw) {
+  if (!raw) return '';
+  var raw2 = String(raw).trim();
+  // GAS timestamp format: yyyy-MM-dd HH:mm:ss — parse directly, no timezone conversion
+  var parts = raw2.match(/^(\d{4})-(\d{2})-(\d{2})[\sT](\d{2}):(\d{2})/);
+  if (parts) {
+    var dd   = parseInt(parts[3], 10);
+    var mm   = parseInt(parts[2], 10);
+    var yyyy = parts[1];
+    var hh   = parseInt(parts[4], 10);
+    var min  = parts[5];
+    var ampm = hh >= 12 ? 'PM' : 'AM';
+    var hr12 = hh % 12 || 12;
+    return dd + '/' + mm + '/' + yyyy + ' · ' + hr12 + ':' + min + ' ' + ampm;
+  }
+  // Fallback — JS Date object
+  var d = new Date(raw2);
+  if (isNaN(d.getTime())) return raw2;
+  var hh   = d.getHours();
+  var min  = d.getMinutes();
+  var ampm = hh >= 12 ? 'PM' : 'AM';
+  var hr12 = hh % 12 || 12;
+  var mm2  = min < 10 ? '0' + min : String(min);
+  return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + hr12 + ':' + mm2 + ' ' + ampm;
+}
+
+// ── Report label formatter (Issue 2) ─────────────────────────────────────────
+var _MONTH_NAMES_EN = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
+];
+
+function fmtReportLabel(reportType, period) {
+  var rt = String(reportType || '').trim();
+  var p  = String(period     || '').trim();
+  if (rt === 'YTD') {
+    return { display: 'YTD - ' + p.substring(0, 4), typeLabel: 'YTD' };
+  }
+  if (rt === 'Journal') {
+    return { display: 'Journal - ' + p.substring(0, 4), typeLabel: 'Journal - YTD' };
+  }
+  if (rt === 'Monthly') {
+    var parts = p.split('-');
+    if (parts.length >= 2) {
+      var yr  = parts[0];
+      var mo  = parseInt(parts[1], 10);
+      var mon = _MONTH_NAMES_EN[mo - 1] || '';
+      return { display: mon + ' ' + yr, typeLabel: 'Monthly' };
+    }
+    return { display: p, typeLabel: 'Monthly' };
+  }
+  // Fallback — future report types slot in here
+  return { display: rt + (p ? ' - ' + p : ''), typeLabel: rt };
 }
 
 function fmtMoney(val) {

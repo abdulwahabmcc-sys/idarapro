@@ -3413,65 +3413,109 @@ function setStmtSubtab(world, tab) {
   _loadStmtSubtabData(world, tab);
 }
 
-function loadBldReportTypes() {
-  var sel = document.getElementById('bld-rep-type');
-  if (!sel) return;
-  gasPost({ action: 'getBuildingReportTypes', token: _session.token })
-    .then(function(types) {
-      sel.innerHTML = '';
-      (types || []).forEach(function(t, idx) {
-        var opt = document.createElement('option');
-        opt.value = t.value;
-        opt.textContent = t.label;
-        if (idx === 0) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      if (!sel.options.length) {
-        sel.innerHTML = '<option value="" disabled selected>⚠️ لا توجد أنواع تقارير</option>';
-      }
-    })
-    .catch(function() {
-      sel.innerHTML = '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
-                      '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
-                      '<option value="LastMonth">الشهر الماضي / Last Month</option>';
-    });
+function renderGenerationLogFromData(logEl, rows, world) {
+  if (!logEl) return;
+  if (!rows || !rows.length) {
+    logEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">لا توجد سجلات.</div>';
+    return;
+  }
+  var html = '<table style="width:100%;font-size:12px;border-collapse:collapse;">';
+  html += '<tr style="background:#f0ede8;font-weight:600;">'
+        + '<td style="padding:6px 8px;">Run ID</td>'
+        + '<td style="padding:6px 8px;">التاريخ</td>'
+        + '<td style="padding:6px 8px;">بواسطة</td>'
+        + '<td style="padding:6px 8px;">النوع</td>'
+        + '<td style="padding:6px 8px;">الفترة</td>'
+        + '<td style="padding:6px 8px;">العدد</td>'
+        + '</tr>';
+  rows.forEach(function(r, i) {
+    var bg = (i % 2 === 0) ? '#fff' : '#f9f7f4';
+    html += '<tr style="background:' + bg + ';">'
+          + '<td style="padding:6px 8px;">' + escHtml(r.runId          || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(r.generatedAt    || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(r.generatedBy    || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(r.reportType     || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(r.period         || '') + '</td>'
+          + '<td style="padding:6px 8px;">' + escHtml(r.statementCount || '') + '</td>'
+          + '</tr>';
+  });
+  html += '</table>';
+  logEl.innerHTML = html;
+  if (!_genLogCache) _genLogCache = { building: [], section: [] };
+  _genLogCache[world] = rows;
 }
 
-function loadSecReportTypes() {
-  var sel = document.getElementById('sel-rep');
-  if (!sel) return;
-  gasPost({ action: 'getSectionReportTypes', token: _session.token })
-    .then(function(types) {
-      sel.innerHTML = '';
-      (types || []).forEach(function(t, idx) {
-        var opt = document.createElement('option');
-        opt.value = t.value;
-        opt.textContent = t.label;
-        if (idx === 0) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      if (!sel.options.length) {
-        sel.innerHTML = '<option value="" disabled selected>⚠️ لا توجد أنواع تقارير</option>';
+function _loadGenerateTab(world) {
+  if (!sessionValid()) return;
+  var scope  = world === 'building' ? 'Building' : 'Section';
+  var repSel = world === 'building'
+    ? document.getElementById('bld-rep-type')
+    : document.getElementById('sel-rep');
+  var logEl  = world === 'building'
+    ? document.getElementById('bld-gen-log')
+    : document.getElementById('sec-gen-log');
+
+  gasPost({
+    action:  'getGenerateTabData',
+    payload: { scope: scope },
+    token:   _session.token
+  })
+    .then(function(result) {
+      if (repSel && result.reportTypes && result.reportTypes.length) {
+        repSel.innerHTML = '';
+        result.reportTypes.forEach(function(t, idx) {
+          var opt = document.createElement('option');
+          opt.value       = t.value;
+          opt.textContent = t.label;
+          if (idx === 0) opt.selected = true;
+          repSel.appendChild(opt);
+        });
+
+        // Permission-based hiding for Section dropdown
+        if (world === 'section' && _session && _session.permissions) {
+          var p    = _session.permissions;
+          var oYtd = repSel.querySelector('[value="YTD"]');
+          var oCur = repSel.querySelector('[value="CurrentMonth"]');
+          var oLst = repSel.querySelector('[value="LastMonth"]');
+          var oJrn = repSel.querySelector('[value="Journal"]');
+          if (!p.REP_YTD && oYtd) oYtd.style.display = 'none';
+          if (!p.REP_CUR && oCur) oCur.style.display = 'none';
+          if (!p.REP_LST && oLst) oLst.style.display = 'none';
+          if (!p.REP_JRN && oJrn) oJrn.style.display = 'none';
+        }
       }
+
+      renderGenerationLogFromData(logEl, result.generationLog || [], world);
     })
     .catch(function() {
-      sel.innerHTML = '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
-                      '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
-                      '<option value="LastMonth">الشهر الماضي / Last Month</option>' +
-                      '<option value="Journal">دفتر اليومية / Journal</option>';
+      if (repSel) {
+        if (world === 'building') {
+          repSel.innerHTML =
+            '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
+            '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
+            '<option value="LastMonth">الشهر الماضي / Last Month</option>';
+        } else {
+          repSel.innerHTML =
+            '<option value="YTD" selected>YTD — تراكمي سنوي</option>' +
+            '<option value="CurrentMonth">هذا الشهر / This Month</option>' +
+            '<option value="LastMonth">الشهر الماضي / Last Month</option>' +
+            '<option value="Journal">دفتر اليومية / Journal</option>';
+        }
+      }
+      if (logEl) renderGenerationLog(world);
     });
 }
 
 function _loadStmtSubtabData(world, tab) {
   if (!sessionValid()) return;
   if (world === 'building') {
-    if (tab === 'generate')    { loadBldReportTypes(); renderGenerationLog('building'); return; }
+    if (tab === 'generate')    { _loadGenerateTab('building');             return; }
     if (tab === 'draft')       { renderStmtList('building', 'Draft');      return; }
     if (tab === 'approved')    { renderStmtList('building', 'Approved');   return; }
     if (tab === 'sent')        { renderStmtList('building', 'Sent');       return; }
     if (tab === 'unprocessed') { renderBldUnprocessed();                   return; }
   } else {
-    if (tab === 'generate')    { loadSecReportTypes(); renderGenerationLog('section');  return; }
+    if (tab === 'generate')    { _loadGenerateTab('section');              return; }
     if (tab === 'draft')       { renderStmtList('section',  'Draft');      return; }
     if (tab === 'approved')    { renderStmtList('section',  'Approved');   return; }
     if (tab === 'sent')        { renderStmtList('section',  'Sent');       return; }

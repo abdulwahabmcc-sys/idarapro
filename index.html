@@ -3528,7 +3528,6 @@ function _loadStmtSubtabData(world, tab) {
 
 
 
-
 function _renderStmtCard(s, world) {
   var status = String(s.status || '').toLowerCase();
 
@@ -3580,11 +3579,11 @@ function _renderStmtCard(s, world) {
       '</div>';
   }
   if (status === 'approved') {
-    rightContent += '<div class="stmt-date" style="color:var(--forest);">معتمد: ' +
+    rightContent += '<div class="stmt-date" style="color:var(--forest);direction:ltr;text-align:left;">معتمد: ' +
       fmtDateTime(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</div>';
   }
   if (status === 'sent') {
-    rightContent += '<div class="stmt-date" style="color:var(--navy);">أُرسل: ' +
+    rightContent += '<div class="stmt-date" style="color:var(--navy);direction:ltr;text-align:left;">أُرسل: ' +
       fmtDateTime(s.dispatchedAt) + (s.dispatchChannel ? ' · ' + escHtml(s.dispatchChannel) : '') + '</div>';
   }
 

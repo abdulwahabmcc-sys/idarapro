@@ -9621,24 +9621,71 @@ var _MONTH_NAMES_EN = [
 function fmtReportLabel(reportType, period) {
   var rt = String(reportType || '').trim();
   var p  = String(period     || '').trim();
+
+  // ── Period sanitiser ─────────────────────────────────────────────────────
+  // Converts any period string to a clean YYYY-MM or YYYY-YTD format.
+  // Handles raw JS Date strings like 'Wed Apr 01 2026 00:00:00 GMT+0300 (...)'
+  // so corrupt sheet data always degrades to a readable label.
+  // Future report types that store period differently just extend this function.
+  function _cleanPeriod(raw) {
+    if (!raw) return '';
+    // Already clean: '2026-YTD', '2026-04', '2026-CUSTOM', 'Q1-2026'
+    if (/^\d{4}-/.test(raw) || /^Q\d-\d{4}$/.test(raw)) return raw;
+    // Raw JS Date string — extract year and month name
+    var _monMap = {
+      'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+      'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12
+    };
+    var yearMatch = raw.match(/\b(\d{4})\b/);
+    var monMatch  = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i);
+    if (yearMatch && monMatch) {
+      var mo = _monMap[monMatch[1].toLowerCase()];
+      return yearMatch[1] + '-' + String(mo).padStart(2, '0');
+    }
+    if (yearMatch) return yearMatch[1] + '-01';
+    return raw;
+  }
+
+  var p2 = _cleanPeriod(p);
+
+  // ── YTD ──────────────────────────────────────────────────────────────────
   if (rt === 'YTD') {
-    return { display: 'YTD - ' + p.substring(0, 4), typeLabel: 'YTD' };
+    return { display: 'YTD - ' + p2.substring(0, 4), typeLabel: 'YTD' };
   }
+
+  // ── Journal ───────────────────────────────────────────────────────────────
   if (rt === 'Journal') {
-    return { display: 'Journal - ' + p.substring(0, 4), typeLabel: 'Journal - YTD' };
+    return { display: 'Journal - ' + p2.substring(0, 4), typeLabel: 'Journal - YTD' };
   }
-  if (rt === 'Monthly') {
-    var parts = p.split('-');
+
+  // ── Monthly / LastMonth / CurrentMonth ────────────────────────────────────
+  // All three map to Monthly typeLabel — period determines the display name.
+  if (rt === 'Monthly' || rt === 'LastMonth' || rt === 'CurrentMonth') {
+    var parts = p2.split('-');
     if (parts.length >= 2) {
       var yr  = parts[0];
       var mo  = parseInt(parts[1], 10);
-      var mon = _MONTH_NAMES_EN[mo - 1] || '';
-      return { display: mon + ' ' + yr, typeLabel: 'Monthly' };
+      if (!isNaN(mo) && mo >= 1 && mo <= 12) {
+        return { display: _MONTH_NAMES_EN[mo - 1] + ' ' + yr, typeLabel: 'Monthly' };
+      }
     }
-    return { display: p, typeLabel: 'Monthly' };
+    return { display: p2 || p, typeLabel: 'Monthly' };
   }
-  // Fallback — future report types slot in here
-  return { display: rt + (p ? ' - ' + p : ''), typeLabel: rt };
+
+  // ── Expense / Income ──────────────────────────────────────────────────────
+  if (rt === 'Expense' || rt === 'Income') {
+    return { display: rt + ' - ' + (p2 || p), typeLabel: rt };
+  }
+
+  // ── Financial (Quarterly / Annual) ────────────────────────────────────────
+  // period stored as 'Q1-2026' or 'Annual-2026'
+  if (rt === 'Financial') {
+    return { display: 'Financial Report - ' + (p2 || p), typeLabel: 'Financial' };
+  }
+
+  // ── Universal fallback ────────────────────────────────────────────────────
+  // p2 is always sanitised — no raw JS Date strings leak through to the UI
+  return { display: rt + (p2 ? ' - ' + p2 : ''), typeLabel: rt };
 }
 
 function fmtMoney(val) {

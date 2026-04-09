@@ -2205,7 +2205,7 @@
               <option value="Manual">يدوي / Manual</option>
               <option value="WhatsApp">WhatsApp</option>
             </select>
-            <button type="button" class="navy-btn" onclick="applyBldDefaultDispatch()">تطبيق للجميع</button>
+            <button type="button" class="navy-btn" onclick="applyBldDefaultDispatch()">بث الكل / Broadcast All</button>
           </div>
           <div class="stmt-scroll" id="bld-approved-list">
             <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
@@ -2308,6 +2308,7 @@
               <option value="WhatsApp">WhatsApp</option>
             </select>
             <button type="button" class="navy-btn" onclick="applySecDefaultDispatch()">تطبيق للجميع</button>
+            <button type="button" class="navy-btn" onclick="triggerSendAllSection()">إرسال الكل / Send All</button>
           </div>
           <div class="stmt-scroll" id="sec-approved-list">
             <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
@@ -3551,6 +3552,12 @@ function _renderStmtCard(s, world) {
     } else {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
     }
+    if (world === 'section') {
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="sendSingleStatement(' + s.rowIndex + ')">إرسال / Send</button>';
+    }
+    if (world === 'building') {
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="triggerBuildingBroadcast(' + s.rowIndex + ')">بث / Broadcast</button>';
+    }
     leftContent += '<button type="button" class="muted-btn" style="margin-top:4px;" onclick="revokeSingleStatement(' + s.rowIndex + ',\'' + world + '\')">تراجع / Undo</button>';
   } else if (status === 'sent') {
     leftContent += '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>';
@@ -4041,6 +4048,70 @@ function revokeSingleStatement(rowIndex, world) {
       if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
       toast('❌ ' + e.message, 'fail');
     });
+}
+
+function sendSingleStatement(rowIndex) {
+  if (!sessionValid()) return;
+  toast('⏳ جاري الإرسال...', 'info');
+  gasPost({
+    action:  'sendSingleStatement',
+    payload: { rowIndex: rowIndex, scope: 'Section' },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('✅ أُرسل بنجاح — ' + parsed.channel, 'ok');
+    renderStmtList('section', 'approved');
+    renderStmtList('section', 'sent');
+  }).catch(function(e) {
+    toast('❌ ' + e.message, 'fail');
+  });
+}
+
+function triggerSendAllSection() {
+  if (!sessionValid()) return;
+  toast('⏳ جاري الإرسال...', 'info');
+  gasPost({
+    action:  'sendAllSectionStatements',
+    payload: { scope: 'Section' },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    var msg = '✅ أُرسل: ' + parsed.sent;
+    if (parsed.skipped)       msg += ' · فشل/تخطّى: ' + parsed.skipped;
+    if (parsed.manualSkipped) msg += ' · يدوي: '      + parsed.manualSkipped;
+    toast(msg, parsed.skipped > 0 ? 'warn' : 'ok');
+    renderStmtList('section', 'approved');
+    renderStmtList('section', 'sent');
+  }).catch(function(e) {
+    toast('❌ ' + e.message, 'fail');
+  });
+}
+
+function triggerBuildingBroadcast(rowIndex) {
+  if (!sessionValid()) return;
+  var channelSel = document.querySelector('[data-row-index="' + rowIndex + '"]');
+  var channel    = channelSel ? channelSel.value : '';
+  if (!channel) {
+    toast('❌ يرجى تحديد قناة الإرسال أولاً', 'fail');
+    return;
+  }
+  toast('⏳ جاري البث...', 'info');
+  gasPost({
+    action:   'sendBuildingBroadcast',
+    rowIndex: rowIndex,
+    channel:  channel,
+    token:    _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    var msg = '✅ بُث: ' + parsed.count;
+    if (parsed.skipped) msg += ' · تخطّى: ' + parsed.skipped;
+    toast(msg, parsed.skipped > 0 ? 'warn' : 'ok');
+    renderStmtList('building', 'approved');
+    renderStmtList('building', 'sent');
+    renderStmtList('section',  'approved');
+  }).catch(function(e) {
+    toast('❌ ' + e.message, 'fail');
+  });
 }
 
 function approveAllStatements() {

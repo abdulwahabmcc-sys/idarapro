@@ -4135,6 +4135,7 @@ function triggerBuildingApprove(parentRowIndex) {
     toast('✅ ' + (parsed.message || 'Approved.'), 'ok');
     loadBuildingStatements('Draft');
     loadBuildingStatements('Approved');
+    setStmtSubtab('building', 'approved');
   }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 

@@ -3598,6 +3598,9 @@ function _renderStmtCard(s, world) {
   if (status === 'approved') {
     rightContent += '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
       fmtDateTime(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</span></div>';
+    if (s.email) {
+      rightContent += '<div class="stmt-date" style="direction:ltr;text-align:left;color:var(--forest);font-size:10px;font-weight:600;">📧 ' + escHtml(s.email) + '</div>';
+    }
   }
   if (status === 'sent') {
     rightContent += '<div class="stmt-date" style="color:var(--navy);">أُرسل: <span style="direction:ltr;unicode-bidi:embed;">' +

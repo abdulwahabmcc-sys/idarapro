@@ -4974,9 +4974,36 @@ function assignDispatcher(rowIndex, channel, world) {
   if (!sessionValid() || !channel) return;
   gasPost({ action: 'assignDispatcher', payload: { rowIndex: rowIndex, channel: channel }, token: _session.token })
     .then(function() {
-    toast('✅ Dispatch assigned / تم التعيين', 'ok');
-    renderStmtList(world || 'section', 'approved');
-  })
+      toast('✅ Dispatch assigned / تم التعيين', 'ok');
+
+      // In-place DOM update — no full card reload
+      var sel = document.querySelector('select[data-row-index="' + rowIndex + '"]');
+      if (sel) {
+        var tr = sel.closest('.stmt-card');
+        if (tr) {
+          // Update sync button visibility
+          var syncBtn = tr.querySelector('.sync-btn');
+          if (channel === 'Email' || channel === 'WhatsApp') {
+            // Check if email is empty — show sync button if so
+            var emailDiv = tr.querySelector('.stmt-email');
+            var hasEmail = emailDiv && emailDiv.textContent.trim() !== '';
+            if (!hasEmail && !syncBtn) {
+              var newSyncBtn = document.createElement('button');
+              newSyncBtn.type = 'button';
+              newSyncBtn.className = 'navy-btn sync-btn';
+              newSyncBtn.style.marginTop = '4px';
+              newSyncBtn.style.fontSize = '11px';
+              var syncLabel = channel === 'WhatsApp' ? 'تحديث واتساب / Sync WhatsApp' : 'تحديث البريد / Sync Email';
+              newSyncBtn.textContent = syncLabel;
+              newSyncBtn.setAttribute('onclick', 'syncStmtContactChannel(' + rowIndex + ', \'' + (world || 'section') + '\')');
+              sel.closest('.stmt-left').appendChild(newSyncBtn);
+            }
+          } else if (channel === 'Manual') {
+            if (syncBtn) syncBtn.remove();
+          }
+        }
+      }
+    })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 

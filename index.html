@@ -4164,7 +4164,30 @@ function assignChildChannelUI(childRowIndex, channel) {
     payload: { rowIndex: childRowIndex, channel: channel },
     token:   _session.token
   }).then(function() {
-    loadBuildingStatements('Approved');
+    // Update only the specific row in-place — no full card reload
+    var sel = document.querySelector('select[data-row-index="' + childRowIndex + '"]');
+    if (sel) {
+      // Update Mark Sent button visibility in this row
+      var tr = sel.closest('tr');
+      if (tr) {
+        var actionCell = tr.cells[tr.cells.length - 1];
+        if (channel === 'Manual') {
+          if (!actionCell.querySelector('.mark-sent-btn')) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'navy-btn mark-sent-btn';
+            btn.style.fontSize = '9px';
+            btn.style.padding = '2px 7px';
+            btn.setAttribute('onclick', 'markChildSentUI(' + childRowIndex + ')');
+            btn.textContent = 'Mark Sent';
+            actionCell.appendChild(btn);
+          }
+        } else {
+          var existingBtn = actionCell.querySelector('.mark-sent-btn');
+          if (existingBtn) existingBtn.remove();
+        }
+      }
+    }
   }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 

@@ -4140,7 +4140,6 @@ function triggerBuildingApprove(parentRowIndex) {
 
 function triggerBuildingBroadcast(parentRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('بث التقرير للأقسام المحددة؟ / Broadcast to assigned sections?')) return;
   toast('⏳ جاري البث...', 'info');
   gasPost({
     action:  'sendBuildingBroadcast',

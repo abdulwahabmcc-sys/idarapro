@@ -3641,12 +3641,9 @@ function renderStmtList(world, status) {
     if (world === 'building') { _bldStmtCache = data; }
     else                      { _stmtCache    = data; }
 
-    var filtered = (statusKey === 'unprocessed'
-      ? data.slice()
-      : data.filter(function(s) {
-          return String(s.status).toLowerCase() === statusKey;
-        })
-    ).reverse();
+    var filtered = data.filter(function(s) {
+      return String(s.status).toLowerCase() === statusKey;
+    }).reverse();
 
     var panelBody     = listEl.closest('.panel-body');
     var bulkRow       = panelBody ? panelBody.querySelector('.bulk-row')       : null;
@@ -3917,7 +3914,10 @@ function _renderUnprocessedList(el, rows, world) {
     var reasons = [];
     if (status === 'draft')    { reasons.push({ text: 'بانتظار المراجعة ← تبويب مسودة', cls: 'rt-amber' }); }
     if (status === 'approved' && !s.pdfFileId) { reasons.push({ text: 'PDF لم يُصدَّر ← تصدير PDF', cls: 'rt-amber' }); }
-    if (status === 'approved' &&  s.pdfFileId && !s.dispatchChannel) { reasons.push({ text: 'بانتظار التسليم — عيِّن مُوصِّلاً', cls: 'rt-amber' }); }
+    if (status === 'approved' && s.pdfFileId && !s.dispatchChannel)                                          { reasons.push({ text: 'بانتظار التسليم — عيِّن مُوصِّلاً', cls: 'rt-amber' }); }
+    if (status === 'approved' && s.pdfFileId && s.dispatchChannel === 'Manual')                              { reasons.push({ text: 'يدوي — بانتظار تأكيد الاستلام الفعلي', cls: 'rt-amber' }); }
+    if (status === 'approved' && s.pdfFileId && s.dispatchChannel === 'Email'    && !s.email)                { reasons.push({ text: 'لا يوجد بريد إلكتروني — حدّث جهات الاتصال ثم امزج', cls: 'rt-red' }); }
+    if (status === 'approved' && s.pdfFileId && s.dispatchChannel === 'WhatsApp' && !s.email)                { reasons.push({ text: 'لا يوجد رقم واتساب — حدّث جهات الاتصال ثم امزج', cls: 'rt-red' }); }
     if (status === 'skipped')  { reasons.push({ text: 'لا يوجد بريد — أضف للجهة المعنية', cls: 'rt-red' }); }
     if (reasons.length) unprocessed.push({ s: s, reasons: reasons });
   });

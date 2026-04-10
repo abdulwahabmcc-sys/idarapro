@@ -3547,6 +3547,16 @@ function _renderStmtCard(s, world) {
           '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
         '</select>' +
       '</div>';
+    if (status === 'approved' && !s.email &&
+        (s.dispatchChannel === 'Email' || s.dispatchChannel === 'WhatsApp')) {
+      var syncLabel = s.dispatchChannel === 'WhatsApp'
+        ? 'تحديث واتساب / Sync WhatsApp'
+        : 'تحديث البريد / Sync Email';
+      leftContent +=
+        '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="syncStmtContactChannel(' + s.rowIndex + ',\'' + world + '\')">' +
+        syncLabel + '</button>';
+    }
     if (!s.pdfFileId) {
       leftContent += '<span class="pending-tag" style="margin-top:4px;">⏳ PDF pending</span>';
     } else {
@@ -4173,7 +4183,21 @@ function assignDispatcher(rowIndex, channel) {
 }
 
 
-
+function syncStmtContactChannel(rowIndex, world) {
+  if (!sessionValid()) return;
+  toast('⏳ جاري المزامنة...', 'info');
+  gasPost({
+    action:  'syncContactChannel',
+    payload: { rowIndex: rowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('✅ تمت المزامنة — ' + parsed.contactChannel, 'ok');
+    renderStmtList(world, 'approved');
+  }).catch(function(e) {
+    toast('❌ ' + e.message, 'fail');
+  });
+}
 
 
 

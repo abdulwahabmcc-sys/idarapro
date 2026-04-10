@@ -4159,6 +4159,7 @@ function triggerBuildingBroadcast(parentRowIndex) {
 
 function assignChildChannelUI(childRowIndex, channel) {
   if (!sessionValid()) return;
+  if (!channel) return; // ignore unassign events
   gasPost({
     action:  'assignChildChannel',
     payload: { rowIndex: childRowIndex, channel: channel },

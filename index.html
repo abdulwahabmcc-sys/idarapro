@@ -2198,20 +2198,9 @@
 
         <!-- Building → Approved -->
         <div class="panel-body hide" id="bld-pane-approved">
-          <div class="bulk-row">
-            <div class="bulk-lbl">Default dispatch:</div>
-            <select class="dispatch-sel" id="bld-default-dispatch">
-              <option value="Email">Email</option>
-              <option value="Manual">يدوي / Manual</option>
-              <option value="WhatsApp">WhatsApp</option>
-            </select>
-            <button type="button" class="navy-btn" onclick="applyBldDefaultDispatch()">بث الكل / Broadcast All</button>
-          </div>
           <div class="stmt-scroll" id="bld-approved-list">
             <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
           </div>
-          
-            
         </div>
 
         <!-- Building → Sent -->
@@ -2224,11 +2213,11 @@
         <!-- Building → Unprocessed -->
         <div class="panel-body hide" id="bld-pane-unprocessed">
           <div class="stmt-scroll" id="bld-unprocessed-list">
-            <div style="text-align:center;color:var(--muted);padding:16px;font-size:12px;">جاري التحميل... / Loading...</div>
+            <div style="padding:16px;color:var(--muted);font-size:12px;text-align:center;">
+              قريباً — هذا التبويب سيعرض البيانات غير المكتملة / Coming soon
+            </div>
           </div>
-          <div class="info-box">تختفي البطاقات تلقائياً عند المعالجة الكاملة · لا يمكن الحذف اليدوي</div>
         </div>
-      </div><!-- /building panel -->
 
       <!-- ══ SECTION PANEL (Admin only) ══ -->
       <div class="main-panel hide" id="stmt-section-panel">
@@ -3512,9 +3501,9 @@ function _loadStmtSubtabData(world, tab) {
   if (!sessionValid()) return;
   if (world === 'building') {
     if (tab === 'generate')    { _loadGenerateTab('building');             return; }
-    if (tab === 'draft')       { renderStmtList('building', 'Draft');      return; }
-    if (tab === 'approved')    { renderStmtList('building', 'Approved');   return; }
-    if (tab === 'sent')        { renderStmtList('building', 'Sent');       return; }
+    if (tab === 'draft')       { loadBuildingStatements('Draft');          return; }
+    if (tab === 'approved')    { loadBuildingStatements('Approved');       return; }
+    if (tab === 'sent')        { loadBuildingStatements('Sent');           return; }
     if (tab === 'unprocessed') { renderBldUnprocessed();                   return; }
   } else {
     if (tab === 'generate')    { _loadGenerateTab('section');              return; }
@@ -3887,6 +3876,563 @@ function _applyDefaultDispatch(world) {
 }
 
 
+
+// ============================================================================
+// BUILDING STATEMENTS — CARD RENDERER
+// Renders one Building parent card with all states:
+//   draft    — recipient preview, Preview/Delete/Approve buttons
+//   approved — flat child table, per-child PDF/channel/send, Broadcast/Complete/Undo
+//   sent     — stats, PDF download, collapsible dispatch log
+// ============================================================================
+
+function renderBuildingCard(parent, status) {
+  var stmtId   = parent.stmtId   || '';
+  var rowIndex = parent.rowIndex  || 0;
+  var period   = parent.period    || '';
+  var rType    = parent.reportType || '';
+  var lbl      = fmtReportLabel(rType, period);
+
+  // ── DRAFT STATE ──────────────────────────────────────────────────────────
+  if (status === 'draft') {
+    var previewTotal   = parent.previewTotal        || 0;
+    var withEmail      = parent.previewWithEmail    || 0;
+    var missingEmail   = parent.previewMissingEmail || 0;
+
+    var draftLeft =
+      '<div class="draft-status">Draft ●</div>' +
+      (parent.htmlFileId
+        ? '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+          'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</button>'
+        : '') +
+      '<button type="button" class="danger-btn" style="margin-top:4px;" ' +
+        'onclick="triggerBuildingDelete(' + rowIndex + ')">حذف / Delete</button>' +
+      '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="triggerBuildingApprove(' + rowIndex + ')">اعتماد / Approve</button>';
+
+    var draftRight =
+      '<div class="stmt-name">تقرير المبنى / Building Report</div>' +
+      '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>' +
+      '<div class="stmt-date">Generated: ' + fmtDateTime(parent.generatedAt) + '</div>' +
+      '<div class="stmt-meta" style="margin-top:4px;">' +
+        '<span style="color:var(--forest);">✔ ' + withEmail + ' with email</span>' +
+        ' · ' +
+        '<span style="color:var(--burg);">✘ ' + missingEmail + ' missing</span>' +
+        ' · ' + previewTotal + ' total' +
+      '</div>';
+
+    return '<div class="stmt-card"><div class="stmt-inner">' +
+      '<div class="stmt-left">' + draftLeft + '</div>' +
+      '<div class="stmt-right">' + draftRight + '</div>' +
+      '</div></div>';
+  }
+
+  // ── APPROVED STATE ───────────────────────────────────────────────────────
+  if (status === 'approved') {
+    var children    = parent.children || [];
+    var totalCount  = parent.totalCount     || 0;
+    var pendingCount = parent.pendingCount  || 0;
+    var sentCount   = parent.sentCount      || 0;
+    var closedCount = parent.closedOutCount || 0;
+
+    // Stats row
+    var statsRow =
+      '<div style="display:flex;gap:8px;margin:8px 0;">' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;">' + totalCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+        '</div>' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;color:var(--amber,#BA7517);">' + pendingCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Pending</div>' +
+        '</div>' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;color:var(--navy,#1B2A4A);">' + sentCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+        '</div>' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;color:var(--purple,#534AB7);">' + closedCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+        '</div>' +
+      '</div>';
+
+    // Child table
+    var tableRows = children.map(function(child) {
+      var childChannel  = child.dispatchChannel || '';
+      var childStatus   = child.status          || '';
+      var childEmail    = child.email            || '';
+      var childPdfId    = child.pdfFileId        || '';
+      var childRowIndex = child.rowIndex         || 0;
+
+      var pdfBtn = childPdfId
+        ? '<button type="button" class="navy-btn" style="font-size:10px;padding:2px 8px;" ' +
+          'onclick="downloadStmtPdf(\'' + escHtml(childPdfId) + '\')">تحميل PDF</button>'
+        : '<span class="pending-tag" style="font-size:10px;">⏳ PDF</span>';
+
+      var channelSel =
+        '<select class="dispatch-sel" style="font-size:11px;" ' +
+          'data-row-index="' + childRowIndex + '" ' +
+          'onchange="assignChildChannelUI(' + childRowIndex + ',this.value)">' +
+          '<option value=""'         + (!childChannel                  ? ' selected' : '') + '>— assign —</option>' +
+          '<option value="Email"'    + (childChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+          '<option value="WhatsApp"' + (childChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+          '<option value="Manual"'   + (childChannel === 'Manual'   ? ' selected' : '') + '>Manual</option>' +
+        '</select>';
+
+      var statusPill = childStatus === 'Sent'
+        ? '<span style="font-size:10px;color:var(--navy);">● Sent</span>'
+        : childStatus === 'Closed Out'
+          ? '<span style="font-size:10px;color:var(--purple,#534AB7);">● Closed</span>'
+          : '<span style="font-size:10px;color:var(--amber,#BA7517);">● Pending</span>';
+
+      var markSentBtn = (childChannel === 'Manual' && childStatus === 'Pending')
+        ? '<button type="button" class="navy-btn" style="font-size:10px;padding:2px 8px;margin-left:4px;" ' +
+          'onclick="markChildSentUI(' + childRowIndex + ')">Mark Sent</button>'
+        : '';
+
+      var emailDisplay = childEmail
+        ? '<div style="font-size:10px;color:var(--forest);direction:ltr;">📧 ' + escHtml(childEmail) + '</div>'
+        : '';
+
+      return '<tr data-row-index="' + childRowIndex + '">' +
+        '<td style="font-size:12px;font-weight:500;">' + escHtml(child.section || '') + '</td>' +
+        '<td style="font-size:11px;">' + escHtml(child.occupantName || '') + emailDisplay + '</td>' +
+        '<td>' + channelSel + '</td>' +
+        '<td>' + statusPill + '</td>' +
+        '<td>' + pdfBtn + markSentBtn + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var childTable =
+      '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;">' +
+        '<thead><tr style="border-bottom:0.5px solid var(--color-border-tertiary);">' +
+          '<th style="text-align:left;padding:4px 6px;font-size:10px;color:var(--muted);font-weight:500;">Section</th>' +
+          '<th style="text-align:left;padding:4px 6px;font-size:10px;color:var(--muted);font-weight:500;">Occupant</th>' +
+          '<th style="text-align:left;padding:4px 6px;font-size:10px;color:var(--muted);font-weight:500;">Channel</th>' +
+          '<th style="text-align:left;padding:4px 6px;font-size:10px;color:var(--muted);font-weight:500;">Status</th>' +
+          '<th style="text-align:left;padding:4px 6px;font-size:10px;color:var(--muted);font-weight:500;">Action</th>' +
+        '</tr></thead>' +
+        '<tbody>' + tableRows + '</tbody>' +
+      '</table>';
+
+    var approvedLeft =
+      '<div style="font-size:11px;font-weight:700;color:var(--forest);">Approved ●</div>' +
+      statsRow +
+      childTable +
+      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">' +
+        '<button type="button" class="navy-btn" onclick="triggerBuildingBroadcast(' + rowIndex + ')">بث / Broadcast</button>' +
+        '<button type="button" class="muted-btn" onclick="triggerMarkComplete(' + rowIndex + ')">تمّ الإنجاز / Mark Complete</button>' +
+        '<button type="button" class="muted-btn" onclick="triggerBuildingUndo(' + rowIndex + ')">تراجع / Undo</button>' +
+      '</div>';
+
+    var approvedRight =
+      '<div class="stmt-name">تقرير المبنى / Building Report</div>' +
+      '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>' +
+      '<div class="stmt-date" style="color:var(--forest);">معتمد: ' +
+        fmtDateTime(parent.reviewedAt) +
+        (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') +
+      '</div>';
+
+    return '<div class="stmt-card"><div class="stmt-inner" style="flex-direction:column;">' +
+      '<div style="display:flex;">' +
+        '<div style="flex:1;">' + approvedRight + '</div>' +
+      '</div>' +
+      '<div>' + approvedLeft + '</div>' +
+      '</div></div>';
+  }
+
+  // ── SENT STATE ───────────────────────────────────────────────────────────
+  if (status === 'sent') {
+    var children    = parent.children || [];
+    var totalCount  = parent.totalCount     || 0;
+    var sentCount   = parent.sentCount      || 0;
+    var closedCount = parent.closedOutCount || 0;
+
+    var logId = 'bld-log-' + rowIndex;
+
+    var dispatchLog = children.map(function(child) {
+      var isSent   = child.status === 'Sent';
+      var isClosed = child.status === 'Closed Out';
+      var rowStyle = isClosed ? 'opacity:0.5;' : '';
+      return '<tr style="' + rowStyle + 'border-bottom:0.5px solid var(--color-border-tertiary);">' +
+        '<td style="font-size:11px;padding:4px 6px;">' + escHtml(child.section || '') + '</td>' +
+        '<td style="font-size:11px;padding:4px 6px;">' + escHtml(child.occupantName || '') + '</td>' +
+        '<td style="font-size:11px;padding:4px 6px;">' + escHtml(child.dispatchChannel || '—') + '</td>' +
+        '<td style="font-size:11px;padding:4px 6px;">' + fmtDateTime(child.dispatchedAt) + '</td>' +
+        '<td style="font-size:10px;padding:4px 6px;">' +
+          (isSent ? '<span style="color:var(--navy);">● Sent</span>'
+                  : '<span style="color:var(--muted);">● Closed</span>') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    var sentLeft =
+      '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>' +
+      '<div style="display:flex;gap:8px;margin:8px 0;">' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;">' + totalCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+        '</div>' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;color:var(--navy,#1B2A4A);">' + sentCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+        '</div>' +
+        '<div style="flex:1;background:var(--bg2,var(--color-background-secondary));border-radius:6px;padding:6px;text-align:center;">' +
+          '<div style="font-size:18px;font-weight:500;color:var(--muted);">' + closedCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+        '</div>' +
+      '</div>' +
+      (parent.pdfFileId
+        ? '<button type="button" class="navy-btn" style="margin-bottom:8px;" ' +
+          'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">تحميل PDF</button>'
+        : '') +
+      '<button type="button" class="muted-btn" style="font-size:11px;" ' +
+        'onclick="toggleBldDispatchLog(\'' + logId + '\', this)">سجل الإرسال / Dispatch log ▼</button>' +
+      '<div id="' + logId + '" style="display:none;margin-top:8px;">' +
+        '<table style="width:100%;border-collapse:collapse;">' +
+          '<thead><tr style="border-bottom:0.5px solid var(--color-border-tertiary);">' +
+            '<th style="font-size:10px;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left;">Section</th>' +
+            '<th style="font-size:10px;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left;">Occupant</th>' +
+            '<th style="font-size:10px;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left;">Channel</th>' +
+            '<th style="font-size:10px;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left;">Dispatched</th>' +
+            '<th style="font-size:10px;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left;">Status</th>' +
+          '</tr></thead>' +
+          '<tbody>' + dispatchLog + '</tbody>' +
+        '</table>' +
+      '</div>';
+
+    var sentRight =
+      '<div class="stmt-name">تقرير المبنى / Building Report</div>' +
+      '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>' +
+      '<div class="stmt-date" style="color:var(--navy);">أُرسل: ' + fmtDateTime(parent.dispatchedAt) + '</div>';
+
+    return '<div class="stmt-card"><div class="stmt-inner" style="flex-direction:column;">' +
+      '<div style="display:flex;">' +
+        '<div style="flex:1;">' + sentRight + '</div>' +
+      '</div>' +
+      '<div>' + sentLeft + '</div>' +
+      '</div></div>';
+  }
+
+  return '';
+}
+
+// ============================================================================
+// BUILDING STATEMENTS — ACTION FUNCTIONS
+// ============================================================================
+
+function triggerBuildingApprove(parentRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('اعتماد هذا التقرير وإنشاء صفوف الأقسام؟ / Approve and create child rows?')) return;
+  toast('⏳ جاري الاعتماد...', 'info');
+  gasPost({
+    action:  'approveAndCreateChildRows',
+    payload: { rowIndex: parentRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('✅ ' + (parsed.message || 'Approved.'), 'ok');
+    loadBuildingStatements('Draft');
+    loadBuildingStatements('Approved');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function triggerBuildingBroadcast(parentRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('بث التقرير للأقسام المحددة؟ / Broadcast to assigned sections?')) return;
+  toast('⏳ جاري البث...', 'info');
+  gasPost({
+    action:  'sendBuildingBroadcast',
+    payload: { rowIndex: parentRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    var msg = '✅ بُث: ' + (parsed.sent || 0);
+    if (parsed.skipped)       msg += ' · تخطّى: '  + parsed.skipped;
+    if (parsed.manualSkipped) msg += ' · يدوي: '   + parsed.manualSkipped;
+    toast(msg, 'ok');
+    loadBuildingStatements('Approved');
+    loadBuildingStatements('Sent');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function assignChildChannelUI(childRowIndex, channel) {
+  if (!sessionValid()) return;
+  gasPost({
+    action:  'assignChildChannel',
+    payload: { rowIndex: childRowIndex, channel: channel },
+    token:   _session.token
+  }).then(function() {
+    loadBuildingStatements('Approved');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function markChildSentUI(childRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('تأكيد التسليم اليدوي؟ / Confirm manual delivery?')) return;
+  toast('⏳ جاري التأكيد...', 'info');
+  gasPost({
+    action:  'markChildSent',
+    payload: { rowIndex: childRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('✅ تم التأكيد.', 'ok');
+    loadBuildingStatements('Approved');
+    if (parsed.parentMoved) loadBuildingStatements('Sent');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function triggerMarkComplete(parentRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('إغلاق جميع الأقسام المعلّقة؟ / Close out all remaining pending sections?')) return;
+  toast('⏳ جاري الإغلاق...', 'info');
+  gasPost({
+    action:  'markComplete',
+    payload: { rowIndex: parentRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('✅ ' + (parsed.message || 'Completed.'), 'ok');
+    loadBuildingStatements('Approved');
+    loadBuildingStatements('Sent');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function triggerBuildingUndo(parentRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('التراجع عن الاعتماد؟ سيتم حذف جميع صفوف الأقسام. / Undo approval? All child rows will be deleted.')) return;
+  toast('⏳ جاري التراجع...', 'info');
+  gasPost({
+    action:  'revokeBuildingStatement',
+    payload: { rowIndex: parentRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+    toast('↩️ ' + (parsed.message || 'Revoked.'), 'ok');
+    loadBuildingStatements('Draft');
+    loadBuildingStatements('Approved');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+function triggerBuildingDelete(parentRowIndex) {
+  if (!sessionValid()) return;
+  if (!confirm('حذف هذه المسودة نهائياً؟ / Delete this draft permanently?')) return;
+  toast('⏳ جاري الحذف...', 'info');
+  gasPost({
+    action:  'deleteBuildingStatement',
+    payload: { rowIndex: parentRowIndex },
+    token:   _session.token
+  }).then(function(res) {
+    toast('🗑️ Draft deleted.', 'ok');
+    loadBuildingStatements('Draft');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+// ============================================================================
+// BUILDING STATEMENTS — CARD RENDERER
+// Renders one Building parent card for Draft, Approved, or Sent state.
+// Approved state: flat non-collapsible child table (D2).
+// Sent state: collapsible dispatch log.
+// ============================================================================
+
+function renderBuildingCard(parent, status) {
+  var leftContent  = '';
+  var rightContent = '';
+
+  // ── DRAFT STATE ──────────────────────────────────────────────────────────
+  if (status === 'draft') {
+    leftContent +=
+      '<div class="draft-status">Draft ●</div>';
+
+    if (parent.htmlFileId) {
+      leftContent +=
+        '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">' +
+        'معاينة / Preview</button>';
+    }
+    leftContent +=
+      '<button type="button" class="danger-btn" style="margin-top:4px;" ' +
+      'onclick="triggerBuildingDelete(' + parent.rowIndex + ')">حذف / Delete</button>';
+    leftContent +=
+      '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+      'onclick="triggerBuildingApprove(' + parent.rowIndex + ')">اعتماد / Approve</button>';
+
+    rightContent +=
+      '<div class="stmt-name">' + escHtml(parent.reportType || '') + ' — ' + escHtml(parent.period || '') + '</div>' +
+      '<div class="stmt-meta">تقرير المبنى / Building Statement</div>' +
+      '<div class="stmt-date">Generated: ' + fmtDateTime(parent.generatedAt) + '</div>';
+
+    if (parent.previewTotal !== null) {
+      rightContent +=
+        '<div class="stmt-date" style="margin-top:4px;">' +
+          '<span style="color:var(--forest);font-weight:600;">' + parent.previewWithEmail + ' ✓</span> ' +
+          'with contact · ' +
+          '<span style="color:var(--burg);font-weight:600;">' + parent.previewMissingEmail + ' ✗</span> ' +
+          'missing · ' + parent.previewTotal + ' total' +
+        '</div>';
+    }
+
+  // ── APPROVED STATE ───────────────────────────────────────────────────────
+  } else if (status === 'approved') {
+    leftContent +=
+      '<div style="font-size:11px;font-weight:700;color:var(--forest);">Approved ●</div>';
+
+    // Stats row
+    leftContent +=
+      '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">' +
+        '<span style="font-size:10px;color:var(--muted);">Total: <strong>' + parent.totalCount + '</strong></span>' +
+        '<span style="font-size:10px;color:#BA7517;">Pending: <strong>' + parent.pendingCount + '</strong></span>' +
+        '<span style="font-size:10px;color:var(--navy);">Sent: <strong>' + parent.sentCount + '</strong></span>' +
+        '<span style="font-size:10px;color:#534AB7;">Closed: <strong>' + parent.closedOutCount + '</strong></span>' +
+      '</div>';
+
+    // Action buttons
+    leftContent +=
+      '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
+      'onclick="triggerBuildingBroadcast(' + parent.rowIndex + ')">بث / Broadcast</button>';
+    leftContent +=
+      '<button type="button" class="muted-btn" style="margin-top:4px;" ' +
+      'onclick="triggerMarkComplete(' + parent.rowIndex + ')">تمّ الإنجاز / Mark Complete</button>';
+    leftContent +=
+      '<button type="button" class="muted-btn" style="margin-top:4px;" ' +
+      'onclick="triggerBuildingUndo(' + parent.rowIndex + ')">تراجع / Undo</button>';
+
+    rightContent +=
+      '<div class="stmt-name">' + escHtml(parent.reportType || '') + ' — ' + escHtml(parent.period || '') + '</div>' +
+      '<div class="stmt-meta">تقرير المبنى / Building Statement</div>' +
+      '<div class="stmt-date" style="color:var(--forest);">معتمد: ' + fmtDateTime(parent.reviewedAt) +
+        (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') + '</div>';
+
+    // Child table — flat non-collapsible (D2)
+    if (parent.children && parent.children.length) {
+      rightContent +=
+        '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;">' +
+          '<thead>' +
+            '<tr style="border-bottom:0.5px solid var(--border);">' +
+              '<th style="text-align:right;padding:3px 6px;font-weight:500;color:var(--muted);">القسم</th>' +
+              '<th style="text-align:right;padding:3px 6px;font-weight:500;color:var(--muted);">الشاغل</th>' +
+              '<th style="padding:3px 6px;font-weight:500;color:var(--muted);">Channel</th>' +
+              '<th style="padding:3px 6px;font-weight:500;color:var(--muted);">Status</th>' +
+              '<th style="padding:3px 6px;"></th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>';
+
+      parent.children.forEach(function(child) {
+        var isPending = child.status === 'Pending';
+        var isSent    = child.status === 'Sent';
+        var rowStyle  = isSent ? 'opacity:0.5;' : '';
+        var statusPill = isPending
+          ? '<span class="pill pill-pending" style="font-size:9px;">Pending</span>'
+          : child.status === 'Sent'
+            ? '<span class="pill pill-approved" style="font-size:9px;">Sent</span>'
+            : child.status === 'Closed Out'
+              ? '<span class="pill" style="font-size:9px;background:#EEEDFE;color:#3C3489;">Closed</span>'
+              : '<span class="pill" style="font-size:9px;">' + escHtml(child.status) + '</span>';
+
+        var pdfBtn = child.pdfFileId
+          ? '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 6px;" ' +
+            'onclick="downloadStmtPdf(\'' + escHtml(child.pdfFileId) + '\')">PDF</button>'
+          : '<span style="font-size:9px;color:var(--muted);">⏳</span>';
+
+        var markSentBtn = (child.dispatchChannel === 'Manual' && isPending)
+          ? '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 6px;margin-left:2px;" ' +
+            'onclick="markChildSentUI(' + child.rowIndex + ')">✓ Sent</button>'
+          : '';
+
+        rightContent +=
+          '<tr data-row-index="' + child.rowIndex + '" style="border-bottom:0.5px solid var(--border);' + rowStyle + '">' +
+            '<td style="text-align:right;padding:3px 6px;direction:rtl;">' + escHtml(child.section) + '</td>' +
+            '<td style="text-align:right;padding:3px 6px;direction:rtl;font-size:10px;">' + escHtml(child.occupantName) + '</td>' +
+            '<td style="padding:3px 6px;">' +
+              '<select data-row-index="' + child.rowIndex + '" ' +
+                'style="font-size:10px;padding:1px 4px;border-radius:4px;border:0.5px solid var(--border);" ' +
+                'onchange="assignChildChannelUI(' + child.rowIndex + ',this.value)">' +
+                '<option value=""' + (!child.dispatchChannel ? ' selected' : '') + '>— assign —</option>' +
+                '<option value="Email"'    + (child.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+                '<option value="WhatsApp"' + (child.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+                '<option value="Manual"'   + (child.dispatchChannel === 'Manual'   ? ' selected' : '') + '>Manual</option>' +
+              '</select>' +
+            '</td>' +
+            '<td style="padding:3px 6px;">' + statusPill + '</td>' +
+            '<td style="padding:3px 6px;">' + pdfBtn + markSentBtn + '</td>' +
+          '</tr>';
+      });
+
+      rightContent += '</tbody></table>';
+    }
+
+  // ── SENT STATE ───────────────────────────────────────────────────────────
+  } else if (status === 'sent') {
+    leftContent +=
+      '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>';
+
+    // Stats row using pre-computed counts
+    leftContent +=
+      '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">' +
+        '<span style="font-size:10px;color:var(--muted);">Total: <strong>' + parent.totalCount + '</strong></span>' +
+        '<span style="font-size:10px;color:var(--navy);">Sent: <strong>' + parent.sentCount + '</strong></span>' +
+        '<span style="font-size:10px;color:#534AB7;">Closed: <strong>' + parent.closedOutCount + '</strong></span>' +
+      '</div>';
+
+    if (parent.pdfFileId) {
+      leftContent +=
+        '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
+        'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">تحميل PDF</button>';
+    }
+
+    rightContent +=
+      '<div class="stmt-name">' + escHtml(parent.reportType || '') + ' — ' + escHtml(parent.period || '') + '</div>' +
+      '<div class="stmt-meta">تقرير المبنى / Building Statement</div>' +
+      '<div class="stmt-date" style="color:var(--navy);">أُرسل: ' + fmtDateTime(parent.dispatchedAt) + '</div>';
+
+    // Dispatch log — collapsible
+    var logId = 'bld-dispatch-log-' + parent.rowIndex;
+    rightContent +=
+      '<div style="margin-top:8px;">' +
+        '<button type="button" class="muted-btn" style="font-size:10px;padding:2px 8px;" ' +
+        'onclick="var el=document.getElementById(\'' + logId + '\');' +
+        'el.style.display=el.style.display===\'none\'?\'\':\'none\';">' +
+        'سجل الإرسال / Dispatch log ▼</button>' +
+        '<div id="' + logId + '" style="display:none;margin-top:6px;">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:10px;">' +
+            '<thead><tr style="border-bottom:0.5px solid var(--border);">' +
+              '<th style="text-align:right;padding:2px 4px;">القسم</th>' +
+              '<th style="text-align:right;padding:2px 4px;">الشاغل</th>' +
+              '<th style="padding:2px 4px;">Channel</th>' +
+              '<th style="padding:2px 4px;">Status</th>' +
+              '<th style="padding:2px 4px;">Dispatched</th>' +
+            '</tr></thead>' +
+            '<tbody>';
+
+    if (parent.children && parent.children.length) {
+      parent.children.forEach(function(child) {
+        var muted = child.status === 'Closed Out' ? 'opacity:0.5;' : '';
+        rightContent +=
+          '<tr style="border-bottom:0.5px solid var(--border);' + muted + '">' +
+            '<td style="text-align:right;padding:2px 4px;direction:rtl;">' + escHtml(child.section) + '</td>' +
+            '<td style="text-align:right;padding:2px 4px;direction:rtl;">' + escHtml(child.occupantName) + '</td>' +
+            '<td style="padding:2px 4px;">' + escHtml(child.dispatchChannel || '—') + '</td>' +
+            '<td style="padding:2px 4px;">' + escHtml(child.status) + '</td>' +
+            '<td style="padding:2px 4px;">' + fmtDateTime(child.dispatchedAt) + '</td>' +
+          '</tr>';
+      });
+    }
+
+    rightContent +=
+            '</tbody></table>' +
+          '</div>' +
+        '</div>';
+  }
+
+  return '<div class="stmt-card">' +
+    '<div class="stmt-inner">' +
+      '<div class="stmt-left">'  + leftContent  + '</div>' +
+      '<div class="stmt-right">' + rightContent + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderBldUnprocessed() {
   if (!sessionValid()) return;
   var el = document.getElementById('bld-unprocessed-list');
@@ -3895,6 +4441,254 @@ function renderBldUnprocessed() {
   gasPost({ action: 'getSectionStatements', payload: { scope: 'Building' }, token: _session.token })
     .then(function(rows) { _renderUnprocessedList(el, rows || [], 'building'); })
     .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
+}
+
+// ============================================================================
+// BUILDING STATEMENTS — LOADER
+// Calls getBuildingStatements with status filter.
+// Renders results into bld-{status}-list container.
+// Replaces renderStmtList('building', status) calls.
+// ============================================================================
+
+function loadBuildingStatements(status) {
+  if (!sessionValid()) return;
+  var statusKey   = status.toLowerCase();
+  var containerId = 'bld-' + statusKey + '-list';
+  var listEl      = document.getElementById(containerId);
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
+
+  gasPost({
+    action:  'getBuildingStatements',
+    payload: { status: status },
+    token:   _session.token
+  }).then(function(rows) {
+    var data = Array.isArray(rows) ? rows : (rows && rows.data ? rows.data : []);
+    _bldStmtCache = data;
+
+    if (!data.length) {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(function(parent) {
+      return renderBuildingCard(parent, statusKey);
+    }).join('');
+
+  }).catch(function(e) {
+    listEl.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' + e.message + '</div>';
+  });
+}
+
+// ============================================================================
+// BUILDING STATEMENTS — CARD RENDERER
+// Renders one Building parent card for Draft, Approved, or Sent state.
+// Each child table row must have data-row-index on tr and select.
+// ============================================================================
+
+function renderBuildingCard(parent, status) {
+  var leftContent  = '';
+  var rightContent = '';
+
+  // ── RIGHT — header info (all states) ─────────────────────────────────
+  var lbl = fmtReportLabel(parent.reportType, parent.period);
+  rightContent =
+    '<div class="stmt-name">تقرير المبنى — ' + escHtml(lbl.typeLabel) + '</div>' +
+    '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(parent.period) + '</div>';
+
+  // ── DRAFT STATE ───────────────────────────────────────────────────────
+  if (status === 'draft') {
+    rightContent +=
+      '<div class="stmt-date">Generated: ' + fmtDateTime(parent.generatedAt) + '</div>' +
+      '<div class="stmt-date" style="color:var(--muted);font-size:11px;">' +
+        (parent.previewTotal        != null ? parent.previewTotal        + ' sections' : '') +
+        (parent.previewWithEmail    != null ? ' · ' + parent.previewWithEmail    + ' with email' : '') +
+        (parent.previewMissingEmail != null ? ' · ' + parent.previewMissingEmail + ' missing' : '') +
+      '</div>';
+    if (parent.htmlFileId) {
+      rightContent +=
+        '<div class="stmt-actions">' +
+          '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+            'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</span>' +
+        '</div>';
+    }
+    leftContent +=
+      '<div class="draft-status">Draft ●</div>' +
+      '<button type="button" class="danger-btn" style="font-size:9px;padding:3px 9px;margin-top:4px;" ' +
+        'onclick="triggerBuildingDelete(' + parent.rowIndex + ')">حذف / Delete</button>' +
+      '<button type="button" class="approve-btn" style="margin-top:4px;" ' +
+        'onclick="triggerBuildingApprove(' + parent.rowIndex + ')">اعتماد / Approve</button>';
+  }
+
+  // ── APPROVED STATE ────────────────────────────────────────────────────
+  else if (status === 'approved') {
+    rightContent +=
+      '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
+        fmtDateTime(parent.reviewedAt) + (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') +
+      '</span></div>';
+
+    // Stats row
+    rightContent +=
+      '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;">' + parent.totalCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+        '</div>' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;color:#BA7517;">' + parent.pendingCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Pending</div>' +
+        '</div>' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;color:#185FA5;">' + parent.sentCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+        '</div>' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;color:#534AB7;">' + parent.closedOutCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+        '</div>' +
+      '</div>';
+
+    // Child table
+    if (parent.children && parent.children.length) {
+      rightContent +=
+        '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;">' +
+          '<thead><tr>' +
+            '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Section</th>' +
+            '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Occupant</th>' +
+            '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Channel</th>' +
+            '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Status</th>' +
+            '<th style="padding:4px 6px;border-bottom:0.5px solid var(--border);"></th>' +
+          '</tr></thead>' +
+          '<tbody>';
+
+      parent.children.forEach(function(child) {
+        var childStatusPill = '';
+        if (child.status === 'Pending')    childStatusPill = '<span class="pill pill-pending" style="font-size:9px;">● Pending</span>';
+        if (child.status === 'Sent')       childStatusPill = '<span class="pill pill-sent" style="font-size:9px;">● Sent</span>';
+        if (child.status === 'Closed Out') childStatusPill = '<span style="font-size:9px;color:var(--muted);">● Closed Out</span>';
+
+        var childActions = '';
+        // PDF button or pending
+        if (child.pdfFileId) {
+          childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+            'onclick="downloadStmtPdf(\'' + escHtml(child.pdfFileId) + '\')">تحميل PDF</button> ';
+        } else {
+          childActions += '<span class="pending-tag" style="font-size:9px;">⏳ PDF</span> ';
+        }
+        // Mark as Sent — Manual + Pending only
+        if (child.dispatchChannel === 'Manual' && child.status === 'Pending') {
+          childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+            'onclick="markChildSentUI(' + child.rowIndex + ')">Mark Sent</button>';
+        }
+
+        rightContent +=
+          '<tr data-row-index="' + child.rowIndex + '" style="border-bottom:0.5px solid var(--border);">' +
+            '<td style="padding:5px 6px;text-align:right;">' + escHtml(child.section) + '</td>' +
+            '<td style="padding:5px 6px;text-align:right;font-size:11px;">' + escHtml(child.occupantName) + '</td>' +
+            '<td style="padding:5px 6px;">' +
+              '<select data-row-index="' + child.rowIndex + '" ' +
+                'onchange="assignChildChannelUI(' + child.rowIndex + ', this.value)" ' +
+                'style="font-size:10px;padding:2px 4px;">' +
+                '<option value=""'         + (!child.dispatchChannel ? ' selected' : '') + '>— assign —</option>' +
+                '<option value="Email"'    + (child.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+                '<option value="WhatsApp"' + (child.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+                '<option value="Manual"'   + (child.dispatchChannel === 'Manual'   ? ' selected' : '') + '>Manual</option>' +
+              '</select>' +
+            '</td>' +
+            '<td style="padding:5px 6px;">' + childStatusPill + '</td>' +
+            '<td style="padding:5px 6px;">' + childActions + '</td>' +
+          '</tr>';
+      });
+
+      rightContent += '</tbody></table>';
+    }
+
+    // Action buttons
+    leftContent +=
+      '<div style="font-size:11px;font-weight:700;color:var(--forest);">Approved ●</div>' +
+      '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
+        'onclick="triggerBuildingBroadcast(' + parent.rowIndex + ')">بث / Broadcast</button>' +
+      '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="triggerMarkComplete(' + parent.rowIndex + ')">تمّ الإنجاز / Mark Complete</button>' +
+      '<button type="button" class="muted-btn" style="margin-top:4px;" ' +
+        'onclick="triggerBuildingUndo(' + parent.rowIndex + ')">تراجع / Undo</button>';
+  }
+
+  // ── SENT STATE ────────────────────────────────────────────────────────
+  else if (status === 'sent') {
+    rightContent +=
+      '<div class="stmt-date" style="color:var(--navy);">مُرسَل: <span style="direction:ltr;unicode-bidi:embed;">' +
+        fmtDateTime(parent.dispatchedAt) +
+      '</span></div>';
+
+    // Stats row
+    rightContent +=
+      '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;">' + parent.totalCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+        '</div>' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;color:#185FA5;">' + parent.sentCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+        '</div>' +
+        '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+          '<div style="font-size:16px;font-weight:500;color:#534AB7;">' + parent.closedOutCount + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+        '</div>' +
+      '</div>';
+
+    // Dispatch log toggle
+    var logId = 'bld-dispatch-log-' + parent.rowIndex;
+    rightContent +=
+      '<div style="margin-top:8px;">' +
+        '<span style="font-size:11px;color:var(--navy);cursor:pointer;text-decoration:underline;" ' +
+          'onclick="document.getElementById(\'' + logId + '\').classList.toggle(\'hide\')">' +
+          'سجل الإرسال / Dispatch log ▼' +
+        '</span>' +
+        '<div id="' + logId + '" class="hide" style="margin-top:6px;">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+            '<thead><tr>' +
+              '<th style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Section</th>' +
+              '<th style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Occupant</th>' +
+              '<th style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Channel</th>' +
+              '<th style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Dispatched</th>' +
+              '<th style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--muted);">Status</th>' +
+            '</tr></thead>' +
+            '<tbody>' +
+            (parent.children || []).map(function(child) {
+              var rowStyle = child.status === 'Closed Out'
+                ? 'opacity:0.5;border-bottom:0.5px solid var(--border);'
+                : 'border-bottom:0.5px solid var(--border);';
+              return '<tr style="' + rowStyle + '">' +
+                '<td style="padding:4px 6px;">' + escHtml(child.section) + '</td>' +
+                '<td style="padding:4px 6px;">' + escHtml(child.occupantName) + '</td>' +
+                '<td style="padding:4px 6px;">' + escHtml(child.dispatchChannel || '—') + '</td>' +
+                '<td style="padding:4px 6px;direction:ltr;">' + fmtDateTime(child.dispatchedAt) + '</td>' +
+                '<td style="padding:4px 6px;">' + escHtml(child.status) + '</td>' +
+              '</tr>';
+            }).join('') +
+            '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+
+    leftContent +=
+      '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>';
+    if (parent.pdfFileId) {
+      leftContent +=
+        '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
+          'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">تحميل PDF</button>';
+    }
+  }
+
+  return '<div class="stmt-card">' +
+    '<div class="stmt-inner">' +
+      '<div class="stmt-left">'  + leftContent  + '</div>' +
+      '<div class="stmt-right">' + rightContent + '</div>' +
+    '</div>' +
+  '</div>';
 }
 
 function renderSecUnprocessed() {

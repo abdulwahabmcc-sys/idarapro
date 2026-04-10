@@ -3641,9 +3641,12 @@ function renderStmtList(world, status) {
     if (world === 'building') { _bldStmtCache = data; }
     else                      { _stmtCache    = data; }
 
-    var filtered = data.filter(function(s) {
-      return String(s.status).toLowerCase() === statusKey;
-    }).reverse();
+    var filtered = (statusKey === 'unprocessed'
+      ? data.slice()
+      : data.filter(function(s) {
+          return String(s.status).toLowerCase() === statusKey;
+        })
+    ).reverse();
 
     var panelBody     = listEl.closest('.panel-body');
     var bulkRow       = panelBody ? panelBody.querySelector('.bulk-row')       : null;

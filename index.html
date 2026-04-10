@@ -4436,13 +4436,8 @@ function renderBuildingCard(parent, status) {
 }
 
 function renderBldUnprocessed() {
-  if (!sessionValid()) return;
-  var el = document.getElementById('bld-unprocessed-list');
-  if (!el) return;
-  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">جاري التحميل...</div>';
-  gasPost({ action: 'getSectionStatements', payload: { scope: 'Building' }, token: _session.token })
-    .then(function(rows) { _renderUnprocessedList(el, rows || [], 'building'); })
-    .catch(function(e) { el.innerHTML = '<div style="color:var(--burg);padding:12px;">❌ ' + e.message + '</div>'; });
+  // Full Unprocessed tab content deferred to Phase 13
+  // Placeholder only in this phase
 }
 
 // ============================================================================

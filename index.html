@@ -3541,7 +3541,7 @@ function _renderStmtCard(s, world) {
     leftContent +=
       '<div class="dispatch-row">' +
         '<div class="dispatch-lbl">Dispatch:</div>' +
-        '<select class="dispatch-sel" data-row-index="' + s.rowIndex + '" onchange="assignDispatcher(' + s.rowIndex + ',this.value)">' +
+        '<select class="dispatch-sel" data-row-index="' + s.rowIndex + '" onchange="assignDispatcher(' + s.rowIndex + ',this.value,\'' + world + '\')">' +
           '<option value="Email"'    + (s.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
           '<option value="Manual"'   + (s.dispatchChannel === 'Manual'   ? ' selected' : '') + '>يدوي / Manual</option>' +
           '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
@@ -4178,10 +4178,13 @@ function exportAllPdfs(world) {
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
-function assignDispatcher(rowIndex, channel) {
+function assignDispatcher(rowIndex, channel, world) {
   if (!sessionValid() || !channel) return;
   gasPost({ action: 'assignDispatcher', payload: { rowIndex: rowIndex, channel: channel }, token: _session.token })
-    .then(function() { toast('✅ Dispatch assigned / تم التعيين', 'ok'); })
+    .then(function() {
+    toast('✅ Dispatch assigned / تم التعيين', 'ok');
+    renderStmtList(world || 'section', 'approved');
+  })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 

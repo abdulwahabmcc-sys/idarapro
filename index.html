@@ -4899,32 +4899,6 @@ function triggerSendAllSection() {
   });
 }
 
-function triggerBuildingBroadcast(rowIndex) {
-  if (!sessionValid()) return;
-  var channelSel = document.querySelector('[data-row-index="' + rowIndex + '"]');
-  var channel    = channelSel ? channelSel.value : '';
-  if (!channel) {
-    toast('❌ يرجى تحديد قناة الإرسال أولاً', 'fail');
-    return;
-  }
-  toast('⏳ جاري البث...', 'info');
-  gasPost({
-    action:   'sendBuildingBroadcast',
-    rowIndex: rowIndex,
-    channel:  channel,
-    token:    _session.token
-  }).then(function(res) {
-    var parsed = typeof res === 'string' ? JSON.parse(res) : res;
-    var msg = '✅ بُث: ' + parsed.count;
-    if (parsed.skipped) msg += ' · تخطّى: ' + parsed.skipped;
-    toast(msg, parsed.skipped > 0 ? 'warn' : 'ok');
-    renderStmtList('building', 'approved');
-    renderStmtList('building', 'sent');
-    renderStmtList('section',  'approved');
-  }).catch(function(e) {
-    toast('❌ ' + e.message, 'fail');
-  });
-}
 
 function approveAllStatements() {
   if (!sessionValid()) return;

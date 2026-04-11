@@ -152,7 +152,8 @@
       border-radius: 50%;
       border: 2px solid var(--bdr);
       background: transparent;
-      transition: all 0.15s ease;
+      transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      will-change: transform;
     }
 
     .lgn-dot.filled {
@@ -218,7 +219,7 @@
       align-items: center;
       justify-content: center;
       gap: 1px;
-      transition: all 0.12s ease;
+      transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
       box-shadow: 0 1px 4px rgba(27,42,74,0.06);
       -webkit-user-select: none;
       user-select: none;
@@ -413,10 +414,12 @@
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 6px;
       direction: ltr;
-      transition: all 0.15s;
+      transition: color 0.15s, background-color 0.15s;
     }
 
+
     .sb-logout:active { color: rgba(255,255,255,0.8); }
+
 
     .sb-gear {
       display: none; /* shown only for Admin via JS */
@@ -425,11 +428,13 @@
       padding: 4px 7px;
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 6px;
-      transition: all 0.15s;
+      transition: background-color 0.15s;
       line-height: 1.4;
     }
 
+
     .sb-gear:active { background: rgba(255,255,255,0.1); }
+
 
     /* ══════════════════════════════════════════════
        SETTINGS PANEL
@@ -1380,7 +1385,7 @@
     .ldr-brand { font-size: 30px; font-weight: 700; color: var(--navy); direction: ltr; }
     .ldr-brand b { font-family: var(--font); font-size: 30px; font-weight: 700; color: var(--burg); }
     .ldr-track { width: 72px; height: 2px; background: var(--bdr); border-radius: 2px; overflow: hidden; }
-    .ldr-bar { height: 100%; width: 40%; background: linear-gradient(90deg, var(--burg), var(--gold)); border-radius: 2px; animation: sweep 1s ease-in-out infinite; }
+    .ldr-bar { height: 100%; width: 40%; background: linear-gradient(90deg, var(--burg), var(--gold)); border-radius: 2px; animation: sweep 1s ease-in-out infinite; will-change: transform; }
     @keyframes sweep { 0% { transform: translateX(200%); } 100% { transform: translateX(-300%); } }
     .ldr-hint { font-size: 11px; color: var(--muted); }
     .ldr-platform { font-size: 10px; color: var(--muted); direction: ltr; margin-top: -12px; letter-spacing: 0.2px; }
@@ -1400,8 +1405,9 @@
       z-index: 99999;
       opacity: 0; transform: translateY(8px);
       pointer-events: none;
-      transition: all 0.25s ease;
+      transition: opacity 0.25s ease, transform 0.25s ease;
       box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+      will-change: opacity, transform;
     }
 
     #toast.show { opacity: 1; transform: translateY(0); }

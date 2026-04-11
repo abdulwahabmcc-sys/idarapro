@@ -3222,12 +3222,47 @@ function fillCats(type) {
 // TABS
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── DOM Cache ─────────────────────────────────────────────────────────────────
+// Only caches stable static IDs that exist from initial HTML parse and are
+// never removed or recreated. Dynamic IDs built by render functions bypass
+// the cache and always get a live document.getElementById() call.
+var _STATIC_IDS = {
+  'eType':1,
+  'btn-sub':1, 'btn-ico':1, 'btn-txt':1,
+  't-inc':1, 't-exp':1, 't-rep':1, 't-mtr':1, 't-com':1,
+  'dt-t-inc':1, 'dt-t-exp':1, 'dt-t-rep':1, 'dt-t-mtr':1, 'dt-t-com':1,
+  'f-inc':1, 'f-exp':1, 'f-rep':1, 'f-amt':1, 'f-mtr':1, 'f-com':1,
+  'scroll':1, 'inp-amt':1
+};
+
+var _domCache = {};   // populated lazily by _el() — never access directly
+var _btnCard  = null; // cached after first resolution in setTab()
+
+function _el(id) {
+  if (!_STATIC_IDS[id]) return document.getElementById(id); // dynamic — always live
+  if (!_domCache[id]) {
+    var el = document.getElementById(id);
+    if (el) _domCache[id] = el;  // only cache if found — do not poison cache with null
+    else    return null;          // DOM not ready or element missing
+  }
+  return _domCache[id];
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TABS. NOTE OBSERVATION _btncard is decalred at module level alongside _domcache.
+// If settab is called before btn-sub exists in DOM , it stays null permenantly. Highly
+// unlikely given DOMContentLoaded. but worth mentioning for future.
+// ══════════════════════════════════════════════════════════════════════════════
+
+
 function setTab(type) {
   TAB = type;
-  document.getElementById('eType').value = type;
+  _el('eType').value = type;
 
+  // Reset mobile nav tabs — preserve 'hide' visibility state
   ['t-inc','t-exp','t-rep','t-mtr','t-com'].forEach(function(id) {
-    var el = document.getElementById(id);
+    var el = _el(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
       el.className = 'nav-tab';
@@ -3235,8 +3270,9 @@ function setTab(type) {
     }
   });
 
+  // Reset desktop nav tabs — preserve 'hide' visibility state
   ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com'].forEach(function(id) {
-    var el = document.getElementById(id);
+    var el = _el(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
       el.className = 'dt-tab';
@@ -3244,69 +3280,74 @@ function setTab(type) {
     }
   });
 
+  // Hide all content panels
   ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com'].forEach(function(id) {
-    var el = document.getElementById(id);
+    var el = _el(id);
     if (el) el.classList.add('hide');
   });
 
-  var btn = document.getElementById('btn-sub');
-  var ico = document.getElementById('btn-ico');
-  var txt = document.getElementById('btn-txt');
+  // Resolve submit button parts once — reused in every branch below
+  var btn = _el('btn-sub');
+  var ico = _el('btn-ico');
+  var txt = _el('btn-txt');
+
+  // Resolve btnCard once and cache at module level for all subsequent calls
+  if (!_btnCard && btn) _btnCard = btn.closest('.card');
 
   if (type === 'Income') {
-    document.getElementById('t-inc').classList.add('n-inc');
-    if (document.getElementById('dt-t-inc')) document.getElementById('dt-t-inc').classList.add('dt-inc');
-    document.getElementById('f-inc').classList.remove('hide');
-    document.getElementById('f-amt').classList.remove('hide');
+    _el('t-inc').classList.add('n-inc');
+    var dtInc = _el('dt-t-inc'); if (dtInc) dtInc.classList.add('dt-inc');
+    _el('f-inc').classList.remove('hide');
+    _el('f-amt').classList.remove('hide');
     fillCats('income');
     btn.className = 'btn-sub b-inc';
     ico.textContent = '💰'; txt.textContent = 'تسجيل الدفعة / Record Payment';
 
   } else if (type === 'Expense') {
-    document.getElementById('t-exp').classList.add('n-exp');
-    if (document.getElementById('dt-t-exp')) document.getElementById('dt-t-exp').classList.add('dt-exp');
-    document.getElementById('f-exp').classList.remove('hide');
-    document.getElementById('f-amt').classList.remove('hide');
+    _el('t-exp').classList.add('n-exp');
+    var dtExp = _el('dt-t-exp'); if (dtExp) dtExp.classList.add('dt-exp');
+    _el('f-exp').classList.remove('hide');
+    _el('f-amt').classList.remove('hide');
     fillCats('expense');
     btn.className = 'btn-sub b-exp';
     ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
 
   } else if (type === 'Report') {
-    document.getElementById('t-rep').classList.add('n-rep');
-    if (document.getElementById('dt-t-rep')) document.getElementById('dt-t-rep').classList.add('dt-rep');
-    document.getElementById('f-rep').classList.remove('hide');
+    _el('t-rep').classList.add('n-rep');
+    var dtRep = _el('dt-t-rep'); if (dtRep) dtRep.classList.add('dt-rep');
+    _el('f-rep').classList.remove('hide');
     initReportTab();
     btn.className = 'btn-sub b-rep';
     ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';
 
   } else if (type === 'Meter') {
-    if (document.getElementById('t-mtr')) document.getElementById('t-mtr').classList.add('n-mtr');
-    if (document.getElementById('dt-t-mtr')) document.getElementById('dt-t-mtr').classList.add('dt-mtr');
-    document.getElementById('f-mtr').classList.remove('hide');
-    // Hide submit button for Meter tab
-    document.getElementById('btn-sub').style.display = 'none';
+    var tMtr  = _el('t-mtr');    if (tMtr)  tMtr.classList.add('n-mtr');
+    var dtMtr = _el('dt-t-mtr'); if (dtMtr) dtMtr.classList.add('dt-mtr');
+    _el('f-mtr').classList.remove('hide');
+    btn.style.display = 'none';
+    if (_btnCard) _btnCard.style.display = 'none'; // hide empty card wrapper — confirmed bug fix
     loadMtrReadings();
     return;
 
   } else if (type === 'Communications') {
-    var tCom  = document.getElementById('t-com');
-    var dtCom = document.getElementById('dt-t-com');
+    var tCom  = _el('t-com');
+    var dtCom = _el('dt-t-com');
     if (tCom)  tCom.classList.add('n-rep');
     if (dtCom) dtCom.classList.add('dt-rep');
-    document.getElementById('f-com').classList.remove('hide');
-    document.getElementById('btn-sub').style.display = 'none';
-    document.getElementById('scroll').scrollTop = 0;
+    _el('f-com').classList.remove('hide');
+    btn.style.display = 'none';
+    if (_btnCard) _btnCard.style.display = 'none'; // hide empty card wrapper — confirmed bug fix
+    _el('scroll').scrollTop = 0;
     loadComData();
     return;
   }
 
-  // Show submit button card for non-Meter, non-Report tabs
-  var btnCard = document.getElementById('btn-sub') ? document.getElementById('btn-sub').closest('.card') : null;
-  if (btnCard) btnCard.style.display = '';
-  document.getElementById('btn-sub').style.display = '';
+  // Show submit button and its card wrapper for Income, Expense, Report tabs
+  if (_btnCard) _btnCard.style.display = '';
+  btn.style.display = '';
 
-  document.getElementById('inp-amt').value = '';
-  document.getElementById('scroll').scrollTop = 0;
+  _el('inp-amt').value = '';
+  _el('scroll').scrollTop = 0;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -496,7 +496,7 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: all 0.15s;
+      transition: background-color 0.15s;
     }
 
     .stg-close:active { background: rgba(255,255,255,0.18); }
@@ -704,7 +704,7 @@
       cursor: pointer;
       font-family: var(--font);
       font-weight: 600;
-      transition: all 0.12s;
+      transition: background-color 0.12s, color 0.12s;
     }
 
     .stg-user-btn:active { background: var(--navy); color: #fff; }
@@ -724,7 +724,7 @@
       font-weight: 600;
       cursor: pointer;
       margin-top: 12px;
-      transition: all 0.15s;
+      transition: border-color 0.15s, color 0.15s;
     }
 
     .stg-add-btn:hover { border-color: var(--navy); color: var(--navy); }
@@ -750,7 +750,6 @@
       font-weight: 600;
       color: var(--navy);
       direction: ltr;
-      transition: all 0.12s;
     }
 
     .perm-item input[type=checkbox] {
@@ -988,7 +987,7 @@
       border-radius: 12px;
       padding: 12px;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: transform 0.15s, border-color 0.15s;
       position: relative;
     }
 
@@ -1421,7 +1420,7 @@
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .bld-name { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.2; }
     .bld-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.15); flex-shrink: 0; transition: all 0.3s; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.15); flex-shrink: 0; transition: background-color 0.3s, box-shadow 0.3s; }
     .dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.15); }
 
     /* ══════════════════════════════════════════════
@@ -1465,7 +1464,7 @@
        REPORT CARDS
     ══════════════════════════════════════════════ */
     .r-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
-    .rcard { background: var(--surf); border: 1.5px solid var(--bdr); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.18s ease; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .rcard { background: var(--surf); border: 1.5px solid var(--bdr); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease; display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .rcard:active { transform: scale(0.95); }
     .rcard.on { background: var(--navy); border-color: var(--navy); }
     .rcard.on .r-icon, .rcard.on .r-title, .rcard.on .r-sub { color: #fff; }
@@ -1792,7 +1791,7 @@
         padding: 4px 10px;
         border: 1px solid var(--bdr);
         border-radius: 6px;
-        transition: all 0.15s;
+        transition: color 0.15s, border-color 0.15s;
         font-family: var(--font);
       }
 
@@ -1804,13 +1803,13 @@
         padding: 4px 8px;
         border: 1px solid var(--bdr);
         border-radius: 6px;
-        transition: all 0.15s;
+        transition: border-color 0.15s, background-color 0.15s;
         line-height: 1.4;
       }
 
       .dt-gear:hover { border-color: var(--navy); background: var(--bg); }
 
-      .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.2); transition: all 0.3s; }
+      .dt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 3px rgba(26,107,60,0.2); transition: background-color 0.3s, box-shadow 0.3s; }
       .dt-dot.off { background: var(--burg); box-shadow: 0 0 0 3px rgba(155,35,53,0.2); }
 
       #dt-main {
@@ -1852,7 +1851,7 @@
         box-shadow: 0 1px 4px rgba(27,42,74,0.05);
       }
 
-      .dt-tab { display: flex; align-items: center; gap: 8px; padding: 0 22px; border: none; background: none; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; transition: all 0.18s; }
+      .dt-tab { display: flex; align-items: center; gap: 8px; padding: 0 22px; border: none; background: none; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; transition: color 0.18s, background-color 0.18s, border-bottom-color 0.18s; }
       .dt-tab:hover { color: var(--navy); background: rgba(27,42,74,0.025); }
       .dt-tab.dt-inc { border-bottom-color: var(--forest); color: var(--forest); }
       .dt-tab.dt-exp { border-bottom-color: var(--burg);   color: var(--burg);   }
@@ -1939,7 +1938,7 @@
   padding: 4px 8px;
   border: 1px solid var(--bdr);
   border-radius: 6px;
-  transition: all 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
   line-height: 1.4;
 }
 .dt-bell:hover { border-color: var(--gold); background: var(--bg); }
@@ -11795,9 +11794,9 @@ function fmtMoney(val) {
     .approve-btn { font-family:var(--font); font-size:12px; font-weight:700; padding:7px 14px; border-radius:10px; border:1.5px solid var(--forest); background:transparent; color:var(--forest); cursor:pointer; transition:all 0.15s; }
     .approve-btn:hover { background:var(--forest); color:#fff; }
     .approve-btn:active { opacity:0.8; }
-    .navy-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1.5px solid var(--navy); background:transparent; color:var(--navy); cursor:pointer; transition:all 0.12s; }
+    .navy-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1.5px solid var(--navy); background:transparent; color:var(--navy); cursor:pointer; transition:background-color 0.12s, color 0.12s; }
     .navy-btn:hover { background:var(--navy); color:#fff; }
-    .danger-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1px solid rgba(155,35,53,0.25); background:transparent; color:var(--burg); cursor:pointer; transition:all 0.12s; }
+    .danger-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1px solid rgba(155,35,53,0.25); background:transparent; color:var(--burg); cursor:pointer; transition:background-color 0.12s, color 0.12s; }
     .danger-btn:hover { background:var(--burg); color:#fff; }
     .muted-btn { font-family:var(--font); font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; border:1px solid var(--bdr); background:var(--bg); color:var(--muted); cursor:pointer; transition:all 0.12s; }
     .muted-btn:hover { color:var(--navy); border-color:var(--navy); }

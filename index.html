@@ -4917,12 +4917,12 @@ function watchNet() {
     dot.classList.remove('off');
     if (dtDot) dtDot.classList.remove('off');
     toast('✅ Back online', 'ok');
-  });
+  }, { passive: true });
   window.addEventListener('offline', function() {
     dot.classList.add('off');
     if (dtDot) dtDot.classList.add('off');
     toast('⚠️ No internet', 'fail');
-  });
+  }, { passive: true });
 }
 
 // ── Desktop keyboard support for PIN ─────────────────────────────────────────

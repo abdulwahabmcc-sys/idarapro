@@ -2655,22 +2655,26 @@ function gasPost(body) {
 // BOOT
 // ══════════════════════════════════════════════════════════════════════════════
 
-  window.onload = function() {
-  if (window.innerWidth >= 769) {
-    var dtContent = document.getElementById('dt-content');
-    var scroll    = document.getElementById('scroll');
-    var nav       = document.getElementById('nav');
-    if (dtContent && scroll && !dtContent.contains(scroll)) {
-      dtContent.appendChild(scroll);
+  document.addEventListener('DOMContentLoaded', function() {
+  try {
+    if (window.innerWidth >= 769) {
+      var dtContent = document.getElementById('dt-content');
+      var scroll    = document.getElementById('scroll');
+      var nav       = document.getElementById('nav');
+      if (dtContent && scroll && !dtContent.contains(scroll) && !scroll.contains(dtContent)) {
+        dtContent.appendChild(scroll);
+      }
+      if (dtContent && nav && !dtContent.contains(nav) && !nav.contains(dtContent)) {
+        dtContent.appendChild(nav);
+      }
     }
-    if (dtContent && nav && !dtContent.contains(nav)) {
-      dtContent.appendChild(nav);
-    }
+  } catch(e) {
+    console.warn('DOMContentLoaded layout error (non-fatal):', e);
   }
   showLoginScreen();
   hideLo();
   watchNet();
-};
+});
   
 function hideLo() {
   var lo = document.getElementById('loader');

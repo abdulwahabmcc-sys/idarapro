@@ -2448,8 +2448,99 @@
           </div>
         </div>
       </div><!-- /f-com -->
-    <!-- Pay Hub Tab — Phase 11 Step 13 (Sections 2–4 will fill this) -->
+    <!-- Pay Hub Tab — Phase 11 Step 13 -->
     <div class="hide" id="f-pay">
+
+      <!-- ── PILLAR 1 — INVOICE ──────────────────────────────────────────── -->
+      <div class="card" id="pay-pillar-invoice">
+
+        <!-- Header -->
+        <div class="lbl">
+          <span class="l-ar">💳 الفواتير</span>
+          <span class="l-en">Invoices</span>
+        </div>
+
+        <!-- Submit Invoice Form -->
+        <div id="pay-inv-form" style="margin-bottom:18px;">
+
+          <div style="margin-bottom:10px;">
+            <div class="stg-field-lbl">Vendor / المورد *</div>
+            <input class="inp" type="text" id="pay-inv-vendor"
+              placeholder="Vendor name / اسم المورد" style="direction:rtl;">
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <div class="stg-field-lbl">Category / الفئة *</div>
+            <select class="inp" id="pay-inv-category">
+              <option value="" disabled selected>اختر / Select...</option>
+            </select>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <div class="stg-field-lbl">Date Due / تاريخ الاستحقاق *</div>
+              <input class="inp" type="date" id="pay-inv-due">
+            </div>
+            <div>
+              <div class="stg-field-lbl">Total Amount / المبلغ الإجمالي *</div>
+              <input class="inp" type="number" step="0.01" min="0"
+                id="pay-inv-amount" placeholder="0.00" style="direction:ltr;">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <div class="stg-field-lbl">Contract ID <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+              <input class="inp" type="text" id="pay-inv-contract"
+                placeholder="e.g. U-06-C-01-2025-001" style="direction:ltr;font-size:13px;">
+            </div>
+            <div>
+              <div class="stg-field-lbl">Section <span style="font-weight:400;color:var(--muted);">(optional)</span></div>
+              <input class="inp" type="text" id="pay-inv-section"
+                placeholder="e.g. ٦" style="direction:rtl;">
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <div class="stg-field-lbl">Drive ID <span style="font-weight:400;color:var(--muted);">(optional — scanned invoice)</span></div>
+            <input class="inp" type="text" id="pay-inv-driveid"
+              placeholder="Google Drive file ID" style="direction:ltr;font-size:13px;">
+          </div>
+
+          <!-- Inline error -->
+          <div id="pay-inv-err" style="display:none;background:rgba(155,35,53,0.08);
+            border:1px solid rgba(155,35,53,0.25);border-radius:10px;padding:10px 14px;
+            font-size:12px;color:var(--burg);margin-bottom:10px;direction:ltr;
+            line-height:1.5;"></div>
+
+          <button type="button" class="btn-sub b-exp" id="pay-inv-submit-btn"
+            onclick="submitInvoiceForm()" style="margin-top:0;">
+            <div class="btn-wave">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="btn-label">
+              <span>📋</span>
+              <span>Submit Invoice / تسجيل فاتورة</span>
+            </span>
+          </button>
+
+        </div><!-- /pay-inv-form -->
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--bdr);margin:4px 0 16px;"></div>
+
+        <!-- Invoice Table -->
+        <div class="stg-field-lbl" style="margin-bottom:8px;">
+          All Invoices / جميع الفواتير
+        </div>
+        <div id="pay-inv-table-wrap" style="overflow-x:auto;">
+          <div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">
+            جاري التحميل... / Loading...
+          </div>
+        </div>
+
+      </div><!-- /pay-pillar-invoice -->
+
     </div><!-- /f-pay -->
 
     <!-- Submit button — no more PIN field -->
@@ -4701,9 +4792,240 @@ function setComSubnav(pane) {
 }
 
 function loadPayHub() {
-  // Phase 11 Step 13 Section 2 — Pay Hub loader
-  // Stub — wired in Section 2 deployment
+  // ── Populate category dropdown from login cache ──────────────────────────
+  // window._cats.expense is always populated by getAppData() at login.
+  // No network call needed.
+  var catSel = document.getElementById('pay-inv-category');
+  if (catSel) {
+    catSel.innerHTML = '<option value="" disabled selected>اختر / Select...</option>';
+    var expCats = (window._cats && window._cats.expense) ? window._cats.expense : [];
+    expCats.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value       = c;
+      opt.textContent = c;
+      catSel.appendChild(opt);
+    });
+  }
+
+  // ── Load invoice table ───────────────────────────────────────────────────
+  loadInvoiceTable();
 }
+
+function loadInvoiceTable() {
+  if (!sessionValid()) return;
+  var wrap = document.getElementById('pay-inv-table-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">جاري التحميل... / Loading...</div>';
+
+  gasPost({ action: 'getInvoices', token: _session.token })
+    .then(function(rows) {
+      if (!rows || !rows.length) {
+        wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد فواتير / No invoices yet</div>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+          '<thead>' +
+            '<tr style="background:var(--bg);font-weight:700;font-size:10px;' +
+              'text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);">' +
+              '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Invoice ID</th>' +
+              '<th style="padding:8px 6px;text-align:right;">Vendor</th>' +
+              '<th style="padding:8px 6px;text-align:left;">Category</th>' +
+              '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Due Date</th>' +
+              '<th style="padding:8px 6px;text-align:right;">Total</th>' +
+              '<th style="padding:8px 6px;text-align:right;">Paid</th>' +
+              '<th style="padding:8px 6px;text-align:right;">Balance</th>' +
+              '<th style="padding:8px 6px;text-align:center;">Status</th>' +
+              '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Days Overdue</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>';
+
+      rows.forEach(function(inv, idx) {
+        var isOverdue = inv.isOverdue;
+        var dueToday  = (!isOverdue && inv.daysOverdue === 0);
+        var rowBg     = isOverdue
+          ? 'background:rgba(155,35,53,0.06);'
+          : (idx % 2 === 0 ? '' : 'background:rgba(27,42,74,0.02);');
+        var borderLeft = isOverdue
+          ? 'border-left:3px solid var(--burg);'
+          : 'border-left:3px solid transparent;';
+
+        // Days Overdue cell
+        var overdueCell;
+        if (isOverdue) {
+          overdueCell = '<span style="color:var(--burg);font-weight:700;">▲ ' +
+            escHtml(String(inv.daysOverdue || 0)) + ' days</span>';
+        } else if (dueToday) {
+          overdueCell = '<span style="color:#B89A3E;font-weight:700;">Due Today</span>';
+        } else {
+          overdueCell = '<span style="color:var(--muted);">—</span>';
+        }
+
+        // Status color
+        var statusColor = inv.status === 'Paid'
+          ? 'color:var(--forest);'
+          : inv.status === 'Partial'
+            ? 'color:#B89A3E;'
+            : isOverdue
+              ? 'color:var(--burg);'
+              : 'color:var(--navy);';
+
+        html +=
+          '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
+            '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+              'white-space:nowrap;">' + escHtml(inv.invoiceId || '') + '</td>' +
+            '<td style="padding:8px 6px;text-align:right;font-weight:600;direction:rtl;">' +
+              escHtml(inv.vendor || '') + '</td>' +
+            '<td style="padding:8px 6px;color:var(--muted);">' +
+              escHtml(inv.category || '') + '</td>' +
+            '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+              'white-space:nowrap;">' + escHtml(inv.dateDue || '') + '</td>' +
+            '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);">' +
+              fmtMoney(inv.totalAmount) + '</td>' +
+            '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);' +
+              'color:var(--forest);">' + fmtMoney(inv.paidAmount) + '</td>' +
+            '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);' +
+              'font-weight:700;">' + fmtMoney(inv.balance) + '</td>' +
+            '<td style="padding:8px 6px;text-align:center;font-size:10px;' +
+              'font-weight:700;' + statusColor + '">' +
+              escHtml(inv.status || '') + '</td>' +
+            '<td style="padding:8px 6px;text-align:center;">' + overdueCell + '</td>' +
+          '</tr>';
+      });
+
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    })
+    .catch(function(e) {
+      wrap.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' +
+        escHtml(e.message) + '</div>';
+    });
+}
+
+function submitInvoiceForm() {
+  if (!sessionValid()) return;
+
+  var vendor     = document.getElementById('pay-inv-vendor').value.trim();
+  var category   = document.getElementById('pay-inv-category').value;
+  var dateDue    = document.getElementById('pay-inv-due').value;
+  var totalAmt   = document.getElementById('pay-inv-amount').value.trim();
+  var contractId = document.getElementById('pay-inv-contract').value.trim();
+  var section    = document.getElementById('pay-inv-section').value.trim();
+  var driveId    = document.getElementById('pay-inv-driveid').value.trim();
+  var btn        = document.getElementById('pay-inv-submit-btn');
+
+  document.getElementById('pay-inv-err').style.display = 'none';
+
+  if (!vendor)   { _payInvErr('❌ Vendor is required'); return; }
+  if (!category) { _payInvErr('❌ Category is required'); return; }
+  if (!dateDue)  { _payInvErr('❌ Due date is required'); return; }
+  if (!totalAmt || parseFloat(totalAmt) <= 0) {
+    _payInvErr('❌ Total amount must be greater than zero'); return;
+  }
+
+  btn.classList.add('processing');
+  btn.disabled = true;
+
+  // Raw fetch required — gasPost() throws on !r.ok before we can inspect
+  // r.duplicate. N11 returns { ok:false, duplicate:true } which must be
+  // checked before ok. All other calls use gasPost() safely.
+  fetch(GAS, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body:    JSON.stringify({
+      action:      'submitInvoice',
+      vendor:      vendor,
+      category:    category,
+      dateDue:     dateDue,
+      totalAmount: parseFloat(totalAmt),
+      contractId:  contractId || '',
+      section:     section    || '',
+      driveId:     driveId    || '',
+      token:       _session.token
+    })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      btn.classList.remove('processing');
+      btn.disabled = false;
+      // ── N11: duplicate check BEFORE ok check ─────────────────────────
+      if (r.duplicate === true) {
+        _showInvDuplicateDialog(r, {
+          vendor: vendor, category: category, dateDue: dateDue,
+          totalAmount: parseFloat(totalAmt), contractId: contractId,
+          section: section, driveId: driveId
+        });
+        return;
+      }
+      if (!r.ok) {
+        _payInvErr('❌ ' + (r.error || 'Submission failed'));
+        return;
+      }
+      toast('✅ Invoice submitted: ' + (r.data && r.data.invoiceId ? r.data.invoiceId : ''), 'ok');
+      _payInvClearForm();
+      loadInvoiceTable();
+    })
+    .catch(function(e) {
+      btn.classList.remove('processing');
+      btn.disabled = false;
+      _payInvErr('❌ ' + (e.message || 'Submission failed'));
+    });
+}
+
+function _payInvErr(msg) {
+  var errEl = document.getElementById('pay-inv-err');
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+
+function _payInvClearForm() {
+  document.getElementById('pay-inv-vendor').value   = '';
+  document.getElementById('pay-inv-category').value = '';
+  document.getElementById('pay-inv-due').value      = '';
+  document.getElementById('pay-inv-amount').value   = '';
+  document.getElementById('pay-inv-contract').value = '';
+  document.getElementById('pay-inv-section').value  = '';
+  document.getElementById('pay-inv-driveid').value  = '';
+  document.getElementById('pay-inv-err').style.display = 'none';
+}
+
+function _showInvDuplicateDialog(res, originalPayload) {
+  var existing = res.existingInvoiceId || '—';
+  var msg      = res.message || 'A similar invoice may already exist.';
+  if (confirm('⚠️ Duplicate detected: ' + msg +
+      '\n\nExisting invoice: ' + existing +
+      '\n\nSubmit anyway?')) {
+    var btn = document.getElementById('pay-inv-submit-btn');
+    btn.classList.add('processing');
+    btn.disabled = true;
+    gasPost({
+      action:           'submitInvoice',
+      vendor:           originalPayload.vendor,
+      category:         originalPayload.category,
+      dateDue:          originalPayload.dateDue,
+      totalAmount:      originalPayload.totalAmount,
+      contractId:       originalPayload.contractId,
+      section:          originalPayload.section,
+      driveId:          originalPayload.driveId,
+      confirmDuplicate: true,
+      token:            _session.token
+    })
+      .then(function(res2) {
+        btn.classList.remove('processing');
+        btn.disabled = false;
+        toast('✅ Invoice submitted: ' + (res2.invoiceId || ''), 'ok');
+        _payInvClearForm();
+        loadInvoiceTable();
+      })
+      .catch(function(e) {
+        btn.classList.remove('processing');
+        btn.disabled = false;
+        _payInvErr('❌ ' + (e.message || 'Submission failed'));
+      });
+  }
+}
+
 function loadComData() {
   if (!sessionValid()) return;
   var sel = document.getElementById('com-one-contract');

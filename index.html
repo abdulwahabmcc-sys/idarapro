@@ -2447,7 +2447,9 @@
               Sent history — coming in full Communications build</div>
           </div>
         </div>
-    </div><!-- /f-com -->
+    <!-- Pay Hub Tab — Phase 11 Step 13 (Sections 2–4 will fill this) -->
+    <div class="hide" id="f-pay">
+    </div><!-- /f-pay -->
 
     <!-- Submit button — no more PIN field -->
     <div class="card" id="submit-card">
@@ -2498,6 +2500,11 @@
       <span class="nav-ico">📡</span>
       <span class="nav-ar">مراسلات</span>
       <span class="nav-en">Comms</span>
+    </button>
+    <button class="nav-tab hide" id="t-pay" onclick="setTab('Pay')">
+      <span class="nav-ico">💳</span>
+      <span class="nav-ar">Pay Hub</span>
+      <span class="nav-en">Pay Hub</span>
     </button>
   </div>
   <div class="nav-brand">
@@ -2602,6 +2609,9 @@
       </button>
       <button class="dt-tab hide" id="dt-t-com" onclick="setTab('Communications')">
         <span class="dt-tab-ico">📡</span> مراسلات / Comms
+      </button>
+      <button class="dt-tab hide" id="dt-t-pay" onclick="setTab('Pay')">
+        <span class="dt-tab-ico">💳</span> Pay Hub
       </button>
     </div>
   </div>
@@ -3077,11 +3087,11 @@ function applyPermissionUI(auth) {
   // Admin — show everything including meter and communications tabs
   // Dispatcher role — delivery queue only, no financial data
   if (role === 'Dispatcher') {
-    ['t-inc','t-exp','t-rep','t-mtr','t-com'].forEach(function(id) {
+    ['t-inc','t-exp','t-rep','t-mtr','t-com','t-pay'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.classList.add('hide');
     });
-    ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com'].forEach(function(id) {
+    ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com','dt-t-pay'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.classList.add('hide');
     });
@@ -3096,6 +3106,10 @@ function applyPermissionUI(auth) {
     var dtCom2 = document.getElementById('dt-t-com');
     if (tCom2)  tCom2.classList.remove('hide');
     if (dtCom2) dtCom2.classList.remove('hide');
+    var tPay2  = document.getElementById('t-pay');
+    var dtPay2 = document.getElementById('dt-t-pay');
+    if (tPay2)  tPay2.classList.remove('hide');
+    if (dtPay2) dtPay2.classList.remove('hide');
     return;
   }
   
@@ -3128,12 +3142,14 @@ function applyPermissionUI(auth) {
     if (dtRep) dtRep.classList.remove('hide');
   }
   
-  if (!perms.MTR_RED)  { 
-    if (tMtr) tMtr.classList.add('hide'); 
-    if (dtMtr) dtMtr.classList.add('hide'); 
+  var tPay  = document.getElementById('t-pay');
+  var dtPay = document.getElementById('dt-t-pay');
+  if (!perms.INV) {
+    if (tPay)  tPay.classList.add('hide');
+    if (dtPay) dtPay.classList.add('hide');
   } else {
-    if (tMtr) tMtr.classList.remove('hide');
-    if (dtMtr) dtMtr.classList.remove('hide');
+    if (tPay)  tPay.classList.remove('hide');
+    if (dtPay) dtPay.classList.remove('hide');
   }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
@@ -3234,8 +3250,8 @@ function fillCats(type) {
 var _STATIC_IDS = {
   'eType':1,
   'btn-sub':1, 'btn-ico':1, 'btn-txt':1,
-  't-inc':1, 't-exp':1, 't-rep':1, 't-mtr':1, 't-com':1,
-  'dt-t-inc':1, 'dt-t-exp':1, 'dt-t-rep':1, 'dt-t-mtr':1, 'dt-t-com':1,
+  't-inc':1, 't-exp':1, 't-rep':1, 't-mtr':1, 't-com':1, 't-pay':1,
+  'dt-t-inc':1, 'dt-t-exp':1, 'dt-t-rep':1, 'dt-t-mtr':1, 'dt-t-com':1, 'dt-t-pay':1,
   'f-inc':1, 'f-exp':1, 'f-rep':1, 'f-amt':1, 'f-mtr':1, 'f-com':1,
   'scroll':1, 'inp-amt':1
 };
@@ -3266,7 +3282,7 @@ function setTab(type) {
   _el('eType').value = type;
 
   // Reset mobile nav tabs — preserve 'hide' visibility state
-  ['t-inc','t-exp','t-rep','t-mtr','t-com'].forEach(function(id) {
+  ['t-inc','t-exp','t-rep','t-mtr','t-com','t-pay'].forEach(function(id) {
     var el = _el(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
@@ -3276,7 +3292,7 @@ function setTab(type) {
   });
 
   // Reset desktop nav tabs — preserve 'hide' visibility state
-  ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com'].forEach(function(id) {
+  ['dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com','dt-t-pay'].forEach(function(id) {
     var el = _el(id);
     if (el) {
       var isHidden = el.classList.contains('hide');
@@ -3286,7 +3302,7 @@ function setTab(type) {
   });
 
   // Hide all content panels
-  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com'].forEach(function(id) {
+  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay'].forEach(function(id) {
     var el = _el(id);
     if (el) el.classList.add('hide');
   });
@@ -3344,6 +3360,18 @@ function setTab(type) {
     if (_btnCard) _btnCard.style.display = 'none'; // hide empty card wrapper — confirmed bug fix
     _el('scroll').scrollTop = 0;
     loadComData();
+    return;
+
+  } else if (type === 'Pay') {
+    var tPay  = _el('t-pay');
+    var dtPay = _el('dt-t-pay');
+    if (tPay)  tPay.classList.add('n-rep');
+    if (dtPay) dtPay.classList.add('dt-rep');
+    _el('f-pay').classList.remove('hide');
+    btn.style.display = 'none';
+    if (_btnCard) _btnCard.style.display = 'none';
+    _el('scroll').scrollTop = 0;
+    loadPayHub();
     return;
   }
 
@@ -4671,7 +4699,10 @@ function setComSubnav(pane) {
   });
 }
 
-function loadComData() {
+function loadPayHub() {
+  // Phase 11 Step 13 Section 2 — Pay Hub loader
+  // Stub — wired in Section 2 deployment
+}
   if (!sessionValid()) return;
   var sel = document.getElementById('com-one-contract');
   if (sel && sel.options.length <= 1) {

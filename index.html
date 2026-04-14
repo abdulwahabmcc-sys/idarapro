@@ -2541,6 +2541,67 @@
 
       </div><!-- /pay-pillar-invoice -->
 
+      <!-- ── PILLAR 2 — PAYMENT ──────────────────────────────────────────── -->
+      <div class="card" id="pay-pillar-payment">
+
+        <!-- Header -->
+        <div class="lbl">
+          <span class="l-ar">💰 تسجيل دفعة</span>
+          <span class="l-en">Record Payment</span>
+        </div>
+
+        <!-- Record Payment Form -->
+        <div id="pay-pmt-form" style="margin-bottom:18px;">
+
+          <div style="margin-bottom:10px;">
+            <div class="stg-field-lbl">Invoice / الفاتورة *</div>
+            <select class="inp" id="pay-pmt-invoice">
+              <option value="" disabled selected>اختر فاتورة / Select invoice...</option>
+            </select>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <div class="stg-field-lbl">Amount / المبلغ *</div>
+              <input class="inp" type="number" step="0.01" min="0"
+                id="pay-pmt-amount" placeholder="0.00" style="direction:ltr;">
+            </div>
+            <div>
+              <div class="stg-field-lbl">Date / التاريخ *</div>
+              <input class="inp" type="date" id="pay-pmt-date">
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <div class="stg-field-lbl">Image ID <span style="font-weight:400;color:var(--muted);">(optional — scanned receipt Drive ID)</span></div>
+            <input class="inp" type="text" id="pay-pmt-imageid"
+              placeholder="Google Drive file ID" style="direction:ltr;font-size:13px;">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+              Full image upload via Drive — Phase 14
+            </div>
+          </div>
+
+          <!-- Inline error -->
+          <div id="pay-pmt-err" style="display:none;background:rgba(155,35,53,0.08);
+            border:1px solid rgba(155,35,53,0.25);border-radius:10px;padding:10px 14px;
+            font-size:12px;color:var(--burg);margin-bottom:10px;direction:ltr;
+            line-height:1.5;"></div>
+
+          <button type="button" class="btn-sub b-exp" id="pay-pmt-submit-btn"
+            onclick="recordPaymentForm()" style="margin-top:0;">
+            <div class="btn-wave">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="btn-label">
+              <span>💰</span>
+              <span>Record Payment / تسجيل دفعة</span>
+            </span>
+          </button>
+
+        </div><!-- /pay-pmt-form -->
+
+      </div><!-- /pay-pillar-payment -->
+
     </div><!-- /f-pay -->
 
     <!-- Submit button — no more PIN field -->
@@ -4807,8 +4868,213 @@ function loadPayHub() {
     });
   }
 
-  // ── Load invoice table ───────────────────────────────────────────────────
-  loadInvoiceTable();
+  // ── Single getInvoices() call — results passed to both consumers ─────────
+  // Q1 decision: one network call, two consumers (table + payment dropdown).
+  _loadInvoiceData();
+}
+
+function _loadInvoiceData() {
+  // Single getInvoices() call. Passes result array to:
+  //   1. loadInvoiceTable()      — renders Pillar 1 table
+  //   2. _populatePaymentDropdown() — populates Pillar 2 invoice selector
+  if (!sessionValid()) return;
+
+  var wrap = document.getElementById('pay-inv-table-wrap');
+  if (wrap) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">جاري التحميل... / Loading...</div>';
+  }
+
+  gasPost({ action: 'getInvoices', token: _session.token })
+    .then(function(invoices) {
+      loadInvoiceTable(invoices);
+      _populatePaymentDropdown(invoices);
+    })
+    .catch(function(e) {
+      if (wrap) {
+        wrap.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' +
+          escHtml(e.message) + '</div>';
+      }
+    });
+}
+
+function loadInvoiceTable(invoices) {
+  if (!sessionValid()) return;
+  var wrap = document.getElementById('pay-inv-table-wrap');
+  if (!wrap) return;
+
+  // Accept pre-loaded invoices array or fetch fresh if called standalone
+  if (invoices) {
+    _renderInvoiceTable(wrap, invoices);
+  } else {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">جاري التحميل... / Loading...</div>';
+    gasPost({ action: 'getInvoices', token: _session.token })
+      .then(function(rows) { _renderInvoiceTable(wrap, rows); })
+      .catch(function(e) {
+        wrap.innerHTML = '<div style="color:var(--burg);padding:12px;font-size:12px;">❌ ' +
+          escHtml(e.message) + '</div>';
+      });
+  }
+}
+
+function _renderInvoiceTable(wrap, rows) {
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد فواتير / No invoices yet</div>';
+    return;
+  }
+  var html =
+    '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead>' +
+        '<tr style="background:var(--bg);font-weight:700;font-size:10px;' +
+          'text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);">' +
+          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Invoice ID</th>' +
+          '<th style="padding:8px 6px;text-align:right;">Vendor</th>' +
+          '<th style="padding:8px 6px;text-align:left;">Category</th>' +
+          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Due Date</th>' +
+          '<th style="padding:8px 6px;text-align:right;">Total</th>' +
+          '<th style="padding:8px 6px;text-align:right;">Paid</th>' +
+          '<th style="padding:8px 6px;text-align:right;">Balance</th>' +
+          '<th style="padding:8px 6px;text-align:center;">Status</th>' +
+          '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Days Overdue</th>' +
+        '</tr>' +
+      '</thead>' +
+      '<tbody>';
+
+  rows.forEach(function(inv, idx) {
+    var isOverdue = inv.isOverdue;
+    var dueToday  = (!isOverdue && inv.daysOverdue === 0 && inv.status !== 'Paid');
+    var rowBg     = isOverdue
+      ? 'background:rgba(155,35,53,0.06);'
+      : (idx % 2 === 0 ? '' : 'background:rgba(27,42,74,0.02);');
+    var borderLeft = isOverdue
+      ? 'border-left:3px solid var(--burg);'
+      : 'border-left:3px solid transparent;';
+
+    var overdueCell;
+    if (isOverdue) {
+      overdueCell = '<span style="color:var(--burg);font-weight:700;">▲ ' +
+        escHtml(String(inv.daysOverdue || 0)) + ' days</span>';
+    } else if (dueToday) {
+      overdueCell = '<span style="color:#B89A3E;font-weight:700;">Due Today</span>';
+    } else {
+      overdueCell = '<span style="color:var(--muted);">—</span>';
+    }
+
+    var statusColor = inv.status === 'Paid'
+      ? 'color:var(--forest);'
+      : inv.status === 'Partial'
+        ? 'color:#B89A3E;'
+        : isOverdue
+          ? 'color:var(--burg);'
+          : 'color:var(--navy);';
+
+    html +=
+      '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
+        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+          'white-space:nowrap;">' + escHtml(inv.invoiceId || '') + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;font-weight:600;direction:rtl;">' +
+          escHtml(inv.vendor || '') + '</td>' +
+        '<td style="padding:8px 6px;color:var(--muted);">' +
+          escHtml(inv.category || '') + '</td>' +
+        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+          'white-space:nowrap;">' + escHtml(inv.dateDue || '') + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);">' +
+          fmtMoney(inv.totalAmount) + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);' +
+          'color:var(--forest);">' + fmtMoney(inv.paidAmount) + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;font-family:var(--mono);' +
+          'font-weight:700;">' + fmtMoney(inv.balance) + '</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:10px;' +
+          'font-weight:700;' + statusColor + '">' +
+          escHtml(inv.status || '') + '</td>' +
+        '<td style="padding:8px 6px;text-align:center;">' + overdueCell + '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function _populatePaymentDropdown(invoices) {
+  var sel = document.getElementById('pay-pmt-invoice');
+  if (!sel) return;
+
+  sel.innerHTML = '<option value="" disabled selected>اختر فاتورة / Select invoice...</option>';
+
+  var unpaid = (invoices || []).filter(function(inv) {
+    return inv.status === 'Unpaid' || inv.status === 'Partial';
+  });
+
+  if (!unpaid.length) {
+    var opt = document.createElement('option');
+    opt.value    = '';
+    opt.disabled = true;
+    opt.textContent = 'لا توجد فواتير مستحقة / No outstanding invoices';
+    sel.appendChild(opt);
+    return;
+  }
+
+  unpaid.forEach(function(inv) {
+    var opt = document.createElement('option');
+    opt.value = inv.invoiceId;
+    opt.textContent = inv.invoiceId + ' — ' + inv.vendor + ' — Balance: ' + fmtMoney(inv.balance);
+    sel.appendChild(opt);
+  });
+}
+
+function recordPaymentForm() {
+  if (!sessionValid()) return;
+
+  var invoiceId = document.getElementById('pay-pmt-invoice').value;
+  var amount    = document.getElementById('pay-pmt-amount').value.trim();
+  var date      = document.getElementById('pay-pmt-date').value;
+  var imageId   = document.getElementById('pay-pmt-imageid').value.trim();
+  var btn       = document.getElementById('pay-pmt-submit-btn');
+
+  document.getElementById('pay-pmt-err').style.display = 'none';
+
+  if (!invoiceId) { _payPmtErr('❌ Please select an invoice'); return; }
+  if (!amount || parseFloat(amount) <= 0) {
+    _payPmtErr('❌ Amount must be greater than zero'); return;
+  }
+  if (!date) { _payPmtErr('❌ Date is required'); return; }
+
+  btn.classList.add('processing');
+  btn.disabled = true;
+
+  gasPost({
+    action:    'processInvoicePayment',
+    invoiceId: invoiceId,
+    amount:    parseFloat(amount),
+    date:      date,
+    imageId:   imageId || '',
+    token:     _session.token
+  })
+    .then(function(res) {
+      btn.classList.remove('processing');
+      btn.disabled = false;
+      toast('✅ ' + (res.message || 'Payment recorded'), 'ok');
+      _payPmtClearForm();
+      // Q2 decision: refresh table + dropdown with single getInvoices() call
+      _loadInvoiceData();
+    })
+    .catch(function(e) {
+      btn.classList.remove('processing');
+      btn.disabled = false;
+      _payPmtErr('❌ ' + (e.message || 'Payment failed'));
+    });
+}
+
+function _payPmtErr(msg) {
+  var errEl = document.getElementById('pay-pmt-err');
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+
+function _payPmtClearForm() {
+  document.getElementById('pay-pmt-invoice').value = '';
+  document.getElementById('pay-pmt-amount').value  = '';
+  document.getElementById('pay-pmt-date').value    = '';
+  document.getElementById('pay-pmt-imageid').value = '';
+  document.getElementById('pay-pmt-err').style.display = 'none';
 }
 
 function loadInvoiceTable() {

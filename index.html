@@ -4951,8 +4951,8 @@ function submitInvoiceForm() {
       btn.classList.remove('processing');
       btn.disabled = false;
       // ── N11: duplicate check BEFORE ok check ─────────────────────────
-      if (r.duplicate === true) {
-        _showInvDuplicateDialog(r, {
+      if (r.data && r.data.duplicate === true) {
+        _showInvDuplicateDialog(r.data, {
           vendor: vendor, category: category, dateDue: dateDue,
           totalAmount: parseFloat(totalAmt), contractId: contractId,
           section: section, driveId: driveId
@@ -4960,7 +4960,7 @@ function submitInvoiceForm() {
         return;
       }
       if (!r.ok) {
-        _payInvErr('❌ ' + (r.error || 'Submission failed'));
+        _payInvErr('❌ ' + ((r.data && r.data.error) || r.error || 'Submission failed'));
         return;
       }
       toast('✅ Invoice submitted: ' + (r.data && r.data.invoiceId ? r.data.invoiceId : ''), 'ok');

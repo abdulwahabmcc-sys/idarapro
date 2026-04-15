@@ -4999,8 +4999,6 @@ function _renderInvoiceTable(wrap, rows) {
 
   rows.forEach(function(inv, idx) {
     var isOverdue = inv.isOverdue;
-    var todayStr  = new Date().toISOString().substring(0, 10);
-    var dueToday  = (!isOverdue && inv.dateDue === todayStr && inv.status !== 'Paid');
     var rowBg     = isOverdue
       ? 'background:rgba(155,35,53,0.06);'
       : (idx % 2 === 0 ? '' : 'background:rgba(27,42,74,0.02);');
@@ -5012,8 +5010,6 @@ function _renderInvoiceTable(wrap, rows) {
     if (isOverdue) {
       overdueCell = '<span style="color:var(--burg);font-weight:700;">▲ ' +
         escHtml(String(inv.daysOverdue || 0)) + ' days</span>';
-    } else if (dueToday) {
-      overdueCell = '<span style="color:#B89A3E;font-weight:700;">Due Today</span>';
     } else {
       overdueCell = '<span style="color:var(--muted);">—</span>';
     }

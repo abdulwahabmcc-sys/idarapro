@@ -2106,6 +2106,41 @@
     <div class="dot" id="dot"></div>
   </div>
 
+<!-- Pay Hub Liability Card — Phase 11 Step 13 — hidden until perms.INV -->
+  <div class="dash-card hide" id="dash-liab-card">
+    <div class="d-top">
+      <div>
+        <div class="d-lbl-en">UNPAID LIABILITIES</div>
+        <div class="d-lbl-ar">الالتزامات غير المسددة</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;letter-spacing:1px;">INVOICES</div>
+        <div class="d-heart-pct" id="liab-count" style="font-size:16px;color:rgba(255,255,255,0.85);">—</div>
+      </div>
+    </div>
+
+    <!-- Unpaid Liabilities amount -->
+    <div class="d-amount" id="liab-amt" style="color:#fff;">—</div>
+
+    <div class="d-line"></div>
+
+    <!-- Effective Balance row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      margin-top:9px;position:relative;z-index:1;">
+      <div>
+        <div class="d-lbl-en">EFFECTIVE BALANCE</div>
+        <div class="d-lbl-ar">الرصيد الفعلي</div>
+      </div>
+      <div class="d-heart-pct" id="liab-eff"
+        style="font-family:var(--mono);font-size:18px;font-weight:500;
+          letter-spacing:-0.5px;color:#fff;">—</div>
+    </div>
+
+    <div class="d-foot">
+      <div class="d-time" id="liab-updated">—</div>
+    </div>
+  </div><!-- /dash-liab-card -->
+
   <div class="dash-card">
     <div class="d-top">
       <div>
@@ -2783,6 +2818,38 @@
 <div id="dt-main">
   <div id="dt-sidebar">
   <div class="dt-sidebar-label">Overview</div>
+  <!-- Pay Hub Liability Card — desktop — hidden until perms.INV -->
+      <div class="dash-card hide" id="dt-dash-liab-card">
+        <div class="d-top">
+          <div>
+            <div class="d-lbl-en">UNPAID LIABILITIES</div>
+            <div class="d-lbl-ar">الالتزامات غير المسددة</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;letter-spacing:1px;">INVOICES</div>
+            <div class="d-heart-pct" id="dt-liab-count" style="font-size:16px;color:rgba(255,255,255,0.85);">—</div>
+          </div>
+        </div>
+
+        <div class="d-amount" id="dt-liab-amt" style="color:#fff;">—</div>
+
+        <div class="d-line"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          margin-top:9px;position:relative;z-index:1;">
+          <div>
+            <div class="d-lbl-en">EFFECTIVE BALANCE</div>
+            <div class="d-lbl-ar">الرصيد الفعلي</div>
+          </div>
+          <div class="d-heart-pct" id="dt-liab-eff"
+            style="font-family:var(--mono);font-size:18px;font-weight:500;
+              letter-spacing:-0.5px;color:#fff;">—</div>
+        </div>
+
+        <div class="d-foot">
+          <div class="d-time" id="dt-liab-updated">—</div>
+        </div>
+      </div><!-- /dt-dash-liab-card -->
   <div class="dash-card" id="dt-dash">
     <div class="d-top">
       <div>
@@ -3320,6 +3387,10 @@ function applyPermissionUI(auth) {
     var dtPay2 = document.getElementById('dt-t-pay');
     if (tPay2)  tPay2.classList.remove('hide');
     if (dtPay2) dtPay2.classList.remove('hide');
+    var liabCard   = document.getElementById('dash-liab-card');
+    var dtLiabCard = document.getElementById('dt-dash-liab-card');
+    if (liabCard)   liabCard.classList.remove('hide');
+    if (dtLiabCard) dtLiabCard.classList.remove('hide');
     return;
   }
   
@@ -3354,12 +3425,18 @@ function applyPermissionUI(auth) {
   
   var tPay  = document.getElementById('t-pay');
   var dtPay = document.getElementById('dt-t-pay');
+  var liabCard   = document.getElementById('dash-liab-card');
+  var dtLiabCard = document.getElementById('dt-dash-liab-card');
   if (!perms.INV) {
-    if (tPay)  tPay.classList.add('hide');
-    if (dtPay) dtPay.classList.add('hide');
+    if (tPay)      tPay.classList.add('hide');
+    if (dtPay)     dtPay.classList.add('hide');
+    if (liabCard)   liabCard.classList.add('hide');
+    if (dtLiabCard) dtLiabCard.classList.add('hide');
   } else {
-    if (tPay)  tPay.classList.remove('hide');
-    if (dtPay) dtPay.classList.remove('hide');
+    if (tPay)      tPay.classList.remove('hide');
+    if (dtPay)     dtPay.classList.remove('hide');
+    if (liabCard)   liabCard.classList.remove('hide');
+    if (dtLiabCard) dtLiabCard.classList.remove('hide');
   }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
@@ -5517,6 +5594,48 @@ function refreshDash() {
       document.getElementById('dt-hpct').textContent  = pct + '%';
       document.getElementById('heart').textContent    = ico;
       document.getElementById('dt-heart').textContent = ico;
+
+      // ── Pay Hub golden numbers — written only when elements exist ─────────
+      // Elements are hidden by default and shown by applyPermissionUI()
+      // when perms.INV === true. Safe to write regardless — hidden elements
+      // still accept textContent writes with no side effects.
+      var liabAmt     = document.getElementById('liab-amt');
+      var liabEff     = document.getElementById('liab-eff');
+      var liabCount   = document.getElementById('liab-count');
+      var liabUpd     = document.getElementById('liab-updated');
+      var dtLiabAmt   = document.getElementById('dt-liab-amt');
+      var dtLiabEff   = document.getElementById('dt-liab-eff');
+      var dtLiabCount = document.getElementById('dt-liab-count');
+      var dtLiabUpd   = document.getElementById('dt-liab-updated');
+
+      if (liabAmt) {
+        var unpaid = (r && r.unpaidLiabilities != null) ? r.unpaidLiabilities : 0;
+        var effBal = (r && r.effectiveBalance  != null) ? r.effectiveBalance  : 0;
+        var invCnt = (r && r.invoiceCount      != null) ? r.invoiceCount      : 0;
+        var liabTs = (r && r.liabilitiesUpdated) ? r.liabilitiesUpdated : '—';
+
+        // Unpaid liabilities — red if > 0
+        var unpaidStr   = unpaid.toFixed(2);
+        var unpaidColor = unpaid > 0 ? '#FF4D6A' : '#ffffff';
+        liabAmt.textContent  = unpaidStr;
+        liabAmt.style.color  = unpaidColor;
+        if (dtLiabAmt) { dtLiabAmt.textContent = unpaidStr; dtLiabAmt.style.color = unpaidColor; }
+
+        // Effective balance — red if negative, white if positive or zero
+        var effStr   = effBal.toFixed(2);
+        var effColor = effBal < 0 ? '#FF4D6A' : '#ffffff';
+        liabEff.textContent  = effStr;
+        liabEff.style.color  = effColor;
+        if (dtLiabEff) { dtLiabEff.textContent = effStr; dtLiabEff.style.color = effColor; }
+
+        // Invoice count
+        liabCount.textContent = String(invCnt);
+        if (dtLiabCount) dtLiabCount.textContent = String(invCnt);
+
+        // Timestamp
+        liabUpd.textContent = liabTs;
+        if (dtLiabUpd) dtLiabUpd.textContent = liabTs;
+      }
 
       rb.classList.remove('spin');
       if (dtRb) dtRb.classList.remove('spin');

@@ -4999,7 +4999,8 @@ function _renderInvoiceTable(wrap, rows) {
 
   rows.forEach(function(inv, idx) {
     var isOverdue = inv.isOverdue;
-    var dueToday  = (!isOverdue && inv.daysOverdue === 0 && inv.status !== 'Paid');
+    var todayStr  = new Date().toISOString().substring(0, 10);
+    var dueToday  = (!isOverdue && inv.dateDue === todayStr && inv.status !== 'Paid');
     var rowBg     = isOverdue
       ? 'background:rgba(155,35,53,0.06);'
       : (idx % 2 === 0 ? '' : 'background:rgba(27,42,74,0.02);');

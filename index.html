@@ -1726,6 +1726,15 @@
     .m-cancel { width: 100%; height: 44px; background: var(--bg); color: var(--muted); border: none; border-radius: 12px; font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; }
 
     .hide     { display: none !important; }
+    /* Mobile: hide full dashboard cards — replaced by compact summary bar */
+    @media (max-width: 768px) {
+      #mob-dash-card    { display: none !important; }
+      #dash-liab-card   { display: none !important; }
+    }
+    /* Desktop: hide compact summary bar — full cards shown in sidebar */
+    @media (min-width: 769px) {
+      #mob-summary-bar  { display: none !important; }
+    }
     .disabled { opacity: 0.35; pointer-events: none; }
 
     /* ══════════════════════════════════════════════
@@ -2140,8 +2149,84 @@
       <div class="d-time" id="liab-updated">—</div>
     </div>
   </div><!-- /dash-liab-card -->
+<!-- Mobile compact summary bar — Phase 11 Step 13 — desktop hidden via CSS -->
+  <div id="mob-summary-bar" style="
+    display:flex;
+    width:100%;
+    background:var(--navy);
+    border-radius:16px;
+    margin-bottom:12px;
+    overflow:hidden;
+    box-shadow:0 2px 8px rgba(27,42,74,0.15);
+  ">
+    <!-- Left panel — Cash on Hand -->
+    <div id="mob-cash-panel" onclick="refreshDash()" style="
+      flex:1;
+      padding:14px 16px;
+      cursor:pointer;
+      text-align:center;
+      -webkit-tap-highlight-color:transparent;
+      transition:background-color 0.15s;
+    " ontouchstart="this.style.background='rgba(255,255,255,0.05)'"
+       ontouchend="this.style.background=''"
+       onmousedown="this.style.background='rgba(255,255,255,0.05)'"
+       onmouseup="this.style.background=''">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;
+        text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:2px;">
+        Cash on Hand
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:6px;">
+        النقد المتوفر
+      </div>
+      <div id="mob-cash-amt" style="
+        font-family:var(--mono);
+        font-size:18px;
+        font-weight:500;
+        color:#ffffff;
+        letter-spacing:-0.5px;
+        direction:ltr;
+      ">—</div>
+    </div>
 
-  <div class="dash-card">
+    <!-- Vertical divider — only visible when liab panel is shown -->
+    <div id="mob-summary-divider" class="hide" style="
+      width:1px;
+      background:rgba(255,255,255,0.1);
+      flex-shrink:0;
+      margin:10px 0;
+    "></div>
+
+    <!-- Right panel — Liabilities — hidden until perms.INV -->
+    <div id="mob-liab-panel" class="hide" onclick="refreshDash()" style="
+      flex:1;
+      padding:14px 16px;
+      cursor:pointer;
+      text-align:center;
+      -webkit-tap-highlight-color:transparent;
+      transition:background-color 0.15s;
+    " ontouchstart="this.style.background='rgba(255,255,255,0.05)'"
+       ontouchend="this.style.background=''"
+       onmousedown="this.style.background='rgba(255,255,255,0.05)'"
+       onmouseup="this.style.background=''">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;
+        text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:2px;">
+        Liabilities
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:6px;">
+        الالتزامات
+      </div>
+      <div id="mob-liab-amt" style="
+        font-family:var(--mono);
+        font-size:18px;
+        font-weight:500;
+        color:#ffffff;
+        letter-spacing:-0.5px;
+        direction:ltr;
+      ">—</div>
+    </div>
+  </div><!-- /mob-summary-bar -->
+
+  <div class="dash-card" id="mob-dash-card">
     <div class="d-top">
       <div>
         <div class="d-lbl-en">CASH ON HAND</div>
@@ -3391,6 +3476,10 @@ function applyPermissionUI(auth) {
     var dtLiabCard = document.getElementById('dt-dash-liab-card');
     if (liabCard)   liabCard.classList.remove('hide');
     if (dtLiabCard) dtLiabCard.classList.remove('hide');
+    var mobLiabPanel2  = document.getElementById('mob-liab-panel');
+    var mobSummaryDiv2 = document.getElementById('mob-summary-divider');
+    if (mobLiabPanel2)  mobLiabPanel2.classList.remove('hide');
+    if (mobSummaryDiv2) mobSummaryDiv2.classList.remove('hide');
     return;
   }
   
@@ -3427,16 +3516,22 @@ function applyPermissionUI(auth) {
   var dtPay = document.getElementById('dt-t-pay');
   var liabCard   = document.getElementById('dash-liab-card');
   var dtLiabCard = document.getElementById('dt-dash-liab-card');
+  var mobLiabPanel   = document.getElementById('mob-liab-panel');
+  var mobSummaryDiv  = document.getElementById('mob-summary-divider');
   if (!perms.INV) {
-    if (tPay)      tPay.classList.add('hide');
-    if (dtPay)     dtPay.classList.add('hide');
-    if (liabCard)   liabCard.classList.add('hide');
-    if (dtLiabCard) dtLiabCard.classList.add('hide');
+    if (tPay)        tPay.classList.add('hide');
+    if (dtPay)       dtPay.classList.add('hide');
+    if (liabCard)    liabCard.classList.add('hide');
+    if (dtLiabCard)  dtLiabCard.classList.add('hide');
+    if (mobLiabPanel)  mobLiabPanel.classList.add('hide');
+    if (mobSummaryDiv) mobSummaryDiv.classList.add('hide');
   } else {
-    if (tPay)      tPay.classList.remove('hide');
-    if (dtPay)     dtPay.classList.remove('hide');
-    if (liabCard)   liabCard.classList.remove('hide');
-    if (dtLiabCard) dtLiabCard.classList.remove('hide');
+    if (tPay)        tPay.classList.remove('hide');
+    if (dtPay)       dtPay.classList.remove('hide');
+    if (liabCard)    liabCard.classList.remove('hide');
+    if (dtLiabCard)  dtLiabCard.classList.remove('hide');
+    if (mobLiabPanel)  mobLiabPanel.classList.remove('hide');
+    if (mobSummaryDiv) mobSummaryDiv.classList.remove('hide');
   }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
@@ -5595,6 +5690,13 @@ function refreshDash() {
       document.getElementById('heart').textContent    = ico;
       document.getElementById('dt-heart').textContent = ico;
 
+      // ── Mobile compact summary bar ────────────────────────────────────────
+      var mobCashAmt = document.getElementById('mob-cash-amt');
+      if (mobCashAmt) {
+        mobCashAmt.textContent = val;
+        mobCashAmt.style.color = amtColor;
+      }
+
       // ── Pay Hub golden numbers — written only when elements exist ─────────
       // Elements are hidden by default and shown by applyPermissionUI()
       // when perms.INV === true. Safe to write regardless — hidden elements
@@ -5620,6 +5722,8 @@ function refreshDash() {
         liabAmt.textContent  = unpaidStr;
         liabAmt.style.color  = unpaidColor;
         if (dtLiabAmt) { dtLiabAmt.textContent = unpaidStr; dtLiabAmt.style.color = unpaidColor; }
+        var mobLiabAmt = document.getElementById('mob-liab-amt');
+        if (mobLiabAmt) { mobLiabAmt.textContent = unpaidStr; mobLiabAmt.style.color = unpaidColor; }
 
         // Effective balance — red if negative, white if positive or zero
         var effStr   = effBal.toFixed(2);

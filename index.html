@@ -2022,13 +2022,13 @@
   <!-- Normal login state -->
   <div id="lgn-main">
     <!-- Name input — Phase 12 Step 2a -->
-<div style="width:100%;margin-bottom:18px;">
+<div style="width:100%;margin-bottom:18px;max-width:300px;margin-left:auto;margin-right:auto;">
   <div style="
     font-size:10px;
     font-weight:600;
     letter-spacing:1.5px;
     text-transform:uppercase;
-    color:rgba(255,255,255,0.45);
+    color:var(--muted);
     text-align:center;
     margin-bottom:7px;
   ">Your name / اسمك</div>
@@ -2043,22 +2043,24 @@
     style="
       width:100%;
       box-sizing:border-box;
-      background:rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.30);
-      border-radius:10px;
+      background:var(--surf);
+      border:1.5px solid var(--bdr);
+      border-radius:16px;
       padding:11px 14px;
-      font-family:var(--sans);
-      font-size:15px;
-      color:#ffffff;
+      font-family:var(--mono);
+      font-size:16px;
+      font-weight:500;
+      color:var(--navy);
       outline:none;
       text-align:center;
       letter-spacing:0.5px;
-      transition:border-color 0.2s;
-      caret-color:#ffffff;
+      transition:border-color 0.15s, box-shadow 0.15s;
+      caret-color:var(--navy);
+      box-shadow:0 1px 4px rgba(27,42,74,0.06);
     "
     oninput="setLoginStatus('')"
-    onfocus="this.style.borderColor='rgba(184,154,62,0.8)'"
-    onblur="this.style.borderColor='rgba(255,255,255,0.30)'"
+    onfocus="this.style.borderColor='var(--gold)';this.style.boxShadow='0 0 0 3px rgba(184,154,62,0.15)';"
+    onblur="this.style.borderColor='var(--bdr)';this.style.boxShadow='0 1px 4px rgba(27,42,74,0.06)';"
   />
 </div>
     <div class="lgn-prompt">أدخل رمز الدخول / Enter PIN</div>

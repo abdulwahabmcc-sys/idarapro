@@ -2024,14 +2024,20 @@
     <!-- Name input — Phase 12 Step 2a -->
 <div style="width:100%;margin-bottom:18px;max-width:300px;margin-left:auto;margin-right:auto;">
   <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
     font-size:10px;
     font-weight:600;
-    letter-spacing:1.5px;
+    letter-spacing:1px;
     text-transform:uppercase;
     color:var(--muted);
-    text-align:center;
     margin-bottom:7px;
-  ">اسمك | Your name</div>
+    padding:0 2px;
+  ">
+    <span style="direction:ltr;">Your name</span>
+    <span style="direction:rtl;">اسمك</span>
+  </div>
   <input
     id="lgn-name"
     type="text"
@@ -2063,7 +2069,10 @@
     onblur="this.style.borderColor='var(--bdr)';this.style.boxShadow='0 1px 4px rgba(27,42,74,0.06)';"
   />
 </div>
-    <div class="lgn-prompt">أدخل رمز الدخول | Enter PIN</div>
+    <div class="lgn-prompt" style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;">
+  <span style="direction:ltr;">Enter PIN</span>
+  <span style="direction:rtl;">أدخل رمز الدخول</span>
+</div>
 
     <!-- PIN dots -->
     <div class="lgn-dots" id="lgn-dots">

@@ -2021,6 +2021,36 @@
 
   <!-- Normal login state -->
   <div id="lgn-main">
+    <!-- Name input — Phase 12 Step 2a -->
+<div style="width:100%;margin-bottom:18px;">
+  <input
+    id="lgn-name"
+    type="text"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="words"
+    spellcheck="false"
+    placeholder="Your name / اسمك"
+    style="
+      width:100%;
+      box-sizing:border-box;
+      background:rgba(255,255,255,0.07);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:10px;
+      padding:11px 14px;
+      font-family:var(--sans);
+      font-size:15px;
+      color:#ffffff;
+      outline:none;
+      text-align:center;
+      letter-spacing:0.5px;
+      transition:border-color 0.2s;
+    "
+    oninput="setLoginStatus('')"
+    onfocus="this.style.borderColor='rgba(184,154,62,0.6)'"
+    onblur="this.style.borderColor='rgba(255,255,255,0.15)'"
+  />
+</div>
     <div class="lgn-prompt">أدخل رمز الدخول / Enter PIN</div>
 
     <!-- PIN dots -->
@@ -3072,6 +3102,8 @@ function showLoginScreen() {
   _attempts  = 0;
   updateDots();
   setLoginStatus('');
+  var nameEl = document.getElementById('lgn-name');
+  if (nameEl) nameEl.value = '';
 
   // Focus hidden input so desktop keyboard works
   setTimeout(function() {
@@ -3147,25 +3179,45 @@ function setAttemptsMsg(msg) {
 function submitPin() {
   if (_lockedUntil > Date.now()) return;
 
+  // ── Pre-flight: name must be present before touching the backend ──────────
+  var nameEl   = document.getElementById('lgn-name');
+  var userName = nameEl ? String(nameEl.value).trim() : '';
+  if (!userName) {
+    // Clear PIN buffer cleanly — do NOT call onWrongPin(), no attempt counted
+    _pinBuffer = '';
+    updateDots();
+    setLoginStatus('⚠️ Please enter your name first.');
+    setTimeout(function() { setLoginStatus(''); }, 2500);
+    return;
+  }
+
   var pin = _pinBuffer;
   _pinBuffer = '';
   updateDots();
+
+  // ── Device ID — generated once per device, stored in localStorage ─────────
+  // Full device ID logic ships in Step 5. Read defensively here so the
+  // payload is already shaped correctly when Step 5 activates it.
+  var deviceId = null;
+  try {
+    deviceId = localStorage.getItem('_deviceId') || null;
+  } catch(e) { /* localStorage unavailable — non-fatal */ }
 
   // Show verifying spinner, hide status text
   disablePad(true);
   showVerifying(true);
   setLoginStatus('');
 
-  gasPost({ action: 'validatePin', pin: pin })
+  gasPost({ action: 'validatePin', pin: pin, name: userName, deviceId: deviceId })
     .then(function(r) {
-  showVerifying(false);
-  disablePad(false);
-  if (!r || !r.user) {
-    onWrongPin();
-    return;
-  }
-  onLoginSuccess(r.user, r.token);
-})
+      showVerifying(false);
+      disablePad(false);
+      if (!r || !r.user) {
+        onWrongPin();
+        return;
+      }
+      onLoginSuccess(r.user, r.token);
+    })
     .catch(function(e) {
       showVerifying(false);
       disablePad(false);

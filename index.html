@@ -8017,11 +8017,17 @@ function loadUsers() {
       if (!users || !users.length) { stgEmpty(el, 'لا يوجد مستخدمون / No users found'); return; }
       el.innerHTML = users.map(function(u) {
         var initial    = (u.name || '?')[0].toUpperCase();
+        // Phase 12 Step 3: user is locked when col T >= 5 OR col C Status = 'Locked'
+        var isLocked   = (u.failedAttempts >= 5) ||
+                         (u.status && u.status.toLowerCase() === 'locked');
         var badgeClass = !u.active ? 'badge-off'
+                       : isLocked  ? 'badge-off'
                        : u.role === 'Admin'      ? 'badge-admin'
                        : u.role === 'Management' ? 'badge-mgmt'
                        : 'badge-occ';
-        var statusLabel = u.active ? u.role : 'Inactive';
+        var statusLabel = !u.active ? 'Inactive'
+                        : isLocked  ? 'Locked'
+                        : u.role;
         return '<div class="stg-user-row">' +
           '<div class="stg-user-avatar">' + initial + '</div>' +
           '<div class="stg-user-info">' +
@@ -8032,6 +8038,9 @@ function loadUsers() {
           '<div class="stg-user-actions">' +
             '<button class="stg-user-btn" onclick="openUserSheet(\'' + escHtml(u.name) + '\')">تعديل</button>' +
             '<button class="stg-user-btn" onclick="resetPin(\'' + escHtml(u.name) + '\')">PIN</button>' +
+            (isLocked
+              ? '<button class="stg-user-btn" onclick="unlockUserAction(\'' + escHtml(u.name) + '\')">🔓 فتح / Unlock</button>'
+              : '') +
             (u.active
               ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',false)">إيقاف</button>'
               : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',true)">تفعيل</button>') +

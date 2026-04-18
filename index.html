@@ -3244,11 +3244,9 @@ function submitPin() {
       // gasPost() re-throws backend errors with e.message = r.error string.
       var msg = (e && e.message) ? String(e.message) : '';
       if (msg.indexOf('Account locked') !== -1) {
-        // Strategy 3b — static locked message, no countdown. Auto-unlock
-        // ships in Step 3 alongside unlockUser(); until then retries after
-        // any delay will still fail, so no countdown is shown.
-        setLoginStatus('🔒 Account locked. Contact your administrator.');
-        setTimeout(function() { setLoginStatus(''); }, 5000);
+        // Phase 12 Step 3: disclose 30-min auto-unlock window.
+        setLoginStatus('🔒 Account locked. Try again in 30 minutes or contact your administrator.');
+        setTimeout(function() { setLoginStatus(''); }, 6000);
       } else if (msg.indexOf('Invalid name or PIN') !== -1) {
         setLoginStatus('⚠️ Invalid name or PIN. Try again.');
         setTimeout(function() { setLoginStatus(''); }, 3000);

@@ -8050,6 +8050,25 @@ function loadUsers() {
     }).catch(function() { stgError(el); });
 }
 
+// Phase 12 Step 3: admin-initiated unlock
+function unlockUserAction(name) {
+  if (!sessionValid()) return;
+  if (!confirm('Unlock ' + name + '? Their session will be cleared and they will need to log in again.')) return;
+  gasPost({
+    action:    'unlockUser',
+    payload:   { targetName: name },
+    token:     _session.token
+  })
+    .then(function(r) {
+      toast('✅ ' + name + ' unlocked', 'ok');
+      try { invalidateCache('users'); } catch(e) { /* non-fatal */ }
+      loadUsers();
+    })
+    .catch(function(e) {
+      toast('⚠️ Unlock failed: ' + (e && e.message ? e.message : 'Unknown error'), 'fail');
+    });
+}
+
 function openUserSheet(name) {
   var isEdit = !!name;
   var u = isEdit ? _usersCache.find(function(x){ return x.name === name; }) : null;

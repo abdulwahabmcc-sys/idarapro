@@ -3057,6 +3057,44 @@ var _lockTimer    = null;
 // { token, name, role, permissions, expires }
 var _session = null;
 
+// ── Device ID — generated once per device, persisted in localStorage ─────────
+// Phase 12 Step 5: activates single-session enforcement by giving each device
+// a stable identifier that backend loginUser() can compare against the stored
+// DEVICE_[name] PropertiesService key.
+//
+// Generated on first call if not already present. UUID v4 via crypto.randomUUID()
+// when available (all modern browsers); fallback uses Math.random() + timestamp
+// for older browsers where crypto.randomUUID is undefined.
+//
+// The ID is NOT considered a secret — it's not a credential, just a device
+// marker. If localStorage is wiped or the user switches browsers on the same
+// device, a new ID will be generated and single-session prompts may fire once
+// as the backend sees a "new" device. Acceptable UX.
+function getOrCreateDeviceId() {
+  try {
+    var existing = localStorage.getItem('_deviceId');
+    if (existing) return existing;
+
+    var newId;
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      newId = crypto.randomUUID();
+    } else {
+      // Fallback: timestamp + random. Not a true UUID, but sufficiently unique
+      // for single-session device distinction on older browsers.
+      newId = 'dev-' + Date.now().toString(36) + '-' +
+              Math.random().toString(36).substring(2, 10) +
+              Math.random().toString(36).substring(2, 10);
+    }
+    localStorage.setItem('_deviceId', newId);
+    return newId;
+  } catch(e) {
+    // localStorage unavailable (incognito restrictions, quota, etc.)
+    // Return null — backend will treat as "device unknown", single-session
+    // check stays inert for this session.
+    return null;
+  }
+}
+
 // ── GAS helpers ──────────────────────────────────────────────────────────────
 function gasGet(action, token) {
   var url = GAS + '?action=' + encodeURIComponent(action);
@@ -3214,13 +3252,11 @@ function submitPin() {
   _pinBuffer = '';
   updateDots();
 
-  // ── Device ID — generated once per device, stored in localStorage ─────────
-  // Full device ID logic ships in Step 5. Read defensively here so the
-  // payload is already shaped correctly when Step 5 activates it.
-  var deviceId = null;
-  try {
-    deviceId = localStorage.getItem('_deviceId') || null;
-  } catch(e) { /* localStorage unavailable — non-fatal */ }
+  // ── Device ID — generated on first visit, persisted in localStorage ──────
+  // Phase 12 Step 5: uses getOrCreateDeviceId() helper to ensure an ID exists
+  // before the first login attempt. Helper handles localStorage errors and
+  // returns null if unavailable — backend treats null deviceId as "unknown".
+  var deviceId = getOrCreateDeviceId();
 
   // Show verifying spinner, hide status text
   disablePad(true);
@@ -3231,6 +3267,65 @@ function submitPin() {
     .then(function(r) {
       showVerifying(false);
       disablePad(false);
+
+      // Phase 12 Step 5: single-session prompt handler.
+      // loginUser() returns { singleSessionPrompt: true } when this user has
+      // a live token on a different device. Ask the user to confirm override,
+      // then re-submit with confirmOverride:true using closure-captured pin,
+      // userName, and deviceId (no explicit temp storage — these variables
+      // are in outer submitPin() scope and remain accessible here).
+      if (r && r.singleSessionPrompt) {
+        var confirmed = confirm(
+          'Another session is active on a different device.\n\n' +
+          'Continue here? The other session will be ended.'
+        );
+        if (!confirmed) {
+          // User declined — return to login screen, no session created.
+          setLoginStatus('');
+          return;
+        }
+
+        // User confirmed — re-submit with confirmOverride:true.
+        // Closure captures pin, userName, deviceId from submitPin() scope.
+        disablePad(true);
+        showVerifying(true);
+        gasPost({
+          action:          'validatePin',
+          pin:             pin,
+          name:            userName,
+          deviceId:        deviceId,
+          confirmOverride: true
+        })
+          .then(function(r2) {
+            showVerifying(false);
+            disablePad(false);
+            if (!r2 || !r2.user) {
+              // Defensive — confirmOverride should never return singleSessionPrompt
+              // again or fail silently, but handle gracefully.
+              onWrongPin();
+              return;
+            }
+            onLoginSuccess(r2.user, r2.token);
+          })
+          .catch(function(e) {
+            showVerifying(false);
+            disablePad(false);
+            // Re-submission failed — treat as auth or network error.
+            var msg = (e && e.message) ? String(e.message) : '';
+            if (msg.indexOf('Account locked') !== -1) {
+              setLoginStatus('🔒 Account locked. Try again in 30 minutes or contact your administrator.');
+              setTimeout(function() { setLoginStatus(''); }, 6000);
+            } else if (msg.indexOf('Invalid name or PIN') !== -1) {
+              setLoginStatus('⚠️ Invalid name or PIN. Try again.');
+              setTimeout(function() { setLoginStatus(''); }, 3000);
+            } else {
+              setLoginStatus('📡 Network issue — check your connection.');
+              setTimeout(function() { setLoginStatus(''); }, 3000);
+            }
+          });
+        return;
+      }
+
       if (!r || !r.user) {
         onWrongPin();
         return;

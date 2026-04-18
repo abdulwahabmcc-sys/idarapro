@@ -3149,10 +3149,12 @@ function gasPost(body) {
 function handleSessionExpired() {
   if (_sessionExpired) return;  // already handling — prevent double-fire
   _sessionExpired = true;
-  _session = null;
   toast('⚠️ Session ended — please log in again.', 'fail');
   setTimeout(function() {
-    showLoginScreen();
+    // Delegate to doLogout() — it handles full state cleanup:
+    // clears _session, timers, session bar, gear icon, welcome splash,
+    // PIN dots, and calls showLoginScreen() to return to PIN entry.
+    doLogout();
   }, 1500);
 }
 

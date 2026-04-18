@@ -3057,6 +3057,11 @@ var _lockTimer    = null;
 // { token, name, role, permissions, expires }
 var _session = null;
 
+// Phase 12 Step 5: zombie-session flag. Set true while handleSessionExpired()
+// is in progress to prevent double-fire from simultaneous gasPost rejections.
+// Reset to false inside showLoginScreen() after redirect completes.
+var _sessionExpired = false;
+
 // ── Device ID — generated once per device, persisted in localStorage ─────────
 // Phase 12 Step 5: activates single-session enforcement by giving each device
 // a stable identifier that backend loginUser() can compare against the stored
@@ -3111,7 +3116,44 @@ function gasPost(body) {
     body: JSON.stringify(body)
   })
     .then(function(r) { return r.json(); })
-    .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });
+    .then(function(r) {
+      if (!r.ok) {
+        // Phase 12 Step 5: ambient zombie-session detection.
+        // If the backend returns any "Unauthorized" error (token rejected
+        // because another device took over, or 30-min session expired),
+        // gracefully return the user to the login screen instead of
+        // surfacing a raw error to the caller's .catch().
+        //
+        // Substring check is case-insensitive and matches both backend
+        // variants: '❌ Unauthorized.' and '❌ Unauthorized. Please log
+        // in again.' Does NOT match '❌ Admin access required' or
+        // '❌ Permission denied.' — those are valid-session permission
+        // errors, not zombie states.
+        var errMsg = String(r.error || '').toLowerCase();
+        if (errMsg.indexOf('unauthorized') !== -1) {
+          handleSessionExpired();
+        }
+        throw new Error(r.error);
+      }
+      return r.data;
+    });
+}
+
+// Phase 12 Step 5: ambient zombie-session handler
+// Called by gasPost() when any backend endpoint throws an Unauthorized error.
+// Clears in-memory session, surfaces a brief toast, then transitions back to
+// the login screen after a 1500ms delay so the user reads the notice.
+// The _sessionExpired flag prevents double-fire when multiple gasPost calls
+// return Unauthorized simultaneously (e.g. dashboard auto-refresh + user click
+// racing each other).
+function handleSessionExpired() {
+  if (_sessionExpired) return;  // already handling — prevent double-fire
+  _sessionExpired = true;
+  _session = null;
+  toast('⚠️ Session ended — please log in again.', 'fail');
+  setTimeout(function() {
+    showLoginScreen();
+  }, 1500);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3154,8 +3196,9 @@ function showLoginScreen() {
   var ls = document.getElementById('login-screen');
   ls.style.display = 'flex';
   ls.classList.remove('out');
-  _pinBuffer = '';
-  _attempts  = 0;
+  _pinBuffer      = '';
+  _attempts       = 0;
+  _sessionExpired = false;  // Phase 12 Step 5: reset zombie flag on login screen mount
   updateDots();
   setLoginStatus('');
   var nameEl = document.getElementById('lgn-name');

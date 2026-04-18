@@ -6139,6 +6139,22 @@ function watchNet() {
   }, { passive: true });
 }
 
+// Phase 12 Step 5: visibility-change zombie detection.
+// Browser timers (_rtimer) are throttled when the tab is backgrounded or the
+// phone screen is locked — so _rtimer may not fire for minutes, leaving the
+// user staring at a stale dashboard after they return to the tab. When the
+// tab regains visibility, fire a lightweight gasPost that will trigger
+// handleSessionExpired() via ambient detection if the session is now zombie.
+// The call itself also refreshes the token expiry (D4) as a side benefit.
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && _session && _session.token && !_sessionExpired) {
+    gasPost({ action: 'getAppData', token: _session.token }).catch(function() {
+      // Any failure — including Unauthorized — is already handled by gasPost's
+      // ambient zombie detection. Swallow here to prevent unhandled rejection.
+    });
+  }
+}, { passive: true });
+
 // ── Desktop keyboard support for PIN ─────────────────────────────────────────
 document.getElementById('pin-input').addEventListener('input', function(e) {
   var val = this.value.replace(/\D/g, '').slice(0, 4);

@@ -3149,13 +3149,26 @@ function gasPost(body) {
 function handleSessionExpired() {
   if (_sessionExpired) return;  // already handling — prevent double-fire
   _sessionExpired = true;
-  toast('⚠️ Session ended — please log in again.', 'fail');
+
+  // Phase 12 Step 5 polish: show full-screen overlay IMMEDIATELY to cover the
+  // dashboard before caller .catch() blocks zero-out widget values. The
+  // overlay bridges the 1000ms gap until doLogout() transitions to the login
+  // screen. Toast fallback fires only if the overlay element is missing from
+  // the DOM (defensive — should not happen in practice).
+  var overlay = document.getElementById('session-expired-overlay');
+  if (overlay) {
+    overlay.classList.add('show');
+  } else {
+    toast('⚠️ Session ended — please log in again.', 'fail');
+  }
+
   setTimeout(function() {
-    // Delegate to doLogout() — it handles full state cleanup:
-    // clears _session, timers, session bar, gear icon, welcome splash,
-    // PIN dots, and calls showLoginScreen() to return to PIN entry.
+    // Hide overlay, then delegate to doLogout() which handles full state
+    // cleanup: clears _session, timers, session bar, gear icon, welcome
+    // splash, PIN dots, and calls showLoginScreen() to return to PIN entry.
+    if (overlay) overlay.classList.remove('show');
     doLogout();
-  }, 1500);
+  }, 1000);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -13063,7 +13076,65 @@ function fmtMoney(val) {
       #scroll .world-seg  { max-width: 760px; }
       #scroll .main-panel { max-width: 760px; }
     }
+
+    /* Phase 12 Step 5: session-expired overlay */
+    /* Full-screen cover shown during zombie session detection. */
+    /* Uses var(--navy) at 0.97 opacity for brand consistency. */
+    /* z-index 99999 to sit above all other app content including login screen. */
+    .session-expired-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--navy);
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+      z-index: 99999;
+    }
+    .session-expired-overlay.show {
+      opacity: 0.97;
+      pointer-events: auto;
+    }
+    .session-expired-card {
+      text-align: center;
+      color: white;
+      padding: 2rem;
+      max-width: 320px;
+    }
+    .session-expired-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    .session-expired-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .session-expired-subtitle {
+      font-size: 1rem;
+      opacity: 0.8;
+      margin-bottom: 1.5rem;
+    }
+    .session-expired-hint {
+      font-size: 0.9rem;
+      opacity: 0.75;
+      line-height: 1.6;
+    }
 </style>
+
+<!-- Phase 12 Step 5: session-expired overlay -->
+<!-- Covers the entire app when zombie session detected, preventing user from -->
+<!-- seeing dashboard widgets zero-out during caller .catch() error handling. -->
+<div id="session-expired-overlay" class="session-expired-overlay">
+  <div class="session-expired-card">
+    <div class="session-expired-icon">⚠️</div>
+    <div class="session-expired-title">انتهت صلاحيةالجلسة</div>
+    <div class="session-expired-subtitle">Session ended</div>
+    <div class="session-expired-hint">الرجاء إعادة تسجيل الدخول<br>Please log in again</div>
+  </div>
+</div>
 
 </body>
 </html>

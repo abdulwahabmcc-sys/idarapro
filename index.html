@@ -3559,6 +3559,23 @@ function sessionValid() {
 }
 
 function doLogout() {
+  // Phase 12 Step 6: fire backend logout call (fire-and-forget) to invalidate
+  // col W token and clear DEVICE_[name] on the server. Bypasses gasPost() and
+  // uses raw fetch() so a failure (e.g. network drop, or session already dead
+  // in zombie case) does NOT trigger handleSessionExpired()'s overlay.
+  // Skipped entirely if _sessionExpired is true — the session is already
+  // dead on the backend, calling logoutUser would just produce spurious
+  // Unauthorized errors in the execution logs.
+  if (!_sessionExpired && _session && _session.token) {
+    try {
+      fetch(GAS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'logoutUser', token: _session.token })
+      }).catch(function() { /* swallow — local logout always succeeds */ });
+    } catch(e) { /* defensive — shouldn't throw, but swallow if it does */ }
+  }
+
   _session = null;
   if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
   if (_rtimer)       { clearInterval(_rtimer);       _rtimer = null; }

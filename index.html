@@ -8556,18 +8556,26 @@ function submitBalance() {
   var btn = document.getElementById('bal-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only.
+  // Composite recordId matches what editBalance used to acquire the lock (5g-10).
+  var payload = {
+    contractId: contract,
+    unit:       unit,
+    name:       name,
+    year:       parseInt(year),
+    type:       type,
+    amount:     parseFloat(amount) || 0,
+    date:       date,
+    notes:      notes
+  };
+  if (isEdit) {
+    payload.recordType = 'balance';
+    payload.recordId   = contract + ':' + year;
+  }
+
   gasPost({
     action: 'saveOpeningBalance',
-    payload: {
-      contractId: contract,
-      unit:       unit,
-      name:       name,
-      year:       parseInt(year),
-      type:       type,
-      amount:     parseFloat(amount) || 0,
-      date:       date,
-      notes:      notes
-    },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

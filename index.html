@@ -13534,6 +13534,148 @@ function fmtMoney(val) {
       opacity: 0.75;
       line-height: 1.6;
     }
+
+    /* ══════════════════════════════════════════════════════════════════════ */
+    /* Phase 12 Step 7 — edit lock countdown + modals                        */
+    /* ══════════════════════════════════════════════════════════════════════ */
+
+    /* Countdown indicator — fixed top-center of viewport.
+       Colors set dynamically by updateCountdownDisplay():
+         > 60s: var(--forest)
+         30–60s: var(--gold)
+         < 30s: var(--burg)                                                 */
+    .edit-lock-countdown {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9998;
+      background: var(--surf);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 22px;
+      padding: 6px 18px;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      direction: ltr;
+      /* display: none set inline on element — unhidden by updateCountdownDisplay */
+    }
+
+    /* Modal overlay — covers entire viewport with semi-transparent backdrop.
+       Both edit-lock-timeout-modal and edit-lock-interrupted-modal share
+       this base class. display:none by default (belt-and-braces with inline
+       style on the HTML element); set to 'flex' by show*Modal() helpers.   */
+    .edit-lock-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Modal card — centered white card with all the content. */
+    .edit-lock-modal-card {
+      background: var(--surf);
+      border-radius: 18px;
+      padding: 32px 36px;
+      max-width: 420px;
+      width: calc(100% - 40px);
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+      color: var(--navy);
+    }
+
+    .edit-lock-modal-icon {
+      font-size: 2.4rem;
+      margin-bottom: 8px;
+    }
+
+    .edit-lock-modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--navy);
+      direction: rtl;
+    }
+
+    .edit-lock-modal-subtitle {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 14px;
+      color: var(--navy);
+      opacity: 0.75;
+    }
+
+    /* Record pill — shows the specific record name that timed out /
+       was interrupted. Stands out with a subtle burgundy tint.           */
+    .edit-lock-modal-record {
+      display: inline-block;
+      background: rgba(155, 35, 53, 0.08);
+      color: var(--burg);
+      border: 1px solid rgba(155, 35, 53, 0.22);
+      border-radius: 999px;
+      padding: 4px 14px;
+      margin: 6px 0 16px 0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .edit-lock-modal-body {
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--navy);
+      opacity: 0.85;
+      margin-bottom: 22px;
+    }
+
+    .edit-lock-modal-btn {
+      background: var(--navy);
+      color: var(--surf);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 32px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 140px;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .edit-lock-modal-btn:hover {
+      background: var(--forest);
+    }
+
+    .edit-lock-modal-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Mobile adjustments — modals become nearly full-width,
+       countdown shrinks slightly.                                        */
+    @media (max-width: 480px) {
+      .edit-lock-countdown {
+        font-size: 13px;
+        padding: 5px 14px;
+        top: 10px;
+      }
+      .edit-lock-modal-card {
+        padding: 24px 20px;
+        width: calc(100% - 24px);
+      }
+      .edit-lock-modal-title {
+        font-size: 1.1rem;
+      }
+    }
 </style>
 
 <!-- Phase 12 Step 5: session-expired overlay -->

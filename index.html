@@ -6551,6 +6551,40 @@ document.addEventListener('visibilitychange', function() {
   }
 }, { passive: true });
 
+// ── Phase 12 Step 7 — edit lock overshoot detection ─────────────────────────
+// Browser setInterval timers are heavily throttled (often to once per minute
+// or less) when the tab is backgrounded. A 1-second countdown interval
+// becomes unreliable while backgrounded.
+//
+// Example: user opens edit form (t=0s), backgrounds tab at t=5s, returns at
+// t=130s. The setInterval may not have fired during background, so the
+// countdown still shows ~115s remaining even though the real elapsed time
+// is 130s — past the 120s limit.
+//
+// This listener fires when the tab regains visibility and checks whether
+// the wall-clock elapsed time has exceeded EDIT_LOCK_DURATION_MS. If so,
+// handleEditLockTimeout fires immediately — not on the next 1-second tick.
+//
+// Three guards:
+//   1. visibilityState === 'visible' — only fire on return, not on hide
+//   2. _editLockTimer !== null — only if a countdown is currently active
+//   3. _editLockOpenedAt > 0 — only if a lock was actually acquired
+//      (defensive — timer should not exist without openedAt, but guard
+//      against race where reset happens mid-visibilitychange)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState !== 'visible') return;
+  if (!_editLockTimer) return;
+  if (_editLockOpenedAt <= 0) return;
+
+  var elapsed = Date.now() - _editLockOpenedAt;
+  if (elapsed >= EDIT_LOCK_DURATION_MS) {
+    // Countdown expired while backgrounded — fire timeout handler now
+    handleEditLockTimeout();
+  }
+  // If still within countdown, the regular setInterval tick will pick up
+  // next second — no action needed here.
+}, { passive: true });
+
 // ── Desktop keyboard support for PIN ─────────────────────────────────────────
 document.getElementById('pin-input').addEventListener('input', function(e) {
   var val = this.value.replace(/\D/g, '').slice(0, 4);

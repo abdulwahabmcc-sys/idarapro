@@ -11010,8 +11010,20 @@ function addUtility() {
 }
 
 function editUtility(nameEn) {
+  if (!sessionValid()) return;
   var u = _utilityCache.find(function(x){ return x.nameEn === nameEn; });
-  openUtilitySheet(u || null);
+  if (!u) { toast('❌ Utility not found', 'fail'); return; }
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  // recordType is 'utilitydef' (utility definition) to distinguish from
+  // 'utilityprice' (used by editUtilityUnitPrice). Two different lockable
+  // resources for the same underlying utility.
+  var _utilDisplayName = nameEn + (u.nameAr ? ' / ' + u.nameAr : '');
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('utilitydef', nameEn, _utilDisplayName, function() {
+    openUtilitySheet(u);
+    startEditLockCountdown('utilitydef', nameEn, _utilDisplayName);
+  });
 }
 
 function toggleUtility(nameEn, activate, skipCheck) {

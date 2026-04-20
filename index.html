@@ -8505,6 +8505,11 @@ function _editBalanceInner(r) {
 }
 
 function closeBalSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  // Fire-and-forget — the helper handles its own error path silently.
+  // Called on: Cancel button click, save-success (via .then → closeBalSheet),
+  // admin-override takeover, and timeout (via handleEditLockTimeout).
+  releaseEditLockForCurrentForm();
   document.getElementById('bal-sheet-wrap').classList.remove('open');
 }
 
@@ -8790,6 +8795,8 @@ function _applyRoleVisibility(role) {
 }
 
 function closeUserSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('user-sheet-wrap').classList.remove('open');
 }
 
@@ -8965,6 +8972,8 @@ function _openYearCashFormInner(r, isEdit) {
 }
   
 function closeYearCashSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('yearcash-sheet-wrap').classList.remove('open');
 }
 
@@ -9140,6 +9149,8 @@ function openContactSheet(contact) {
 }
 
 function closeContactSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('contact-sheet-wrap').classList.remove('open');
 }
 
@@ -9336,6 +9347,8 @@ function openCategorySheet(type, cat) {
 }
 
 function closeCategorySheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('category-sheet-wrap').classList.remove('open');
 }
 
@@ -9579,6 +9592,8 @@ function addContract() {
 }
 
 function closeContractSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('contract-sheet-wrap').classList.remove('open');
   // Reset fields that may have been locked during edit mode
   var unitSel    = document.getElementById('cs-unit');
@@ -9959,6 +9974,8 @@ function openUnitSheet(unit) {
 }
 
 function closeUnitSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('unit-sheet-wrap').classList.remove('open');
 }
 
@@ -10135,6 +10152,8 @@ function applyFees() {
 }
 
 function closeFeeSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('fee-sheet-wrap').classList.remove('open');
   document.getElementById('fs-title').textContent = 'إضافة رسم / Add Fee Rule';
   document.getElementById('fs-edit-feeid').value  = '';
@@ -11062,6 +11081,8 @@ function openOverrideSheet(ov, idx) {
 }
 
 function closeOverrideSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('override-sheet-wrap').classList.remove('open');
 }
 
@@ -11322,6 +11343,8 @@ function openUtilitySheet(ut) {
 }
 
 function closeUtilitySheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('utility-sheet-wrap').classList.remove('open');
 }
 
@@ -11717,6 +11740,8 @@ function _editUtilityUnitPriceInner(utilityName, active) {
 }
 
 function closeUupSheet() {
+  // Phase 12 Step 7: release edit lock before closing the sheet.
+  releaseEditLockForCurrentForm();
   document.getElementById('uup-sheet-wrap').classList.remove('open');
 }
 

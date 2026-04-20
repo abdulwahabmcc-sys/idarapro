@@ -9197,9 +9197,22 @@ function addCategory(type) {
 }
 
 function editCategory(type, code) {
+  if (!sessionValid()) return;
   var cache = type === 'income' ? _incomeCatCache : _expenseCatCache;
   var c = cache.find(function(x){ return x.code === code; });
-  openCategorySheet(type, c || null);
+  if (!c) { toast('❌ Category not found', 'fail'); return; }
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  // Composite recordId: type:code (e.g. 'income:MAINT', 'expense:UTIL')
+  // Backend readEditLock handles the colon in recordId correctly — only
+  // recordType is forbidden from containing colons (validated in editlock.gs).
+  var _catRecordId = type + ':' + code;
+  var _catDisplayName = (c.nameEn || code) + ' (' + type + ')';
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('category', _catRecordId, _catDisplayName, function() {
+    openCategorySheet(type, c);
+    startEditLockCountdown('category', _catRecordId, _catDisplayName);
+  });
 }
 
 function openCategorySheet(type, cat) {

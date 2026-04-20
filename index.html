@@ -3062,6 +3062,42 @@ var _session = null;
 // Reset to false inside showLoginScreen() after redirect completes.
 var _sessionExpired = false;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 12 Step 7: record-level edit lock state
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Single-countdown-per-session assumption:
+//   Only ONE edit form can be open at a time — closeAnyOpenEditSheet()
+//   enforces this at the UI layer by closing all 11 wrap IDs before opening
+//   a new one. Module-level state vars below are therefore safe to be
+//   scalar (not keyed by record) without collision risk.
+//
+// Accepted failure modes — documented, not mitigated:
+//   1. Devtools manipulation: user can force _editLockOpenedAt = 0 and
+//      open multiple forms via JS. Backend 122s expiry catches this.
+//   2. Page refresh with form open: module state wiped; lock held until
+//      122s backend expiry releases it. User can re-acquire after that.
+//   3. Browser crash: same as #2 — 122s backend expiry is the safety net.
+//   4. Tab close: same as #2 — beforeunload was considered and rejected
+//      (unreliable across browsers, especially mobile).
+//
+// All four failure modes converge on the 122s EDIT_LOCK_BACKEND_EXPIRY_MS
+// backstop in editlock.gs. Frontend countdown is advisory, not enforcement.
+
+// Lock duration — 120 seconds frontend, 122 seconds backend (2s buffer)
+// Production: 120000
+// Testing SIM-FE-1/SIM-FE-2 and T11: temporarily 15000
+//   REVERT TO 120000 BEFORE PRODUCTION DEPLOY
+var EDIT_LOCK_DURATION_MS = 120000;
+
+// Active edit lock state — single-form-at-a-time
+// All four fields are reset to initial values by resetEditLockCountdown().
+var _editLockOpenedAt    = 0;     // epoch ms when current lock was acquired
+var _editLockTimer       = null;  // setInterval handle for countdown display
+var _editLockRecordType  = null;  // e.g. 'unit', 'fee', 'category'
+var _editLockRecordId    = null;  // e.g. 'U-14', 'FEE-...', 'income:MAINT'
+var _editLockDisplayName = null;  // human-readable label shown in modals
+
 // ── Device ID — generated once per device, persisted in localStorage ─────────
 // Phase 12 Step 5: activates single-session enforcement by giving each device
 // a stable identifier that backend loginUser() can compare against the stored

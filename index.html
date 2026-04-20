@@ -10440,17 +10440,25 @@ function onChargeNameChange() {
 }
 
 function editFee(feeId) {
+  if (!sessionValid()) return;
   var f = _feesCache.find(function(x){ return x.feeId === feeId; });
   if (!f) { toast('❌ Fee not found', 'fail'); return; }
 
-  // Show loading indicator on button
-  var btn = document.getElementById('fee-edit-btn-' + feeId);
-  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  // Phase 12 Step 7: acquire lock BEFORE loading fee lookups
+  // If lock is denied, we avoid the lookup fetch cost.
+  var _feeDisplayName = (f.name || feeId) + ' (' + feeId + ')';
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('fee', feeId, _feeDisplayName, function() {
+    // Lock acquired — show loading indicator on button, then load lookups
+    var btn = document.getElementById('fee-edit-btn-' + feeId);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
 
-  loadFeeLookups(function() {
-    // Restore button
-    if (btn) { btn.disabled = false; btn.textContent = 'تعديل'; }
-    openFeeSheet(f);
+    loadFeeLookups(function() {
+      // Restore button
+      if (btn) { btn.disabled = false; btn.textContent = 'تعديل'; }
+      openFeeSheet(f);
+      startEditLockCountdown('fee', feeId, _feeDisplayName);
+    });
   });
 }
 

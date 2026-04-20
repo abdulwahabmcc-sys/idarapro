@@ -8457,6 +8457,24 @@ function editBalanceById(contractId, year) {
 
 function editBalance(r) {
   if (!sessionValid()) return;
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  if (!r || !r.contractId || !r.year) {
+    toast('❌ Balance record missing contractId or year', 'fail');
+    return;
+  }
+  // Composite recordId: contractId + year — both fields are read-only
+  // in edit mode so the composite is stable across the edit session.
+  var _balRecordId = r.contractId + ':' + r.year;
+  var _balDisplayName = r.contractId + ' (' + r.year + ')';
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('balance', _balRecordId, _balDisplayName, function() {
+    _editBalanceInner(r);
+    startEditLockCountdown('balance', _balRecordId, _balDisplayName);
+  });
+}
+
+function _editBalanceInner(r) {
   document.getElementById('bal-title').textContent = 'تعديل رصيد افتتاحي / Edit Opening Balance';
   document.getElementById('bal-is-edit').value     = 'true';
   document.getElementById('bal-year').value        = r.year   || '';

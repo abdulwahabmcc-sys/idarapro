@@ -3225,6 +3225,332 @@ function handleSessionExpired() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// Phase 12 Step 7 — edit lock helpers
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Reset all edit-lock module state to initial values.
+ * Called at the START of acquireEditLockAndOpenForm (before gasPost),
+ * and called ALSO by release/close/timeout/interrupted paths.
+ *
+ * Idempotent — safe to call multiple times. Clears the countdown timer
+ * if running, hides the countdown display element.
+ */
+function resetEditLockCountdown() {
+  if (_editLockTimer) {
+    clearInterval(_editLockTimer);
+    _editLockTimer = null;
+  }
+  _editLockOpenedAt    = 0;
+  _editLockRecordType  = null;
+  _editLockRecordId    = null;
+  _editLockDisplayName = null;
+
+  var el = document.getElementById('edit-lock-countdown');
+  if (el) el.style.display = 'none';
+}
+
+/**
+ * Update the countdown DOM display based on remaining seconds.
+ * Colors: green > 60s, gold 30–60s, burgundy < 30s.
+ * Hides display entirely when remaining <= 0 (handleEditLockTimeout
+ * handles the final display).
+ */
+function updateCountdownDisplay(remainingMs) {
+  var el = document.getElementById('edit-lock-countdown');
+  if (!el) return;
+
+  if (remainingMs <= 0) {
+    el.style.display = 'none';
+    return;
+  }
+
+  var secs = Math.ceil(remainingMs / 1000);
+  var mins = Math.floor(secs / 60);
+  var rem  = secs % 60;
+  var text = mins + ':' + (rem < 10 ? '0' : '') + rem;
+
+  var color;
+  if (remainingMs > 60000) {
+    color = 'var(--forest)';
+  } else if (remainingMs > 30000) {
+    color = 'var(--gold)';
+  } else {
+    color = 'var(--burg)';
+  }
+
+  el.textContent = text;
+  el.style.color = color;
+  el.style.display = 'block';
+}
+
+/**
+ * Start the wall-clock countdown for the newly acquired lock.
+ * Uses Date.now() deltas against _editLockOpenedAt — NOT a decrementing
+ * counter — so tab-backgrounding doesn't drift. When user returns after
+ * the countdown has expired, the next tick detects the overshoot and
+ * fires handleEditLockTimeout.
+ *
+ * Called ONLY from acquireEditLockAndOpenForm after a successful acquire.
+ * Caller passes recordType, recordId, displayName which are then stored
+ * in module state for use by handleEditLockTimeout / showEditLockTimeoutModal.
+ */
+function startEditLockCountdown(recordType, recordId, displayName) {
+  _editLockOpenedAt    = Date.now();
+  _editLockRecordType  = recordType;
+  _editLockRecordId    = recordId;
+  _editLockDisplayName = displayName;
+
+  updateCountdownDisplay(EDIT_LOCK_DURATION_MS);
+
+  _editLockTimer = setInterval(function() {
+    var elapsed   = Date.now() - _editLockOpenedAt;
+    var remaining = EDIT_LOCK_DURATION_MS - elapsed;
+
+    if (remaining <= 0) {
+      handleEditLockTimeout();
+      return;
+    }
+
+    updateCountdownDisplay(remaining);
+  }, 1000);
+}
+
+/**
+ * Close any of the 11 possible edit sheet wrap elements.
+ * Called before opening a new form (closeAnyOpenEditSheet is a guard
+ * against stacked sheets) AND called from handleEditLockTimeout +
+ * showEditInterruptedModal click-OK handlers.
+ *
+ * The 11 wrap IDs are enumerated explicitly rather than via a CSS
+ * selector to avoid coupling to arbitrary DOM structure changes.
+ */
+function closeAnyOpenEditSheet() {
+  var wrapIds = [
+    'user-sheet-wrap',
+    'contact-sheet-wrap',
+    'category-sheet-wrap',
+    'contract-sheet-wrap',
+    'unit-sheet-wrap',
+    'fee-sheet-wrap',
+    'override-sheet-wrap',
+    'utility-sheet-wrap',
+    'uup-sheet-wrap',
+    'bal-sheet-wrap',
+    'yearcash-sheet-wrap'
+  ];
+  for (var i = 0; i < wrapIds.length; i++) {
+    var el = document.getElementById(wrapIds[i]);
+    if (el) el.classList.remove('open');
+  }
+}
+
+/**
+ * Release the currently-held lock by calling the backend releaseEditLock.
+ *
+ * Reset-first-then-fire-and-forget pattern:
+ *   1. Snapshot the recordType/recordId before resetting state
+ *   2. Reset all module state (so UI doesn't show stale countdown)
+ *   3. If we have a session AND a snapshot, fire the backend release
+ *      asynchronously with a .catch that console.logs but does NOT
+ *      surface the error to the user (prevents error cascades during
+ *      zombie session unwinding or network drops)
+ *
+ * The 122-second backend expiry is the safety net if this fire-and-forget
+ * call fails silently.
+ */
+function releaseEditLockForCurrentForm() {
+  // Snapshot before reset
+  var rt = _editLockRecordType;
+  var rid = _editLockRecordId;
+
+  // Reset state first — UI countdown hides immediately regardless of
+  // whether the backend release succeeds
+  resetEditLockCountdown();
+
+  // No snapshot = no lock to release
+  if (!rt || !rid) return;
+
+  // No session = no way to call gasPost (zombie state or post-logout).
+  // Backend 122s expiry will clean up.
+  if (!_session || !_session.token) {
+    console.log('releaseEditLockForCurrentForm: no session, skipping gasPost; backend 122s expiry will release.');
+    return;
+  }
+
+  gasPost({
+    action: 'releaseEditLock',
+    payload: { recordType: rt, recordId: rid },
+    token: _session.token
+  }).catch(function(e) {
+    // Fire-and-forget — log but don't propagate.
+    // Common cause: network drop or zombie auth. Backend 122s expiry
+    // will release the lock regardless.
+    console.log('releaseEditLockForCurrentForm: release failed (non-fatal) — ' + (e && e.message ? e.message : e));
+  });
+}
+
+/**
+ * Called by the countdown timer when remaining <= 0.
+ * Ordering: snapshot displayName, reset state (including timer), close
+ * the form, release the backend lock, then show the timeout modal.
+ */
+function handleEditLockTimeout() {
+  // Snapshot display name for the modal before reset clears it
+  var displayName = _editLockDisplayName || _editLockRecordId || 'the record / السجل';
+
+  // Reset state (clears timer, zeroes openedAt, nulls record fields)
+  // AND release the backend lock (fire-and-forget)
+  releaseEditLockForCurrentForm();
+
+  // Close whatever edit sheet is open
+  closeAnyOpenEditSheet();
+
+  // Show modal
+  showEditLockTimeoutModal(displayName);
+}
+
+/**
+ * Display the timeout modal — shown when the 120s countdown expires.
+ * Modal has a single OK button that just closes the modal (form is
+ * already closed by handleEditLockTimeout).
+ */
+function showEditLockTimeoutModal(displayName) {
+  var modal = document.getElementById('edit-lock-timeout-modal');
+  if (!modal) return;
+
+  var pill = document.getElementById('edit-lock-timeout-record');
+  if (pill) pill.textContent = displayName;
+
+  modal.style.display = 'flex';
+}
+
+/**
+ * Display the "editing session was interrupted" modal — shown when a
+ * save attempt throws the verifyEditLock generic error (meaning the
+ * lock was stolen via admin override, or the 122s backend expiry fired
+ * while the user was still editing).
+ *
+ * OK button closes the modal AND closes any open edit sheet AND resets
+ * the countdown (which may still be running if the user was mid-save
+ * when the backend returned the error).
+ */
+function showEditInterruptedModal(displayName) {
+  var modal = document.getElementById('edit-lock-interrupted-modal');
+  if (!modal) return;
+
+  var pill = document.getElementById('edit-lock-interrupted-record');
+  if (pill) pill.textContent = displayName;
+
+  modal.style.display = 'flex';
+}
+
+/**
+ * Admin override dialog — shown only when acquireEditLock returns
+ * {acquired: false, lockedBy: <otherUser>} AND the current user is Admin.
+ *
+ * Native confirm() matches existing codebase convention (delete modals,
+ * etc. use native confirms). Phase 13 item 11 will replace with branded
+ * modal across the whole app.
+ *
+ * Returns a promise that resolves if the user confirms AND the override
+ * succeeds, or rejects on cancel/override-failure.
+ */
+function showAdminOverrideDialog(recordType, recordId, displayName, lockedBy) {
+  var msg = 'This record is currently being edited by ' + lockedBy + '.\n\n' +
+            '"' + displayName + '"\n\n' +
+            'As Admin, you can force release their lock and take over editing. ' +
+            'Their unsaved changes will be lost.\n\n' +
+            'Force release?';
+
+  if (!confirm(msg)) {
+    return Promise.reject(new Error('Override cancelled'));
+  }
+
+  return gasPost({
+    action: 'releaseEditLock',
+    payload: { recordType: recordType, recordId: recordId, adminOverride: true },
+    token: _session.token
+  });
+}
+
+/**
+ * Primary entry point for all 12 open-form wrappers.
+ *
+ * Flow:
+ *   1. Reset prior state (idempotent — handles any leftover from a
+ *      previously-closed form)
+ *   2. Close any currently-open edit sheet
+ *   3. Call acquireEditLock via gasPost
+ *   4a. If acquired:true — call the passed openFn callback (which opens
+ *       the form + calls startEditLockCountdown)
+ *   4b. If acquired:false — check current user role:
+ *       - Admin: show override dialog; on confirm, retry acquire then
+ *         open the form
+ *       - Non-admin: show toast "Being edited by X" and stop
+ *   4c. Network error: show toast and stop (no state corruption —
+ *       reset was already called)
+ */
+function acquireEditLockAndOpenForm(recordType, recordId, displayName, openFn) {
+  if (!sessionValid()) return;
+
+  // Reset state defensively — lets callers skip their own resetEditLockCountdown
+  resetEditLockCountdown();
+
+  // Close any currently-open form (prevents sheet stacking)
+  closeAnyOpenEditSheet();
+
+  gasPost({
+    action: 'acquireEditLock',
+    payload: { recordType: recordType, recordId: recordId },
+    token: _session.token
+  }).then(function(result) {
+    if (result && result.acquired) {
+      // Happy path — caller's openFn opens the form + starts countdown
+      openFn();
+      return;
+    }
+
+    // Lock denied
+    var lockedBy = (result && result.lockedBy) || 'another user';
+
+    if (_session && _session.role === 'Admin') {
+      // Admin path — offer override
+      showAdminOverrideDialog(recordType, recordId, displayName, lockedBy)
+        .then(function() {
+          // Override succeeded — retry acquire
+          return gasPost({
+            action: 'acquireEditLock',
+            payload: { recordType: recordType, recordId: recordId },
+            token: _session.token
+          });
+        })
+        .then(function(retryResult) {
+          if (retryResult && retryResult.acquired) {
+            openFn();
+          } else {
+            toast('❌ Could not acquire lock after override', 'fail');
+          }
+        })
+        .catch(function(e) {
+          // Admin cancelled OR override/retry failed — silent on cancel,
+          // toast on real error
+          if (!e || !e.message || e.message.indexOf('cancelled') === -1) {
+            toast('❌ ' + ((e && e.message) || 'Override failed'), 'fail');
+          }
+        });
+    } else {
+      // Non-admin path — just show toast
+      toast('⏳ Being edited by ' + lockedBy + ' / قيد التعديل', 'info');
+    }
+  }).catch(function(e) {
+    // Network / backend error — show toast, don't try to open form
+    var msg = (e && e.message) || 'Could not check edit lock';
+    toast('❌ ' + msg, 'fail');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════════════════════════════════
 

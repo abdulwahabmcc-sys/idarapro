@@ -9793,10 +9793,19 @@ function addUnit() {
 }
 
 function editUnit(unitId) {
+  if (!sessionValid()) return;
   console.log('editUnit called:', unitId, '_unitsCache length:', _unitsCache.length);
-  var unit = _unitsCache.find(function(u) { return u.unitId === unitId; }) || null;
+  var unit = _unitsCache.find(function(u) { return u.unitId === unitId; });
   console.log('found unit:', unit);
-  openUnitSheet(unit);
+  if (!unit) { toast('❌ Unit not found', 'fail'); return; }
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  var _unitDisplayName = unitId + (unit.section ? ' — ' + unit.section : '');
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('unit', unitId, _unitDisplayName, function() {
+    openUnitSheet(unit);
+    startEditLockCountdown('unit', unitId, _unitDisplayName);
+  });
 }
 
 function openUnitSheet(unit) {

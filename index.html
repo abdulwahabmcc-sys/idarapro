@@ -9626,9 +9626,17 @@ function updateContractSubmit() {
 }
 
 function editContract(contractId) {
+  if (!sessionValid()) return;
   var c = _occAllRows.find(function(x){ return x.contractId === contractId; });
   if (!c) { toast('❌ Contract not found', 'fail'); return; }
-  openEditContractSheet(c);
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  var _contractDisplayName = contractId + ' — ' + (c.unitId || '') + ' / ' + (c.name || c.contactId || '');
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('contract', contractId, _contractDisplayName, function() {
+    openEditContractSheet(c);
+    startEditLockCountdown('contract', contractId, _contractDisplayName);
+  });
 }
 
 function openEditContractSheet(c) {

@@ -9347,9 +9347,17 @@ function submitCategory() {
   var btn = document.getElementById('cat-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only
+  // Composite recordId matches what editCategory used to acquire the lock.
+  var payload = { type: type, code: code, nameAr: nameAr, nameEn: nameEn, parent: parent, desc: desc, notes: notes, status: status, isEdit: isEdit };
+  if (isEdit) {
+    payload.recordType = 'category';
+    payload.recordId   = type + ':' + code;
+  }
+
   gasPost({
     action: 'saveCategory',
-    payload: { type: type, code: code, nameAr: nameAr, nameEn: nameEn, parent: parent, desc: desc, notes: notes, status: status, isEdit: isEdit },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

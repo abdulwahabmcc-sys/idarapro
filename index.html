@@ -13551,13 +13551,13 @@ function fmtMoney(val) {
 <!-- Phase 12 Step 7: edit lock countdown indicator -->
 <!-- Fixed top-center. Green > 60s, gold 30–60s, burgundy < 30s. -->
 <!-- Single shared element — only one edit form can be open at a time. -->
-<div id="edit-lock-countdown" class="edit-lock-countdown"></div>
+<div id="edit-lock-countdown" class="edit-lock-countdown" style="display: none;"></div>
 
 <!-- Phase 12 Step 7: countdown-timeout modal -->
 <!-- Shown when the 120s frontend countdown hits zero. -->
 <!-- Form was already closed + lock released by handleEditLockTimeout. -->
 <!-- Modal has single OK button that just closes the modal. -->
-<div id="edit-lock-timeout-modal" class="edit-lock-modal">
+<div id="edit-lock-timeout-modal" class="edit-lock-modal" style="display: none;">
   <div class="edit-lock-modal-card">
     <div class="edit-lock-modal-icon">⏰</div>
     <div class="edit-lock-modal-title">انتهت مهلة التعديل</div>
@@ -13579,7 +13579,7 @@ function fmtMoney(val) {
 <!-- (from backend verifyEditLock). Common causes: admin override took the -->
 <!-- lock while user was editing, or 122s backend expiry fired during save. -->
 <!-- OK button closes modal AND closes any open edit sheet AND resets countdown. -->
-<div id="edit-lock-interrupted-modal" class="edit-lock-modal">
+<div id="edit-lock-interrupted-modal" class="edit-lock-modal" style="display: none;">
   <div class="edit-lock-modal-card">
     <div class="edit-lock-modal-icon">⚠️</div>
     <div class="edit-lock-modal-title">تم قطع جلسة التعديل</div>

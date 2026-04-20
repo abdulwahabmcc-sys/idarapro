@@ -10011,6 +10011,12 @@ function submitUnit() {
   var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
   var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only
+  if (isEdit) {
+    payload.recordType = 'unit';
+    payload.recordId   = unitId;
+  }
+
   var btn = document.getElementById('us-submit');
   btn.disabled = true;
   btn.textContent = 'جاري الحفظ...';

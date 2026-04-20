@@ -8837,14 +8837,24 @@ function submitUser() {
   var btn = document.getElementById('usr-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: payload built as local var so we can enrich with lock
+  // identifiers on edit-mode saves. New-user saves omit these fields, which
+  // causes the backend's `if (u.recordType && u.recordId)` guard to skip
+  // verifyEditLock — correct behavior for new records with no lock.
+  var payload = {
+    name: name, email: email, role: role, status: status,
+    pin: pin, phone: phone, whatsapp: whatsapp,
+    activeDate: activeDate, inactiveDate: inactiveDate,
+    perms: perms, isEdit: isEdit
+  };
+  if (isEdit) {
+    payload.recordType = 'user';
+    payload.recordId   = name;
+  }
+
   gasPost({
     action: 'saveUser',
-    payload: {
-      name: name, email: email, role: role, status: status,
-      pin: pin, phone: phone, whatsapp: whatsapp,
-      activeDate: activeDate, inactiveDate: inactiveDate,
-      perms: perms, isEdit: isEdit
-    },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

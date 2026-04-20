@@ -10816,8 +10816,9 @@ function buildFeePayload() {
   var targetType = document.getElementById('fs-target-type').value;
   var targetVal  = (targetType === 'Category' || targetType === 'Occupancy Specific')
                    ? document.getElementById('fs-target-val-sel').value : '';
-  return {
-    feeId:              document.getElementById('fs-edit-feeid').value || '',
+  var feeIdVal = document.getElementById('fs-edit-feeid').value || '';
+  var payload = {
+    feeId:              feeIdVal,
     name:               document.getElementById('fs-edit-name').value || document.getElementById('fs-name').value,
     frequency:          document.getElementById('fs-frequency').value,
     status:             document.getElementById('fs-status').value,
@@ -10835,6 +10836,15 @@ function buildFeePayload() {
     markup:             parseFloat(document.getElementById('fs-markup').value) || 0,
     showMarkup:         document.getElementById('fs-show-markup').value
   };
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only.
+  // Edit mode signal: feeId is non-empty (populated by editFee via hidden input
+  // fs-edit-feeid). All downstream paths (direct submit, suspend-confirmation
+  // via _pendingFeePayload) receive the enriched payload.
+  if (feeIdVal) {
+    payload.recordType = 'fee';
+    payload.recordId   = feeIdVal;
+  }
+  return payload;
 }
 
 var _pendingFeePayload = null;

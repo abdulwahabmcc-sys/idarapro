@@ -11075,9 +11075,19 @@ function submitOverride() {
   var btn = document.getElementById('ov-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only.
+  // recordId is the row index — see fragility warning on editOverride function
+  // and on saveOverride in settings.gs. Phase 13 item 25 replaces this with
+  // a semantic Override ID column.
+  var payload = { contractId: contractId, type: type, value: value, appliesTo: appliesTo, reason: reason, start: start, end: end, approvedBy: approvedBy, notes: notes, isEdit: isEdit, rowIndex: rowIndex };
+  if (isEdit) {
+    payload.recordType = 'override';
+    payload.recordId   = String(rowIndex);
+  }
+
   gasPost({
     action: 'saveOverride',
-    payload: { contractId: contractId, type: type, value: value, appliesTo: appliesTo, reason: reason, start: start, end: end, approvedBy: approvedBy, notes: notes, isEdit: isEdit, rowIndex: rowIndex },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

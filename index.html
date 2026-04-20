@@ -9147,9 +9147,16 @@ function submitContact() {
   var btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only
+  var payload = { id: id, name: name, email: email, phone: phone, status: status, isEdit: isEdit };
+  if (isEdit) {
+    payload.recordType = 'contact';
+    payload.recordId   = id;
+  }
+
   gasPost({
     action: 'saveContact',
-    payload: { id: id, name: name, email: email, phone: phone, status: status, isEdit: isEdit },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

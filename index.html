@@ -3148,7 +3148,24 @@ function gasPost(body) {
 // racing each other).
 function handleSessionExpired() {
   if (_sessionExpired) return;  // already handling — prevent double-fire
+
+  // Phase 12 Step 7 — ORDERING IS CRITICAL
+  // Set _sessionExpired = true BEFORE calling releaseEditLockForCurrentForm.
+  //
+  // The release path under a zombie session may surface a backend error
+  // ("Unauthorized") which would normally route through the top-level
+  // error handler and could re-enter handleSessionExpired. The flag must
+  // be set first so re-entry short-circuits at the guard above.
+  //
+  // The helper is also guarded internally by a !_session check so the
+  // actual gasPost is skipped when session is missing. This is defense
+  // in depth — both guards serve overlapping purposes.
   _sessionExpired = true;
+
+  // Phase 12 Step 7 — release any active edit lock BEFORE overlay + logout
+  // Fire-and-forget: the helper handles its own .catch and logs but does
+  // not propagate errors up to here.
+  releaseEditLockForCurrentForm();
 
   // Phase 12 Step 5 polish: show full-screen overlay IMMEDIATELY to cover the
   // dashboard before caller .catch() blocks zero-out widget values. The

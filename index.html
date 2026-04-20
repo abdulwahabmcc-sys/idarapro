@@ -11498,6 +11498,19 @@ function editUtilityUnitPrice(utilityName) {
   }
   if (!active) { toast('❌ No active price found', 'fail'); return; }
 
+  // Phase 12 Step 7: acquire lock before opening edit form
+  // recordId is semantic (utilityName + effectiveDate) — stable across
+  // the edit session because both fields are read-only in edit mode.
+  var _uupRecordId = utilityName + ':' + (active.effectiveDate || '');
+  var _uupDisplayName = utilityName + ' (effective ' + (active.effectiveDate || 'unknown') + ')';
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('utilityprice', _uupRecordId, _uupDisplayName, function() {
+    _editUtilityUnitPriceInner(utilityName, active);
+    startEditLockCountdown('utilityprice', _uupRecordId, _uupDisplayName);
+  });
+}
+
+function _editUtilityUnitPriceInner(utilityName, active) {
   var utilitySel = document.getElementById('uup-utility');
   utilitySel.innerHTML = '<option value="' + escHtml(utilityName) + '">' + escHtml(utilityName) + '</option>';
 

@@ -3087,8 +3087,8 @@ var _sessionExpired = false;
 // Lock duration — 120 seconds frontend, 122 seconds backend (2s buffer)
 // Production: 120000
 // Testing SIM-FE-1/SIM-FE-2 and T11: temporarily 15000
-//   REVERT TO 120000 BEFORE PRODUCTION DEPLOY
-var EDIT_LOCK_DURATION_MS = 120000;
+//   REVERT TO 120000 BEFORE PRODUCTION DEPLOY ← CURRENTLY 15000 FOR SIM-FE TESTING
+var EDIT_LOCK_DURATION_MS = 15000;
 
 // Active edit lock state — single-form-at-a-time
 // All four fields are reset to initial values by resetEditLockCountdown().

@@ -13548,5 +13548,53 @@ function fmtMoney(val) {
   </div>
 </div>
 
+<!-- Phase 12 Step 7: edit lock countdown indicator -->
+<!-- Fixed top-center. Green > 60s, gold 30–60s, burgundy < 30s. -->
+<!-- Single shared element — only one edit form can be open at a time. -->
+<div id="edit-lock-countdown" class="edit-lock-countdown"></div>
+
+<!-- Phase 12 Step 7: countdown-timeout modal -->
+<!-- Shown when the 120s frontend countdown hits zero. -->
+<!-- Form was already closed + lock released by handleEditLockTimeout. -->
+<!-- Modal has single OK button that just closes the modal. -->
+<div id="edit-lock-timeout-modal" class="edit-lock-modal">
+  <div class="edit-lock-modal-card">
+    <div class="edit-lock-modal-icon">⏰</div>
+    <div class="edit-lock-modal-title">انتهت مهلة التعديل</div>
+    <div class="edit-lock-modal-subtitle">Edit session timed out</div>
+    <div class="edit-lock-modal-record" id="edit-lock-timeout-record"></div>
+    <div class="edit-lock-modal-body">
+      الرجاء إعادة فتح السجل للتعديل<br>
+      Please re-open the record to edit again
+    </div>
+    <button class="edit-lock-modal-btn"
+            onclick="document.getElementById('edit-lock-timeout-modal').style.display='none';">
+      موافق / OK
+    </button>
+  </div>
+</div>
+
+<!-- Phase 12 Step 7: save-interrupted modal -->
+<!-- Shown when save handler's .catch detects "editing session was interrupted" -->
+<!-- (from backend verifyEditLock). Common causes: admin override took the -->
+<!-- lock while user was editing, or 122s backend expiry fired during save. -->
+<!-- OK button closes modal AND closes any open edit sheet AND resets countdown. -->
+<div id="edit-lock-interrupted-modal" class="edit-lock-modal">
+  <div class="edit-lock-modal-card">
+    <div class="edit-lock-modal-icon">⚠️</div>
+    <div class="edit-lock-modal-title">تم قطع جلسة التعديل</div>
+    <div class="edit-lock-modal-subtitle">Editing session was interrupted</div>
+    <div class="edit-lock-modal-record" id="edit-lock-interrupted-record"></div>
+    <div class="edit-lock-modal-body">
+      لم يتم حفظ التغييرات. الرجاء إعادة فتح السجل للتعديل.<br>
+      No changes were saved. Please re-open the record to edit again.
+    </div>
+    <button class="edit-lock-modal-btn"
+            onclick="document.getElementById('edit-lock-interrupted-modal').style.display='none'; closeAnyOpenEditSheet(); resetEditLockCountdown();">
+      موافق / OK
+    </button>
+  </div>
+</div>
+
 </body>
 </html>

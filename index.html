@@ -11808,6 +11808,16 @@ function submitUtilityUnitPrice() {
     rowIndex:      rowIndex ? parseInt(rowIndex) : null
   };
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only.
+  // Single insertion point — all three downstream paths (direct doSaveUtilityUnitPrice,
+  // deferred via _uupPendingPayload in suspend dialog, deferred via _uupPendingPayload
+  // in future-dated dialog) receive the enriched payload from this object.
+  // recordId is composite (utilityName + effectiveDate) — matches 5g-9 wrapper.
+  if (isEdit) {
+    payload.recordType = 'utilityprice';
+    payload.recordId   = utilityName + ':' + effectiveDate;
+  }
+
   // Edit mode
   if (isEdit) {
     // Show suspend warning dialog

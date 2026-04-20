@@ -11332,14 +11332,23 @@ function submitUtility() {
   var btn = document.getElementById('ut-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
 
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only.
+  // recordType is 'utilitydef' (matches editUtility wrapper in 5g-8) to
+  // distinguish from 'utilityprice' used by submitUtilityUnitPrice.
+  var payload = {
+    nameEn: nameEn, nameAr: nameAr,
+    combinedName: combined,
+    status: status, meterType: meterType,
+    tag: tag, isEdit: isEdit
+  };
+  if (isEdit) {
+    payload.recordType = 'utilitydef';
+    payload.recordId   = nameEn;
+  }
+
   gasPost({
     action: 'saveUtility',
-    payload: {
-      nameEn: nameEn, nameAr: nameAr,
-      combinedName: combined,
-      status: status, meterType: meterType,
-      tag: tag, isEdit: isEdit
-    },
+    payload: payload,
     token: _session.token
   })
     .then(function(msg) {

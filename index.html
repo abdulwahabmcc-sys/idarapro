@@ -8990,7 +8990,14 @@ function submitYearCash() {
   btn.disabled = true;
   btn.textContent = 'جاري الحفظ...';
 
-  gasPost({ action: 'saveYearCash', payload: { year: year, opening: parseFloat(opening) || 0, isEdit: isEdit }, token: _session.token })
+  // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only
+  var payload = { year: year, opening: parseFloat(opening) || 0, isEdit: isEdit };
+  if (isEdit) {
+    payload.recordType = 'yearcash';
+    payload.recordId   = String(year);
+  }
+
+  gasPost({ action: 'saveYearCash', payload: payload, token: _session.token })
     .then(function(msg) {
       if (typeof msg === 'string' && msg.indexOf('❌') === 0) {
         showYearCashErr(msg);

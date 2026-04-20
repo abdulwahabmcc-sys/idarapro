@@ -8901,10 +8901,38 @@ function loadYearCash() {
     }).catch(function() { stgError(el); });
 }
 
+// Phase 12 Step 7: openYearCashForm refactored as wrapper + inner.
+// Wrapper gates on edit-vs-new:
+//   - Edit mode (r is found): acquires lock, opens form, starts countdown
+//   - New mode (r is null): opens form directly, no lock
+// Inner function (_openYearCashFormInner) contains the original body.
+//
+// This refactor also corrects the earlier duplicated-isEdit logic and the
+// preIsEdit array-indexing bug flagged in the architect's Item 3 review.
 function openYearCashForm(row) {
-  var isEdit = !!row;
+  if (!sessionValid()) return;
+
+  // Resolve row argument: if numeric, look up _yearCashCache; if object, use directly
   var r = (typeof row === 'number') ? _yearCashCache[row] : row;
-  isEdit = !!r;
+  var isEdit = !!r;
+
+  // Phase 12 Step 7: acquire lock before opening form (edit mode only)
+  if (isEdit) {
+    var _ycRecordId = String(r.year);
+    var _ycDisplayName = 'Year ' + r.year;
+    resetEditLockCountdown();
+    acquireEditLockAndOpenForm('yearcash', _ycRecordId, _ycDisplayName, function() {
+      _openYearCashFormInner(r, true);
+      startEditLockCountdown('yearcash', _ycRecordId, _ycDisplayName);
+    });
+    return;
+  }
+
+  // New year — open directly, no lock needed
+  _openYearCashFormInner(null, false);
+}
+
+function _openYearCashFormInner(r, isEdit) {
   document.getElementById('yc-title').textContent = isEdit ? 'تعديل السنة / Edit Year' : 'إضافة سنة / Add Year';
   document.getElementById('yc-year').value    = isEdit ? (r.year    || '') : new Date().getFullYear();
   document.getElementById('yc-opening').value = isEdit ? (r.opening || '') : '';

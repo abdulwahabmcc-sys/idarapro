@@ -10858,8 +10858,42 @@ function addOverride() {
   }
 }
 
+// Phase 12 Step 7: WARNING — row-index fragility
+//
+// UNIT_FEE_OVERRIDES currently lacks a unique ID column, so the edit-lock
+// recordId is the row index (idx parameter). This is a deliberate but
+// fragile choice with concrete failure modes:
+//
+//   1. If a user manually sorts UNIT_FEE_OVERRIDES in the Google Sheets UI
+//      while locks are held, indices for sorted rows shift — locks now
+//      protect the WRONG row. Backend verifyEditLock at save time would
+//      succeed against the new (wrong) row, overwriting it silently.
+//
+//   2. If a new override is added to the middle of the sheet (not append),
+//      indices for all following rows shift — same corruption pattern.
+//
+//   3. Current codebase only appends to UNIT_FEE_OVERRIDES (no insert, no
+//      delete), so #1 and #2 are not triggered in normal operation.
+//
+// Phase 13 item 25 resolves this permanently by adding an Override ID
+// column (OV-YYYYMMDD-NNN format) and switching recordId to the semantic ID.
+//
+// Until then: do NOT sort UNIT_FEE_OVERRIDES in the sheet UI, and do NOT
+// modify code to insert rows in the middle of the sheet.
 function editOverride(idx) {
-  openOverrideSheet(_overridesCache[idx] || null, idx);
+  if (!sessionValid()) return;
+  var ov = _overridesCache[idx];
+  if (!ov) { toast('❌ Override not found', 'fail'); return; }
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  // recordId is the row index — see fragility warning above.
+  var _ovRecordId = String(idx);
+  var _ovDisplayName = (ov.unitId || '?') + ' — ' + (ov.feeName || ov.feeId || '?');
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('override', _ovRecordId, _ovDisplayName, function() {
+    openOverrideSheet(ov, idx);
+    startEditLockCountdown('override', _ovRecordId, _ovDisplayName);
+  });
 }
 
 function openOverrideSheet(ov, idx) {

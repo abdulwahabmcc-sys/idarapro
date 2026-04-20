@@ -8630,6 +8630,12 @@ function submitBalance() {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showBalErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = document.getElementById('bal-is-edit').value === 'true' ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Balance';
@@ -8882,6 +8888,12 @@ function submitUser() {
       closeUserSheet(); loadUsers();
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showUserErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
@@ -9020,6 +9032,12 @@ function submitYearCash() {
       loadYearCash();
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showYearCashErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
@@ -9230,6 +9248,12 @@ function submitContact() {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showContactErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Contact';
@@ -9420,6 +9444,12 @@ function submitCategory() {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showCategoryErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category';
@@ -9803,6 +9833,12 @@ function submitContractEdit(contractId) {
       loadOccupancy();
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       toast('❌ ' + (e.message || 'Update failed'), 'fail');
       btn.disabled = false; btn.textContent = 'حفظ التعديل / Save Changes';
     });
@@ -10067,6 +10103,12 @@ function submitUnit() {
       loadUnits();
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showUnitErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
@@ -10968,6 +11010,12 @@ function doSaveFee(payload) {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showFeeErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled    = false;
       btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
@@ -11137,6 +11185,12 @@ function submitOverride() {
       closeOverrideSheet(); loadOverrides();
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showOverrideErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Override';
@@ -11444,6 +11498,12 @@ function submitUtility() {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showUtilityErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Utility';
@@ -12006,6 +12066,12 @@ function doSaveUtilityUnitPrice(payload) {
       }
     })
     .catch(function(e) {
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
+      var _errMsg = e && e.message ? e.message : String(e);
+      if (_errMsg.indexOf('editing session was interrupted') !== -1) {
+        showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
+        return;
+      }
       showUupErr('❌ ' + (e.message || 'Save failed'));
       btn.disabled    = false;
       btn.textContent = payload.isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Price';

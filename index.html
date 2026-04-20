@@ -9038,8 +9038,17 @@ function addContact() {
 }
 
 function editContact(id) {
+  if (!sessionValid()) return;
   var c = _contactsCache.find(function(x){ return x.contactId === id; });
-  openContactSheet(c || null);
+  if (!c) { toast('❌ Contact not found', 'fail'); return; }
+
+  // Phase 12 Step 7: acquire lock before opening edit form
+  var _contactDisplayName = c.name || id;
+  resetEditLockCountdown();
+  acquireEditLockAndOpenForm('contact', id, _contactDisplayName, function() {
+    openContactSheet(c);
+    startEditLockCountdown('contact', id, _contactDisplayName);
+  });
 }
 
 function openContactSheet(contact) {

@@ -8669,7 +8669,24 @@ function unlockUserAction(name) {
 }
 
 function openUserSheet(name) {
+  if (!sessionValid()) return;
   var isEdit = !!name;
+
+  // Phase 12 Step 7: acquire lock before opening edit form (edit mode only)
+  if (isEdit) {
+    resetEditLockCountdown();
+    acquireEditLockAndOpenForm('user', name, name, function() {
+      _openUserSheetInner(name, true);
+      startEditLockCountdown('user', name, name);
+    });
+    return;
+  }
+
+  // New user — open directly, no lock needed
+  _openUserSheetInner(null, false);
+}
+
+function _openUserSheetInner(name, isEdit) {
   var u = isEdit ? _usersCache.find(function(x){ return x.name === name; }) : null;
   document.getElementById('usr-title').textContent = isEdit ? 'تعديل مستخدم / Edit User' : 'إضافة مستخدم / Add User';
   document.getElementById('usr-name').value        = isEdit ? (u.name       || '') : '';

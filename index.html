@@ -9750,9 +9750,18 @@ function submitContractEdit(contractId) {
   if (!role) { toast('❌ Role is required', 'fail'); return; }
   var btn = document.getElementById('cs-submit');
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  // Phase 12 Step 7: enrich payload with lock identifiers.
+  // submitContractEdit is always edit-mode (new contracts use submitContract),
+  // so lock fields are added unconditionally — no isEdit guard needed.
   gasPost({
     action: 'editOccupancyContract',
-    payload: { contractId: contractId, role: role, endDate: endVal || '' },
+    payload: {
+      contractId: contractId,
+      role: role,
+      endDate: endVal || '',
+      recordType: 'contract',
+      recordId: contractId
+    },
     token: _session.token
   })
     .then(function(msg) {

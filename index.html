@@ -3445,37 +3445,9 @@ function showEditInterruptedModal(displayName) {
   modal.style.display = 'flex';
 }
 
-/**
- * Admin override dialog — shown only when acquireEditLock returns
- * {acquired: false, lockedBy: <otherUser>} AND the current user is Admin.
- *
- * Native confirm() matches existing codebase convention (delete modals,
- * etc. use native confirms). Phase 13 item 11 will replace with branded
- * modal across the whole app.
- *
- * Returns a promise that resolves if the user confirms AND the override
- * succeeds, or rejects on cancel/override-failure.
- */
-function showAdminOverrideDialog(recordType, recordId, displayName, lockedBy) {
-  var msg = 'This record is currently being edited by ' + lockedBy + '.\n\n' +
-            '"' + displayName + '"\n\n' +
-            'As Admin, you can force release their lock and take over editing. ' +
-            'Their unsaved changes will be lost.\n\n' +
-            'Force release?';
-
-  if (!confirm(msg)) {
-    return Promise.reject(new Error('Override cancelled'));
-  }
-
-  return gasPost({
-    action: 'releaseEditLock',
-    payload: { recordType: recordType, recordId: recordId, adminOverride: true },
-    token: _session.token
-  });
-}
 
 /**
- * Primary entry point for all 12 open-form wrappers.
+ * Primary entry point for all 11 open-form wrappers.
  *
  * Flow:
  *   1. Reset prior state (idempotent — handles any leftover from a
@@ -3484,10 +3456,9 @@ function showAdminOverrideDialog(recordType, recordId, displayName, lockedBy) {
  *   3. Call acquireEditLock via gasPost
  *   4a. If acquired:true — call the passed openFn callback (which opens
  *       the form + calls startEditLockCountdown)
- *   4b. If acquired:false — check current user role:
- *       - Admin: show override dialog; on confirm, retry acquire then
- *         open the form
- *       - Non-admin: show toast "Being edited by X" and stop
+ *   4b. If acquired:false — show toast "Being edited by X" for all users.
+ *       Concurrent editing is never permitted; the 122s backend expiry is
+ *       the safety net for abandoned edit sessions.
  *   4c. Network error: show toast and stop (no state corruption —
  *       reset was already called)
  */

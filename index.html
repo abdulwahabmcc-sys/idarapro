@@ -3427,9 +3427,11 @@ function showEditLockTimeoutModal(displayName) {
 
 /**
  * Display the "editing session was interrupted" modal — shown when a
- * save attempt throws the verifyEditLock generic error (meaning the
- * lock was stolen via admin override, or the 122s backend expiry fired
- * while the user was still editing).
+ * save attempt throws the verifyEditLock generic error. This happens
+ * when the 122s backend expiry fires on a lock that the user still
+ * believes is active (for example, a long-running edit session where
+ * the user backgrounded the tab and setInterval throttled, causing the
+ * frontend countdown to miss the overshoot).
  *
  * OK button closes the modal AND closes any open edit sheet AND resets
  * the countdown (which may still be running if the user was mid-save
@@ -8463,9 +8465,6 @@ function _editBalanceInner(r) {
 
 function closeBalSheet() {
   // Phase 12 Step 7: release edit lock before closing the sheet.
-  // Fire-and-forget — the helper handles its own error path silently.
-  // Called on: Cancel button click, save-success (via .then → closeBalSheet),
-  // admin-override takeover, and timeout (via handleEditLockTimeout).
   releaseEditLockForCurrentForm();
   document.getElementById('bal-sheet-wrap').classList.remove('open');
 }
@@ -14063,8 +14062,9 @@ function fmtMoney(val) {
 
 <!-- Phase 12 Step 7: save-interrupted modal -->
 <!-- Shown when save handler's .catch detects "editing session was interrupted" -->
-<!-- (from backend verifyEditLock). Common causes: admin override took the -->
-<!-- lock while user was editing, or 122s backend expiry fired during save. -->
+<!-- (from backend verifyEditLock). Common cause: 122s backend expiry fired -->
+<!-- during a save, usually because the frontend countdown drifted (e.g. tab -->
+<!-- backgrounded long enough for setInterval to throttle). -->
 <!-- OK button closes modal AND closes any open edit sheet AND resets countdown. -->
 <div id="edit-lock-interrupted-modal" class="edit-lock-modal" style="display: none;">
   <div class="edit-lock-modal-card">

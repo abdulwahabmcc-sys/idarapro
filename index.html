@@ -3399,14 +3399,19 @@ function handleEditLockTimeout() {
   // Snapshot display name for the modal before reset clears it
   var displayName = _editLockDisplayName || _editLockRecordId || 'the record / السجل';
 
-  // Reset state (clears timer, zeroes openedAt, nulls record fields)
-  // AND release the backend lock (fire-and-forget)
-  releaseEditLockForCurrentForm();
-
-  // Close whatever edit sheet is open
+  // CR-4 ordering: close the form FIRST, then release the backend lock.
+  // Rationale from Step 7 peer review: if releaseEditLockForCurrentForm
+  // threw synchronously (e.g. stale _editLockRecordType null-ref), a
+  // release-first order would leave the stale edit UI visible behind the
+  // modal. Close-first guarantees the form is gone before any other work.
   closeAnyOpenEditSheet();
 
-  // Show modal
+  // Fire-and-forget backend release. Also resets local state (clears
+  // timer, zeroes _editLockOpenedAt, nulls record fields).
+  releaseEditLockForCurrentForm();
+
+  // Show timeout modal with the snapshotted displayName (local state was
+  // nulled by releaseEditLockForCurrentForm, hence the snapshot at top).
   showEditLockTimeoutModal(displayName);
 }
 

@@ -3511,38 +3511,24 @@ function acquireEditLockAndOpenForm(recordType, recordId, displayName, openFn) {
       return;
     }
 
-    // Lock denied
+    // Lock denied — universal rule, no override.
+    // Design decision: concurrent editing of the same record is never allowed.
+    // Any user (including Admins) who tries to open a locked record sees this
+    // toast and must wait for the current editor to finish. The 122s backend
+    // expiry is the safety net for abandoned edit sessions (browser crash,
+    // device left unattended, etc).
+    //
+    // This replaces an earlier design that offered Admin users a "force
+    // release" override dialog. That design created more problems than it
+    // solved:
+    //   - Admin-vs-Admin collisions produced awkward UX (Phase 13 item 29)
+    //   - Retry loops could leak timer handles (Phase 13 item 31)
+    //   - "Their unsaved changes will be lost" was scary wording for what
+    //     should be a routine wait
+    //   - The 122s backend expiry already handles every legitimate stuck-lock
+    //     scenario, making override functionally redundant
     var lockedBy = (result && result.lockedBy) || 'another user';
-
-    if (_session && _session.role === 'Admin') {
-      // Admin path — offer override
-      showAdminOverrideDialog(recordType, recordId, displayName, lockedBy)
-        .then(function() {
-          // Override succeeded — retry acquire
-          return gasPost({
-            action: 'acquireEditLock',
-            payload: { recordType: recordType, recordId: recordId },
-            token: _session.token
-          });
-        })
-        .then(function(retryResult) {
-          if (retryResult && retryResult.acquired) {
-            openFn();
-          } else {
-            toast('❌ Could not acquire lock after override', 'fail');
-          }
-        })
-        .catch(function(e) {
-          // Admin cancelled OR override/retry failed — silent on cancel,
-          // toast on real error
-          if (!e || !e.message || e.message.indexOf('cancelled') === -1) {
-            toast('❌ ' + ((e && e.message) || 'Override failed'), 'fail');
-          }
-        });
-    } else {
-      // Non-admin path — just show toast
-      toast('⏳ Being edited by ' + lockedBy + ' / قيد التعديل', 'info');
-    }
+    toast('⏳ Being edited by ' + lockedBy + ' / قيد التعديل', 'info');
   }).catch(function(e) {
     // Network / backend error — show toast, don't try to open form
     var msg = (e && e.message) || 'Could not check edit lock';

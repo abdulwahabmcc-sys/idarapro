@@ -6590,10 +6590,10 @@ function openFiscal() {
   gasGet('previewFiscalClose', _session.token)
     .then(function(d) {
       _fiscal = d;
-      document.getElementById('cy-close').textContent = d.yearClosing;
-      document.getElementById('cy-open').textContent  = d.yearOpening;
-      document.getElementById('cy-cash').textContent  = '$' + d.cashCarryForward.toFixed(2);
-      document.getElementById('cy-units').textContent = d.unitCount;
+      document.getElementById('cy-close').textContent = d.year;
+      document.getElementById('cy-open').textContent  = d.year + 1;
+      document.getElementById('cy-cash').textContent  = '$' + d.closing.toFixed(2);
+      document.getElementById('cy-units').textContent = d.contractBalances.length;
       document.getElementById('modal').classList.add('open');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });

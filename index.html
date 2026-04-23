@@ -6587,7 +6587,7 @@ document.addEventListener('keydown', function(e) {
 
 function openFiscal() {
   if (!sessionValid()) return;
-  gasGet('previewFiscalClose')
+  gasGet('previewFiscalClose', _session.token)
     .then(function(d) {
       _fiscal = d;
       document.getElementById('cy-close').textContent = d.yearClosing;
@@ -6604,7 +6604,7 @@ function execClose() {
     toast('Please confirm first', 'fail');
     return;
   }
-  gasPost({ action: 'commitFiscalClose', payload: _fiscal })
+  gasPost({ action: 'commitFiscalClose', token: _session.token, payload: _fiscal })
     .then(function(msg) {
       toast(msg, 'ok');
       closeModal();
@@ -6718,7 +6718,7 @@ function stgLoad(name) {
     incat:     function() { loadCategories('income'); },
     excat:     function() { loadCategories('expense'); },
     balances:  loadBalances,
-    users:     loadUsers,
+    users:     function() { loadUsers(); loadUsersAudits(); }, // Phase 13 Patch A
     yearcash:  loadYearCash,
     yearend:   loadYearEnd,
     uup:       loadUtilityUnitPrices
@@ -8647,6 +8647,117 @@ function loadUsers() {
     }).catch(function() { stgError(el); });
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Phase 13 Patch A — Users tab diagnostic audits (items 37, 38)
+// Two independent fetches. Each resolves or fails on its own — one failure
+// does NOT blank the other card. Container cleared once up front before any
+// render so stale content from a previous open is not shown.
+// ──────────────────────────────────────────────────────────────────────────────
+function loadUsersAudits() {
+  if (!sessionValid()) return;
+
+  var host = document.getElementById('stg-users-audits');
+  if (!host) return; // defensive: container not in DOM
+
+  // Clear once, up front — removes stale content from previous render
+  host.innerHTML = '';
+
+  // Pre-create two card slots so order is stable regardless of which promise
+  // resolves first and so a failure in one does not disturb the other's slot.
+  var nameSlot  = document.createElement('div');
+  var emailSlot = document.createElement('div');
+  nameSlot.className  = 'stg-audit-card';
+  emailSlot.className = 'stg-audit-card';
+  nameSlot.innerHTML  = '<div class="stg-audit-loading">Loading name audit... / جاري تحميل تدقيق الأسماء...</div>';
+  emailSlot.innerHTML = '<div class="stg-audit-loading">Loading email audit... / جاري تحميل تدقيق البريد...</div>';
+  host.appendChild(nameSlot);
+  host.appendChild(emailSlot);
+
+  // ── Name casing audit — independent fetch ─────────────────────────────────
+  gasGet('getAdminNameCasingAudit', _session.token)
+    .then(function(d) {
+      nameSlot.innerHTML = _renderNameCasingAudit(d);
+    })
+    .catch(function(e) {
+      nameSlot.innerHTML =
+        '<div class="stg-audit-err">' +
+          '⚠️ Name casing audit failed. / فشل تدقيق تطابق حالة الأحرف للأسماء. ' +
+          '<span class="stg-audit-err-detail">' + escHtml(e && e.message ? e.message : '') + '</span>' +
+        '</div>';
+    });
+
+  // ── Email coverage audit — independent fetch ──────────────────────────────
+  gasGet('getAdminEmailAudit', _session.token)
+    .then(function(d) {
+      emailSlot.innerHTML = _renderEmailAudit(d);
+    })
+    .catch(function(e) {
+      emailSlot.innerHTML =
+        '<div class="stg-audit-err">' +
+          '⚠️ Email coverage audit failed. / فشل تدقيق تغطية البريد الإلكتروني. ' +
+          '<span class="stg-audit-err-detail">' + escHtml(e && e.message ? e.message : '') + '</span>' +
+        '</div>';
+    });
+}
+
+function _renderNameCasingAudit(d) {
+  var issues = (d && d.issues) ? d.issues : [];
+  var total  = (d && typeof d.total === 'number') ? d.total : 0;
+
+  if (!issues.length) {
+    return '<div class="stg-audit-ok">' +
+             '✅ Name casing consistent across ' + total + ' user(s). / ' +
+             'حالة أحرف الأسماء متطابقة عبر ' + total + ' مستخدم.' +
+           '</div>';
+  }
+
+  var rows = issues.map(function(pair) {
+    return '<div class="stg-audit-row">' +
+             '<span class="stg-audit-val">' + escHtml(pair.row1.name) + '</span> ' +
+             '<span class="stg-audit-meta">(row ' + pair.row1.row + ')</span> ' +
+             '<span class="stg-audit-vs">↔</span> ' +
+             '<span class="stg-audit-val">' + escHtml(pair.row2.name) + '</span> ' +
+             '<span class="stg-audit-meta">(row ' + pair.row2.row + ')</span>' +
+           '</div>';
+  }).join('');
+
+  return '<div class="stg-audit-warn">' +
+           '<div class="stg-audit-warn-hdr">' +
+             '⚠️ Name casing mismatch — ' + issues.length + ' pair(s) found. / ' +
+             'عدم تطابق في حالة أحرف الأسماء — تم العثور على ' + issues.length + ' زوج.' +
+           '</div>' +
+           rows +
+         '</div>';
+}
+
+function _renderEmailAudit(d) {
+  var issues = (d && d.issues) ? d.issues : [];
+
+  if (!issues.length) {
+    return '<div class="stg-audit-ok">' +
+             '✅ All users have a valid email. / ' +
+             'جميع المستخدمين لديهم بريد إلكتروني صالح.' +
+           '</div>';
+  }
+
+  var rows = issues.map(function(u) {
+    return '<div class="stg-audit-row">' +
+             '<span class="stg-audit-val">' + escHtml(u.name) + '</span> ' +
+             '<span class="stg-audit-meta">(row ' + u.row + ')</span> ' +
+             '<span class="stg-audit-vs">→</span> ' +
+             '<span class="stg-audit-val stg-audit-val-bad">' + escHtml(u.email) + '</span>' +
+           '</div>';
+  }).join('');
+
+  return '<div class="stg-audit-warn">' +
+           '<div class="stg-audit-warn-hdr">' +
+             '⚠️ Email coverage issue — ' + issues.length + ' user(s) affected. / ' +
+             'مشكلة في تغطية البريد الإلكتروني — ' + issues.length + ' مستخدم متأثر.' +
+           '</div>' +
+           rows +
+         '</div>';
+}
+
 // Phase 12 Step 3: admin-initiated unlock
 function unlockUserAction(name) {
   if (!sessionValid()) return;
@@ -8660,6 +8771,7 @@ function unlockUserAction(name) {
       toast('✅ ' + name + ' unlocked', 'ok');
       try { invalidateCache('users'); } catch(e) { /* non-fatal */ }
       loadUsers();
+      loadUsersAudits(); // Phase 13 Patch A — refresh audits after unlock
     })
     .catch(function(e) {
       toast('⚠️ Unlock failed: ' + (e && e.message ? e.message : 'Unknown error'), 'fail');
@@ -8846,7 +8958,7 @@ function submitUser() {
       }
       invalidateCache('users');
       toast('✅ User saved successfully / تم حفظ المستخدم بنجاح', 'ok');
-      closeUserSheet(); loadUsers();
+      closeUserSheet(); loadUsers(); loadUsersAudits(); // Phase 13 Patch A
     })
     .catch(function(e) {
       // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
@@ -12499,6 +12611,7 @@ function fmtMoney(val) {
       </div>
       <div class="stg-sec-body">
         <div id="stg-users-list" class="stg-list-wrap"></div>
+        <div id="stg-users-audits"></div>
         <button class="stg-add-btn" onclick="openUserSheet(null)">＋ إضافة مستخدم / Add User</button>
       </div>
     </div>

@@ -4082,7 +4082,7 @@ function applyPermissionUI(auth) {
   
 
   // All other roles — hide tabs based on permissions
-  var hasAnyReport = perms.REP_YTD || perms.REP_CUR || perms.REP_LST || perms.REP_JRN;
+  var hasAnyReport = perms.REP_BLD;
 
 
   if (!perms.INC) { 
@@ -4143,15 +4143,15 @@ function applyPermissionUI(auth) {
   }
 
   // Hide report type options the user can't access
-  if (!perms.REP_YTD) document.querySelector('#sel-rep [value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display          = 'none');
-  if (!perms.REP_CUR) document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
-  if (!perms.REP_LST) document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
-  if (!perms.REP_JRN) document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
+  if (!perms.REP_BLD) document.querySelector('#sel-rep [value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display          = 'none');
+  if (!perms.REP_BLD) document.querySelector('#sel-rep [value="CurrentMonth"]') && (document.querySelector('#sel-rep [value="CurrentMonth"]').style.display = 'none');
+  if (!perms.REP_BLD) document.querySelector('#sel-rep [value="LastMonth"]')    && (document.querySelector('#sel-rep [value="LastMonth"]').style.display    = 'none');
+  if (!perms.REP_BLD) document.querySelector('#sel-rep [value="Journal"]')      && (document.querySelector('#sel-rep [value="Journal"]').style.display      = 'none');
 
   // Hide report cards based on permissions
-  if (!perms.REP_YTD) { var rcYtd = document.getElementById('rc-ytd');     if (rcYtd) rcYtd.style.display = 'none'; }
-  if (!perms.REP_CUR) { var rcMon = document.getElementById('rc-month');   if (rcMon) rcMon.style.display = 'none'; }
-  if (!perms.REP_JRN) { var rcJrn = document.getElementById('rc-journal'); if (rcJrn) rcJrn.style.display = 'none'; }
+  if (!perms.REP_BLD) { var rcYtd = document.getElementById('rc-ytd');     if (rcYtd) rcYtd.style.display = 'none'; }
+  if (!perms.REP_BLD) { var rcMon = document.getElementById('rc-month');   if (rcMon) rcMon.style.display = 'none'; }
+  if (!perms.REP_BLD) { var rcJrn = document.getElementById('rc-journal'); if (rcJrn) rcJrn.style.display = 'none'; }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -4194,7 +4194,7 @@ function initApp(d) {
     var p = _session.permissions;
     if (p.INC) setTab('Income');
     else if (p.EXP) setTab('Expense');
-    else if (p.REP_YTD || p.REP_CUR || p.REP_LST || p.REP_JRN) setTab('Report');
+    else if (p.REP_BLD) setTab('Report');
     else if (p.MTR_RED) setTab('Meter');
     else setTab('Income'); // fallback
   } else {
@@ -4529,10 +4529,10 @@ function _loadGenerateTab(world) {
           var oCur = repSel.querySelector('[value="CurrentMonth"]');
           var oLst = repSel.querySelector('[value="LastMonth"]');
           var oJrn = repSel.querySelector('[value="Journal"]');
-          if (!p.REP_YTD && oYtd) oYtd.style.display = 'none';
-          if (!p.REP_CUR && oCur) oCur.style.display = 'none';
-          if (!p.REP_LST && oLst) oLst.style.display = 'none';
-          if (!p.REP_JRN && oJrn) oJrn.style.display = 'none';
+          if (!p.REP_BLD && oYtd) oYtd.style.display = 'none';
+          if (!p.REP_BLD && oCur) oCur.style.display = 'none';
+          if (!p.REP_BLD && oLst) oLst.style.display = 'none';
+          if (!p.REP_BLD && oJrn) oJrn.style.display = 'none';
         }
       }
 
@@ -8815,15 +8815,13 @@ function _openUserSheetInner(name, isEdit) {
   if (isEdit && u.perms) {
     document.getElementById('usr-perm-inc').checked = !!u.perms.INC;
     document.getElementById('usr-perm-exp').checked = !!u.perms.EXP;
-    document.getElementById('usr-perm-ytd').checked = !!u.perms.REP_YTD;
-    document.getElementById('usr-perm-cur').checked = !!u.perms.REP_CUR;
-    document.getElementById('usr-perm-lst').checked = !!u.perms.REP_LST;
-    document.getElementById('usr-perm-jrn').checked = !!u.perms.REP_JRN;
+    document.getElementById('usr-perm-rep-bld').checked = !!u.perms.REP_BLD;
+    document.getElementById('usr-perm-rep-acc').checked = !!u.perms.REP_ACC;
     document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
     document.getElementById('usr-perm-dispatch').checked = !!u.perms.DISPATCH;
     document.getElementById('usr-perm-rep-sec').checked = !!u.perms.REP_SEC;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-ytd','usr-perm-cur','usr-perm-lst','usr-perm-jrn','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
@@ -8840,14 +8838,15 @@ function _openUserSheetInner(name, isEdit) {
 
 // ── Role default permissions ──────────────────────────────
 var ROLE_DEFAULTS = {
-  'Admin':               { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:true  },
-  'Management':          { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
-  'Reader':              { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:true,  hidePerms:false },
-  'Billing':             { inc:false, exp:false, ytd:true,  cur:true,  lst:true,  jrn:true,  mtr:false, hidePerms:false },
-  'Accounts Payable':    { inc:false, exp:true,  ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
-  'Accounts Receivable': { inc:true,  exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
-  'Porter':              { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:false },
-  'Occupant':            { inc:false, exp:false, ytd:false, cur:false, lst:false, jrn:false, mtr:false, hidePerms:true  }
+  'Admin':              { inc:false, exp:false, bld:false,  acc:false, mtr:false, hidePerms:true  },
+  'Management':         { inc:false, exp:false, bld:true,  acc:false, mtr:false, hidePerms:false },
+  'Reader':             { inc:false, exp:false, bld:false, acc:false, mtr:true,  hidePerms:false },
+  'Billing':            { inc:false, exp:false, bld:true,  acc:false, mtr:false, hidePerms:false },
+  'Account Payable':    { inc:false, exp:true,  bld:false, acc:false, mtr:false, hidePerms:false },
+  'Account Receivable': { inc:true,  exp:false, bld:false, acc:false, mtr:false, hidePerms:false },
+  'Porter':             { inc:false, exp:false, bld:false, acc:false, mtr:false, hidePerms:false },
+  'External':           { inc:false, exp:false, bld:false, acc:false, mtr:false, hidePerms:false },
+  'Occupant':            { inc:false, exp:false, bld:false, acc:false, mtr:false, hidePerms:true  }
 };
 
 // Called on role dropdown change — updates visibility AND populates defaults
@@ -8858,10 +8857,8 @@ function onRoleChange(role) {
   // Only auto-populate defaults when user manually changes role
   document.getElementById('usr-perm-inc').checked = defaults.inc;
   document.getElementById('usr-perm-exp').checked = defaults.exp;
-  document.getElementById('usr-perm-ytd').checked = defaults.ytd;
-  document.getElementById('usr-perm-cur').checked = defaults.cur;
-  document.getElementById('usr-perm-lst').checked = defaults.lst;
-  document.getElementById('usr-perm-jrn').checked = defaults.jrn;
+  document.getElementById('usr-perm-rep-bld').checked = defaults.bld;
+  document.getElementById('usr-perm-rep-acc').checked = defaults.acc;
   document.getElementById('usr-perm-mtr').checked = defaults.mtr;
 }
 
@@ -8907,10 +8904,8 @@ function submitUser() {
   var perms = {
     INC:     document.getElementById('usr-perm-inc').checked,
     EXP:     document.getElementById('usr-perm-exp').checked,
-    REP_YTD: document.getElementById('usr-perm-ytd').checked,
-    REP_CUR: document.getElementById('usr-perm-cur').checked,
-    REP_LST: document.getElementById('usr-perm-lst').checked,
-    REP_JRN: document.getElementById('usr-perm-jrn').checked,
+    REP_BLD: document.getElementById('usr-perm-rep-bld').checked,
+    REP_ACC: document.getElementById('usr-perm-rep-acc').checked,
     MTR_RED:  document.getElementById('usr-perm-mtr').checked,
     DISPATCH: document.getElementById('usr-perm-dispatch').checked,
     REP_SEC:  document.getElementById('usr-perm-rep-sec').checked
@@ -13708,9 +13703,10 @@ function fmtMoney(val) {
           <option value="Management">Management</option>
           <option value="Reader">Reader</option>
           <option value="Billing">Billing</option>
-          <option value="Accounts Payable">Accounts Payable</option>
-          <option value="Accounts Receivable">Accounts Receivable</option>
+          <option value="Account Payable">Account Payable</option>
+          <option value="Account Receivable">Account Receivable</option>
           <option value="Porter">Porter</option>
+          <option value="External">External / خارجي</option>
           <option value="Occupant">Occupant</option>
         </select>
       </div>
@@ -13766,16 +13762,10 @@ function fmtMoney(val) {
           <input type="checkbox" id="usr-perm-exp"> Expense / مصروف
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-ytd"> Report YTD
+          <input type="checkbox" id="usr-perm-rep-bld"> Building Reports / تقارير المبنى
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-cur"> Report Current Month
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-lst"> Report Last Month
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-jrn"> Report Journal
+          <input type="checkbox" id="usr-perm-rep-acc"> Accounting Reports / تقارير محاسبية
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-mtr"> Meter Readings

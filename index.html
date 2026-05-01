@@ -4450,7 +4450,7 @@ function setStmtWorld(world) {
   _loadStmtSubtabData(world, _stmtSubtab[world]);
 }
 
-function setStmtSubtab(world, tab) {
+function setStmtSubtab(world, tab, skipFetch) {
   _stmtSubtab[world] = tab;
   var prefix = world === 'building' ? 'bld' : 'sec';
   var tabs   = ['generate', 'draft', 'approved', 'sent', 'unprocessed'];
@@ -4460,7 +4460,11 @@ function setStmtSubtab(world, tab) {
     if (btn)  btn.classList.toggle('on', t === tab);
     if (pane) pane.classList.toggle('hide', t !== tab);
   });
-  _loadStmtSubtabData(world, tab);
+  // Patch E Wave 1: skipFetch=true allows post-write callers to switch subtab
+  // without triggering a follow-up gasPost. Caller must have already updated
+  // local cache. Tab-button onclicks pass nothing (default false → fetch as
+  // before).
+  if (!skipFetch) _loadStmtSubtabData(world, tab);
 }
 
 function renderGenerationLogFromData(logEl, rows, world) {
@@ -4953,9 +4957,32 @@ function triggerBuildingApprove(parentRowIndex) {
   }).then(function(res) {
     var parsed = typeof res === 'string' ? JSON.parse(res) : res;
     toast('✅ ' + (parsed.message || 'Approved.'), 'ok');
-    loadBuildingStatements('Draft');
-    loadBuildingStatements('Approved');
-    setStmtSubtab('building', 'approved');
+
+    // ── Patch E Wave 1 — refresh-chain elimination ────────────────────────
+    // Pre-Patch-E this triggered THREE follow-up gasPost calls:
+    //   loadBuildingStatements('Draft')    [refresh #1]
+    //   loadBuildingStatements('Approved') [refresh #2]
+    //   setStmtSubtab('building','approved') → loadBuildingStatements('Approved') [duplicate of #2 — BUG]
+    // Patch E consumes the enriched approvedCard and updates cache locally.
+    if (parsed.approvedCard) {
+      // Cache is single-bucketed; setting it to [approvedCard] makes the
+      // Approved subtab render the just-approved card. Other tabs re-fetch
+      // on demand via setStmtSubtab default behaviour.
+      _bldStmtCache = [parsed.approvedCard];
+
+      var approvedListEl = document.getElementById('bld-approved-list');
+      if (approvedListEl) {
+        approvedListEl.innerHTML = _bldStmtCache.map(function(parent) {
+          return renderBuildingCard(parent, 'approved');
+        }).join('');
+      }
+      setStmtSubtab('building', 'approved', /* skipFetch */ true);
+    } else {
+      // Legacy fallback
+      loadBuildingStatements('Draft');
+      loadBuildingStatements('Approved');
+      setStmtSubtab('building', 'approved');
+    }
   }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
@@ -4972,8 +4999,39 @@ function triggerBuildingBroadcast(parentRowIndex) {
     if (parsed.skipped)       msg += ' · تخطّى: '  + parsed.skipped;
     if (parsed.manualSkipped) msg += ' · يدوي: '   + parsed.manualSkipped;
     toast(msg, 'ok');
-    loadBuildingStatements('Approved');
-    loadBuildingStatements('Sent');
+
+    // ── Patch E Wave 1 — refresh-chain elimination ────────────────────────
+    // Bucket routing per Q3 ruling: parsed.parentMoved tells us whether
+    // parent stayed at Approved or moved to Sent. Backend returns the card
+    // in the appropriate field; the other field is null.
+    if (parsed.approvedCard || parsed.sentCard) {
+      var card = parsed.approvedCard || parsed.sentCard;
+      var targetBucket = parsed.parentMoved ? 'sent' : 'approved';
+      _bldStmtCache = [card];
+
+      var listEl = document.getElementById('bld-' + targetBucket + '-list');
+      if (listEl) {
+        listEl.innerHTML = _bldStmtCache.map(function(parent) {
+          return renderBuildingCard(parent, targetBucket);
+        }).join('');
+      }
+      // Stay on current subtab — don't force navigation. User clicked
+      // Broadcast from Approved tab; if parent stayed Approved, refresh that
+      // tab's content (already done above). If parent moved to Sent, the
+      // Approved tab's old card is now absent — refresh that view too.
+      var oppositeBucket = parsed.parentMoved ? 'approved' : 'sent';
+      var oppositeListEl = document.getElementById('bld-' + oppositeBucket + '-list');
+      if (oppositeListEl && parsed.parentMoved) {
+        // Parent moved out of Approved; clear that bucket's view so user sees
+        // it's gone if they look. Since cache is single-bucketed, we only
+        // know the new state for one bucket; the other becomes "needs refresh".
+        oppositeListEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:12px;">⟳ تحديث... / refresh tab to view</div>';
+      }
+    } else {
+      // Legacy fallback
+      loadBuildingStatements('Approved');
+      loadBuildingStatements('Sent');
+    }
   }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
@@ -5406,8 +5464,39 @@ function generateBuildingStatement() {
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'Statement generated'), 'ok');
-      renderGenerationLog('building');
-      setStmtSubtab('building', 'draft');
+
+      // ── Patch E Wave 1 — refresh-chain elimination ────────────────────────
+      // Consume enriched response fields to avoid follow-up gasPost calls.
+      // Falls back to legacy refresh chain if backend hasn't been deployed yet
+      // (Q6.a deployment order: backend first, then frontend; during the gap,
+      // old frontend ignored new fields, new frontend handles either response).
+      if (parsed.draftCard && parsed.generationLogEntry) {
+        // Update Building cache — single-bucketed by current view; we set it
+        // to the just-created Draft so the Draft subtab renders with the new
+        // card. If user navigates to other tabs, those tabs re-fetch on demand.
+        _bldStmtCache = [parsed.draftCard];
+
+        // Append the new generation log entry (newest-first ordering).
+        if (!_genLogCache) _genLogCache = { building: [], section: [] };
+        _genLogCache.building = [parsed.generationLogEntry].concat(_genLogCache.building || []);
+
+        // Render generation log from cache (no fetch).
+        var glEl = document.getElementById('bld-gen-log');
+        if (glEl) renderGenerationLogFromData(glEl, _genLogCache.building, 'building');
+
+        // Render Draft list from cache, switch subtab without fetch.
+        var draftListEl = document.getElementById('bld-draft-list');
+        if (draftListEl) {
+          draftListEl.innerHTML = _bldStmtCache.map(function(parent) {
+            return renderBuildingCard(parent, 'draft');
+          }).join('');
+        }
+        setStmtSubtab('building', 'draft', /* skipFetch */ true);
+      } else {
+        // Legacy fallback — pre-Patch-E backend or unexpected shape.
+        renderGenerationLog('building');
+        setStmtSubtab('building', 'draft');
+      }
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() {
@@ -5443,8 +5532,39 @@ function generateStatements() {
           var p = typeof res === 'string' ? JSON.parse(res) : res;
           _stmtCurrentPeriod = p.periodLabel || '';
           toast('✅ ' + (p.message || 'Statements generated'), (p.missingEmail && p.missingEmail.length) ? 'info' : 'ok');
-          renderGenerationLog('section');
-          setStmtSubtab('section', 'draft');
+
+          // ── Patch E Wave 1 — refresh-chain elimination ──────────────────
+          // Consume enriched response. Same fallback discipline as H1.
+          if (p.draftCards && p.generationLogEntry) {
+            _stmtCache = p.draftCards;
+
+            if (!_genLogCache) _genLogCache = { building: [], section: [] };
+            _genLogCache.section = [p.generationLogEntry].concat(_genLogCache.section || []);
+
+            var glEl = document.getElementById('sec-gen-log');
+            if (glEl) renderGenerationLogFromData(glEl, _genLogCache.section, 'section');
+
+            // Render Draft list from cache. Section uses renderStmtList helper
+            // which fetches; we inline the render to avoid that fetch.
+            var draftListEl = document.getElementById('sec-draft-list');
+            if (draftListEl) {
+              var filtered = _stmtCache.filter(function(s) {
+                return String(s.status).toLowerCase() === 'draft';
+              }).reverse();
+              if (!filtered.length) {
+                draftListEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+              } else {
+                draftListEl.innerHTML = filtered.map(function(s) {
+                  return _renderStmtCard(s, 'section');
+                }).join('');
+              }
+            }
+            setStmtSubtab('section', 'draft', /* skipFetch */ true);
+          } else {
+            // Legacy fallback
+            renderGenerationLog('section');
+            setStmtSubtab('section', 'draft');
+          }
         });
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
@@ -5543,7 +5663,34 @@ function approveAllStatements() {
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'All approved'), 'ok');
-      renderStmtList('section',  'Draft');
+
+      // ── Patch E Wave 1 — refresh-chain elimination ──────────────────────
+      // Filter just-approved stmtIds out of _stmtCache (Draft bucket).
+      // Re-render Draft list locally. Approved bucket cache becomes stale
+      // until user navigates to Approved subtab (which re-fetches per
+      // setStmtSubtab default behaviour).
+      if (parsed.approvedStmtIds && Array.isArray(parsed.approvedStmtIds) && _stmtCache) {
+        var approvedSet = {};
+        parsed.approvedStmtIds.forEach(function(id) { approvedSet[id] = true; });
+        _stmtCache = _stmtCache.filter(function(s) { return !approvedSet[s.stmtId]; });
+
+        var draftListEl = document.getElementById('sec-draft-list');
+        if (draftListEl) {
+          var filtered = _stmtCache.filter(function(s) {
+            return String(s.status).toLowerCase() === 'draft';
+          }).reverse();
+          if (!filtered.length) {
+            draftListEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+          } else {
+            draftListEl.innerHTML = filtered.map(function(s) {
+              return _renderStmtCard(s, 'section');
+            }).join('');
+          }
+        }
+      } else {
+        // Legacy fallback
+        renderStmtList('section',  'Draft');
+      }
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
@@ -5553,11 +5700,38 @@ function approveAllBuildingStatements() {
   if (!sessionValid()) return;
   var btn = document.getElementById('bld-approve-all-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري...'; }
+  // NOTE: backend approveAllStatements skips Building-scope rows. This
+  // handler is effectively a no-op against current backend; legacy refresh
+  // retained for any future Building-bulk-approve backend support. Latent
+  // bug flagged in Phase 13 backlog (non-blocking for Patch E).
   gasPost({ action: 'approveAllStatements', period: '', world: 'building', token: _session.token })
     .then(function(r) {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       toast('✅ ' + (parsed.message || 'All approved'), 'ok');
-      renderStmtList('building', 'Draft');
+
+      // ── Patch E Wave 1 — refresh-chain elimination ──────────────────────
+      // Same pattern as Section variant. Falls back to legacy if response
+      // doesn't include approvedStmtIds (current backend won't return any
+      // for Building scope since it skips Building rows).
+      if (parsed.approvedStmtIds && Array.isArray(parsed.approvedStmtIds) && _bldStmtCache) {
+        var approvedSet = {};
+        parsed.approvedStmtIds.forEach(function(id) { approvedSet[id] = true; });
+        _bldStmtCache = _bldStmtCache.filter(function(s) { return !approvedSet[s.stmtId]; });
+
+        var draftListEl = document.getElementById('bld-draft-list');
+        if (draftListEl) {
+          if (!_bldStmtCache.length) {
+            draftListEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد بيانات / No statements</div>';
+          } else {
+            draftListEl.innerHTML = _bldStmtCache.map(function(parent) {
+              return renderBuildingCard(parent, 'draft');
+            }).join('');
+          }
+        }
+      } else {
+        // Legacy fallback
+        renderStmtList('building', 'Draft');
+      }
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });

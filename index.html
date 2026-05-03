@@ -2830,6 +2830,24 @@
 
     </div><!-- /f-pay -->
 
+    <!-- Patch I-perms-parity (Path B / Option β): no-access placeholder.
+         Shown via setTab('NoAccess') when user has all permission flags
+         FALSE. Closes the architectural-principle violation surfaced by
+         smoke tests T9/T14/T15: tab buttons correctly hidden by Patch I,
+         but Income content area was leaking through because default-tab
+         cascade had no all-FALSE handler. -->
+    <div class="card hide" id="f-noaccess" style="text-align:center; padding:24px;">
+      <div style="font-size:48px; margin-bottom:12px;">🔒</div>
+      <div class="lbl" style="margin-bottom:16px;">
+        <span class="l-ar" style="display:block; font-size:16px; line-height:1.5;">
+          لم يتم تعيين أي صلاحيات.<br>يرجى الاتصال بالمشرف.
+        </span>
+        <span class="l-en" style="display:block; margin-top:8px; font-size:14px; color:#666; line-height:1.5;">
+          No access permissions assigned.<br>Please contact your administrator.
+        </span>
+      </div>
+    </div>
+
     <!-- Submit button — no more PIN field -->
     <div class="card" id="submit-card">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
@@ -4155,10 +4173,13 @@ function applyPermissionUI(auth) {
   if (dtSet) dtSet.classList.add('hide');
 
   // Default to first visible tab if Income is hidden
+  // Patch I-perms-parity (Path B): include REP_SEC in cascade and route
+  // all-FALSE state to NoAccess placeholder. Mirrors initApp cascade.
   if (!perms.INC) {
     if (perms.EXP) setTab('Expense');
     else if (hasAnyReport) setTab('Report');
     else if (perms.MTR_RED) setTab('Meter');
+    else setTab('NoAccess'); // Patch I: all-FALSE — show placeholder
   }
 
   // Hide report type options the user can't access
@@ -4209,15 +4230,21 @@ function initApp(d) {
   }
 
   // Set default tab based on permissions
+  // Patch I-perms-parity (Path B): explicit handling for all-FALSE flag
+  // state — route to NoAccess placeholder instead of falling through to
+  // setTab('Income'). Also include REP_SEC in the report-tab cascade so
+  // a user with only Section access lands on the Reports tab cleanly.
+  // Closes principle violation: "permission FALSE = cannot see" applies
+  // to default-tab routing as well as tab-button visibility.
   if (_session && _session.permissions) {
     var p = _session.permissions;
     if (p.INC) setTab('Income');
     else if (p.EXP) setTab('Expense');
-    else if (p.REP_BLD) setTab('Report');
+    else if (p.REP_BLD || p.REP_SEC) setTab('Report');
     else if (p.MTR_RED) setTab('Meter');
-    else setTab('Income'); // fallback
+    else setTab('NoAccess'); // Patch I: all-FALSE state — show placeholder
   } else {
-    setTab('Income');
+    setTab('NoAccess'); // Patch I: no perms object — show placeholder
   }
 }
 
@@ -4300,7 +4327,9 @@ function setTab(type) {
   });
 
   // Hide all content panels
-  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay'].forEach(function(id) {
+  // Patch I-perms-parity (Path B): added 'f-noaccess' to hide-list so the
+  // placeholder is hidden when switching to any other panel type.
+  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay','f-noaccess'].forEach(function(id) {
     var el = _el(id);
     if (el) el.classList.add('hide');
   });
@@ -4370,6 +4399,17 @@ function setTab(type) {
     if (_btnCard) _btnCard.style.display = 'none';
     _el('scroll').scrollTop = 0;
     loadPayHub();
+    return;
+
+  } else if (type === 'NoAccess') {
+    // Patch I-perms-parity (Path B / Option β): show no-access placeholder
+    // for users with all permission flags FALSE. Submit button hidden.
+    // No nav-tab is highlighted because no tab is visible to this user.
+    var fNoAccess = _el('f-noaccess');
+    if (fNoAccess) fNoAccess.classList.remove('hide');
+    btn.style.display = 'none';
+    if (_btnCard) _btnCard.style.display = 'none';
+    _el('scroll').scrollTop = 0;
     return;
   }
 

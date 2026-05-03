@@ -2303,7 +2303,10 @@
   <form id="form" onsubmit="event.preventDefault(); doSubmit();" novalidate>
     <input type="hidden" id="eType" value="Income">
 
-    <div class="card" id="f-inc">
+    <!-- Patch I-perms-parity (Path B follow-up): default hidden to prevent
+         brief Income form flash during launch sequence for users who route
+         to NoAccess. setTab('Income') explicitly removes hide at L4348. -->
+    <div class="card hide" id="f-inc">
       <div class="lbl"><span class="l-ar">شاغل القسم</span><span class="l-en">Occupant of Unit</span></div>
       <select class="inp" id="sel-owner"><option value="" disabled selected>اختر / Select...</option></select>
       <div class="lbl" style="margin-top:12px;"><span class="l-ar">الفئة</span><span class="l-en">Category</span></div>
@@ -2501,7 +2504,9 @@
 
     </div><!-- /f-rep -->
 
-    <div class="card" id="f-amt">
+    <!-- Patch I-perms-parity (Path B follow-up): default hidden. setTab
+         Income/Expense branches explicitly remove hide at L4349/L4358. -->
+    <div class="card hide" id="f-amt">
       <div class="lbl"><span class="l-ar">المبلغ</span><span class="l-en">Amount $</span></div>
       <input type="number" step="0.01" min="0" class="inp inp-amt" id="inp-amt" placeholder="0.00" inputmode="decimal">
     </div>
@@ -2849,7 +2854,11 @@
     </div>
 
     <!-- Submit button — no more PIN field -->
-    <div class="card" id="submit-card">
+    <!-- Patch I-perms-parity (Path B follow-up): default display:none via
+         inline style (NOT class="hide" — .hide uses !important which would
+         override _btnCard.style.display='' show-pattern at L4417).
+         setTab non-NoAccess branches set _btnCard.style.display='' explicitly. -->
+    <div class="card" id="submit-card" style="display:none;">
       <button type="submit" class="btn-sub b-inc" id="btn-sub">
         <!-- Processing state -->
         <div class="btn-wave">

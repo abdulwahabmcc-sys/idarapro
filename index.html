@@ -4078,6 +4078,15 @@ function applyPermissionUI(auth) {
 
   // Admin — show everything including meter and communications tabs
   // Dispatcher role — delivery queue only, no financial data
+  // Patch I-perms-parity Layer 5 (Lesson F): conditional early-return.
+  // Real Dispatcher (DISPATCH=true) keeps existing behavior — uses desktop
+  // dt-main panel for delivery queue UI; mobile #scroll hardcoded hidden
+  // because no mobile Dispatcher use case exists. Misconfigured Dispatcher
+  // (DISPATCH=false) falls through to non-Admin cascade so the all-FALSE
+  // handler routes them to NoAccess placeholder. This prevents blank-screen
+  // UX on mobile when an admin toggles a Dispatcher's DISPATCH flag off,
+  // and is required for Patch L HYBRID activation when Dispatcher role
+  // becomes active in production.
   if (role === 'Dispatcher') {
     ['t-inc','t-exp','t-rep','t-mtr','t-com','t-pay'].forEach(function(id) {
       var el = document.getElementById(id);
@@ -4087,16 +4096,26 @@ function applyPermissionUI(auth) {
       var el = document.getElementById(id);
       if (el) el.classList.add('hide');
     });
-    var scroll = document.getElementById('scroll');
-    if (scroll) scroll.classList.add('hide');
-    return;
+    if (perms.DISPATCH === true) {
+      // Real Dispatcher: keep existing behavior — hide #scroll, return early.
+      var scroll = document.getElementById('scroll');
+      if (scroll) scroll.classList.add('hide');
+      return;
+    }
+    // Misconfigured Dispatcher (DISPATCH=false): do NOT hide #scroll
+    // and do NOT return — fall through to non-Admin cascade. The
+    // all-FALSE handler at the bottom of this function will route to
+    // setTab('NoAccess'), and #scroll stays visible so placeholder renders.
   }
   if (role === 'Admin') {
     // Patch I-perms-parity Layer 4 (Lesson E): Admin-only dashboard chrome.
     // Aggregate financial state follows ownership; only Admin sees the
-    // dashboard cash-on-hand cards and summary bar. Action data follows
-    // permissions (per-tab gating below); summary data follows ownership.
-    // Future dashboard indicators inherit this Admin-only default.
+    // dashboard cash-on-hand AND liability cards plus summary bar. Action
+    // data follows permissions (per-tab gating below); summary data follows
+    // ownership. Future dashboard indicators inherit this Admin-only default.
+    // The liabCard / dtLiabCard un-hide below (existing pre-Patch-I code)
+    // is now the SOLE place these elements get un-hidden — Patch I removed
+    // their non-Admin INV gating per architect ruling 2026-05-03.
     var mobSummaryBar = document.getElementById('mob-summary-bar');
     var mobDashCard   = document.getElementById('mob-dash-card');
     var dtDash        = document.getElementById('dt-dash');
@@ -4160,22 +4179,23 @@ function applyPermissionUI(auth) {
   
   var tPay  = document.getElementById('t-pay');
   var dtPay = document.getElementById('dt-t-pay');
-  var liabCard   = document.getElementById('dash-liab-card');
-  var dtLiabCard = document.getElementById('dt-dash-liab-card');
+  // Patch I-perms-parity Layer 4 (Lesson E correction): liability cards are
+  // dashboard chrome (aggregate financial state). Admin-only per architect
+  // ruling 2026-05-03. Removed from perms.INV gating; Admin branch above
+  // un-hides them via classList.remove('hide'). Default 'hide' class on
+  // each card keeps non-Admin from seeing them. mob-liab-panel/divider
+  // remain INV-gated because they're action-affordances inside the
+  // Admin-only mob-summary-bar (parent hides them for non-Admin anyway).
   var mobLiabPanel   = document.getElementById('mob-liab-panel');
   var mobSummaryDiv  = document.getElementById('mob-summary-divider');
   if (!perms.INV) {
     if (tPay)        tPay.classList.add('hide');
     if (dtPay)       dtPay.classList.add('hide');
-    if (liabCard)    liabCard.classList.add('hide');
-    if (dtLiabCard)  dtLiabCard.classList.add('hide');
     if (mobLiabPanel)  mobLiabPanel.classList.add('hide');
     if (mobSummaryDiv) mobSummaryDiv.classList.add('hide');
   } else {
     if (tPay)        tPay.classList.remove('hide');
     if (dtPay)       dtPay.classList.remove('hide');
-    if (liabCard)    liabCard.classList.remove('hide');
-    if (dtLiabCard)  dtLiabCard.classList.remove('hide');
     if (mobLiabPanel)  mobLiabPanel.classList.remove('hide');
     if (mobSummaryDiv) mobSummaryDiv.classList.remove('hide');
   }

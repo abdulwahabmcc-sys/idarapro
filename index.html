@@ -4082,7 +4082,11 @@ function applyPermissionUI(auth) {
   
 
   // All other roles — hide tabs based on permissions
-  var hasAnyReport = perms.REP_BLD;
+  // Patch I-perms-parity: hasAnyReport union — Reports tab visible if user
+  // has EITHER Building OR Section reports permission. Pre-Patch-I this
+  // checked REP_BLD only, hiding the entire Reports tab from users with
+  // only REP_SEC=true (the original Ghada bug).
+  var hasAnyReport = perms.REP_BLD || perms.REP_SEC;
 
 
   if (!perms.INC) { 
@@ -4129,6 +4133,21 @@ function applyPermissionUI(auth) {
     if (dtLiabCard)  dtLiabCard.classList.remove('hide');
     if (mobLiabPanel)  mobLiabPanel.classList.remove('hide');
     if (mobSummaryDiv) mobSummaryDiv.classList.remove('hide');
+  }
+
+  // Patch I-perms-parity: MTR_RED tab visibility for non-Admin roles.
+  // Pre-Patch-I, t-mtr was unhidden only inside the Admin role branch
+  // at L4062. Non-Admin users with MTR_RED=true could not see the Meter
+  // tab even though backend now gates saveMeterReading on MTR_RED.
+  // This gate honors the permission flag for all roles.
+  var tMtrEl  = document.getElementById('t-mtr');
+  var dtMtrEl = document.getElementById('dt-t-mtr');
+  if (perms.MTR_RED) {
+    if (tMtrEl)  tMtrEl.classList.remove('hide');
+    if (dtMtrEl) dtMtrEl.classList.remove('hide');
+  } else {
+    if (tMtrEl)  tMtrEl.classList.add('hide');
+    if (dtMtrEl) dtMtrEl.classList.add('hide');
   }
 
   // Settings tab — hidden for all non-Admin roles, hardcoded, never overridable
@@ -4431,12 +4450,27 @@ var _genLogCache       = { building: [], section: [] };
 
 function initReportTab() {
   if (!sessionValid()) return;
-  var isAdmin = _session && _session.role === 'Admin';
-  var wBtnSection = document.getElementById('w-btn-section');
-  if (wBtnSection) wBtnSection.style.display = isAdmin ? '' : 'none';
+  // Patch I-perms-parity: world buttons gated on permission flags.
+  // Pre-Patch-I: Section button visible only to Admin (isAdmin role check).
+  // Post-Patch-I: each world button visible based on its corresponding
+  // permission flag, mirroring backend gates (REP_BLD for Building,
+  // REP_SEC for Section). Admin bypasses both via permissions object
+  // (Admin perms are hardcoded TRUE for both flags in Auth.gs).
+  var perms       = (_session && _session.permissions) || {};
+  var isAdmin     = _session && _session.role === 'Admin';
+  var canSeeBld   = isAdmin || perms.REP_BLD === true;
+  var canSeeSec   = isAdmin || perms.REP_SEC === true;
+  var wBtnBuilding = document.getElementById('w-btn-building');
+  var wBtnSection  = document.getElementById('w-btn-section');
+  if (wBtnBuilding) wBtnBuilding.style.display = canSeeBld ? '' : 'none';
+  if (wBtnSection)  wBtnSection.style.display  = canSeeSec ? '' : 'none';
   var btnCard = document.getElementById('btn-sub') ? document.getElementById('btn-sub').closest('.card') : null;
   if (btnCard) btnCard.style.display = 'none';
-  setStmtWorld('building');
+  // Default world selection: Building if available, else Section if available,
+  // else Building (degenerate case — Reports tab should be hidden upstream
+  // by hasAnyReport gate, so this branch is unreachable in practice).
+  var defaultWorld = canSeeBld ? 'building' : (canSeeSec ? 'section' : 'building');
+  setStmtWorld(defaultWorld);
 }
 
 function setStmtWorld(world) {

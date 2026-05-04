@@ -3071,6 +3071,17 @@ var SESSION_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 hours
 var MAX_ATTEMPTS        = 5;
 var LOCKOUT_DURATION_MS = 30 * 60 * 1000;       // 30 minutes
 
+// Patch J-idle-logout: capacity-bound predictability + security.
+// 5-minute inactivity threshold. Modal warning at 4:30 mark with 30s countdown.
+// Active operations (in-flight gasPost calls) defer logout until completion.
+// Per architect ruling Q1.b: periodic check via setInterval beats setTimeout
+// churn from constant event-driven resets. _lastInteractionTime is updated
+// by event listeners; _idleCheckTimer fires every 5 seconds and decides
+// whether to show warning, fire logout, or do nothing.
+var IDLE_THRESHOLD_MS         = 5 * 60 * 1000;   // 5 minutes
+var IDLE_WARNING_OFFSET_MS    = 30 * 1000;        // warn 30s before logout
+var IDLE_CHECK_INTERVAL_MS    = 5 * 1000;         // periodic check every 5s
+
 // ── State ────────────────────────────────────────────────────────────────────
 var TAB     = 'Income';
 var REPORT  = 'YTD';
@@ -3079,6 +3090,13 @@ var _rtimer = null;
 var _ttimer = null;
 var _sessionTimer = null;
 var _settingsCache = null;
+
+// Patch J-idle-logout state
+var _lastInteractionTime = 0;        // updated by event listeners (passive)
+var _idleCheckTimer      = null;     // setInterval handle for periodic idle check
+var _idleCountdownTimer  = null;     // setInterval handle for warning countdown display
+var _idleWarningShown    = false;    // true while warning modal is visible
+var _inflightCount       = 0;        // count of in-flight gasPost calls; defers logout when > 0
 
 // Login state
 var _pinBuffer    = '';
@@ -3179,6 +3197,17 @@ function gasGet(action, token) {
 }
 
 function gasPost(body) {
+  // Patch J in-flight tracking — used by _idleCheckLogout to defer logout
+  // when call in progress. Counter incremented before fetch; decremented
+  // exactly once via the _decremented flag pattern (prevents double-count
+  // when a thrown error in .then() propagates to .catch()).
+  _inflightCount++;
+  var _decremented = false;
+  function _decrementOnce() {
+    if (_decremented) return;
+    _decremented = true;
+    _inflightCount = Math.max(0, _inflightCount - 1);
+  }
   return fetch(GAS, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -3202,9 +3231,17 @@ function gasPost(body) {
         if (errMsg.indexOf('unauthorized') !== -1) {
           handleSessionExpired();
         }
+        _decrementOnce();
         throw new Error(r.error);
       }
+      _decrementOnce();
       return r.data;
+    })
+    .catch(function(e) {
+      // Catches: network errors, JSON parse failures, AND re-throws from
+      // the .then() above. _decrementOnce() handles the multi-path case.
+      _decrementOnce();
+      throw e;
     });
 }
 
@@ -3928,11 +3965,150 @@ function startSession(auth, token) {
     toast('⏱ Session expired. Please log in again.', 'info');
     setTimeout(doLogout, 2500);
   }, SESSION_DURATION_MS);
+
+  // Patch J-idle-logout: start periodic idle check on session start.
+  // Per Q3.a ruling: applies uniformly to all roles including NoAccess.
+  _startIdleTracking();
 }
 
 function sessionValid() {
   return _session && Date.now() < _session.expires;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PATCH J — IDLE LOGOUT (5-minute inactivity threshold)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * _startIdleTracking() — called from startSession on every login.
+ * Establishes:
+ *   1. _lastInteractionTime baseline
+ *   2. Periodic idle check (Q1.b: setInterval every 5s, NOT setTimeout-per-event)
+ *   3. Event listeners for user-interaction detection (passive, just timestamp update)
+ * Listeners are registered ONCE per page load via the _idleListenersRegistered
+ * guard — re-login won't double-register them.
+ */
+var _idleListenersRegistered = false;
+function _startIdleTracking() {
+  _lastInteractionTime = Date.now();
+  _idleWarningShown    = false;
+  _hideIdleWarningModal();  // defensive — clear any stale modal from prior session
+
+  // Periodic check — single setInterval beats per-event setTimeout churn.
+  if (_idleCheckTimer) clearInterval(_idleCheckTimer);
+  _idleCheckTimer = setInterval(_idleTick, IDLE_CHECK_INTERVAL_MS);
+
+  // Register interaction listeners exactly once per page load.
+  if (_idleListenersRegistered) return;
+  _idleListenersRegistered = true;
+  ['mousemove','mousedown','keydown','scroll','focus'].forEach(function(evt) {
+    document.addEventListener(evt, _onUserInteraction, { passive: true, capture: true });
+  });
+  // Tab visibility change also counts as interaction (user came back to tab).
+  // This is in addition to the existing visibilitychange listener that refreshes
+  // notifications — Patch J adds idle-reset to the same UX moment.
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) _onUserInteraction();
+  });
+}
+
+/**
+ * _onUserInteraction() — passive event listener. Just stamps the timestamp.
+ * Intentionally cheap (~constant time) so it can fire 60+ times/sec from
+ * mousemove without performance impact. The actual idle-check logic is
+ * deferred to _idleTick() running every 5 seconds.
+ */
+function _onUserInteraction() {
+  _lastInteractionTime = Date.now();
+  // If warning modal is showing and user interacts, hide it immediately
+  // (don't wait up to 5 sec for the next tick to clear it — that feels laggy).
+  if (_idleWarningShown) _hideIdleWarningModal();
+}
+
+/**
+ * _idleTick() — fires every 5 seconds. Three branches:
+ *   1. No session → do nothing (someone may have logged out)
+ *   2. In-flight call active → defer (active operations protect the session)
+ *   3. Idle elapsed > threshold → force logout
+ *   4. Idle elapsed > (threshold - 30s) → show warning modal
+ *   5. Otherwise → do nothing
+ */
+function _idleTick() {
+  if (!_session) {
+    // Session ended; stop ticking until next startSession.
+    if (_idleCheckTimer) { clearInterval(_idleCheckTimer); _idleCheckTimer = null; }
+    return;
+  }
+  // Active operations defer logout — but don't reset the timestamp.
+  // If the operation completes after a long delay, idle-since-last-interaction
+  // will catch up on the next tick.
+  if (_inflightCount > 0) return;
+
+  var idleMs = Date.now() - _lastInteractionTime;
+
+  if (idleMs >= IDLE_THRESHOLD_MS) {
+    _forceIdleLogout();
+    return;
+  }
+  if (idleMs >= IDLE_THRESHOLD_MS - IDLE_WARNING_OFFSET_MS) {
+    if (!_idleWarningShown) _showIdleWarningModal();
+  }
+}
+
+/**
+ * _showIdleWarningModal() — renders the modal element, starts a 1-second
+ * countdown showing remaining seconds before logout. Click anywhere on the
+ * modal backdrop or document body resets the idle timer.
+ */
+function _showIdleWarningModal() {
+  _idleWarningShown = true;
+  var modal = document.getElementById('idle-warning-modal');
+  if (!modal) return;
+  modal.classList.add('show');
+  if (_idleCountdownTimer) clearInterval(_idleCountdownTimer);
+  _idleCountdownTimer = setInterval(_idleCountdownTick, 1000);
+  _idleCountdownTick();  // immediate first update
+}
+
+/**
+ * _idleCountdownTick() — updates the countdown display each second.
+ * Reads _lastInteractionTime to compute remaining seconds — stays in sync
+ * if user interacts but warning modal is briefly still showing.
+ */
+function _idleCountdownTick() {
+  var idleMs = Date.now() - _lastInteractionTime;
+  var remainingMs = IDLE_THRESHOLD_MS - idleMs;
+  if (remainingMs < 0) remainingMs = 0;
+  var remainingSec = Math.ceil(remainingMs / 1000);
+  var el = document.getElementById('idle-warning-countdown');
+  if (el) el.textContent = String(remainingSec);
+}
+
+/**
+ * _hideIdleWarningModal() — hides modal, stops countdown timer.
+ * Safe to call repeatedly (no-op if already hidden).
+ */
+function _hideIdleWarningModal() {
+  _idleWarningShown = false;
+  if (_idleCountdownTimer) { clearInterval(_idleCountdownTimer); _idleCountdownTimer = null; }
+  var modal = document.getElementById('idle-warning-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+/**
+ * _forceIdleLogout() — fires when idle threshold reached and no in-flight call.
+ * In-flight check is in _idleTick(); this function trusts that and proceeds
+ * to logout. Uses doLogout() for cleanup (clears _sessionTimer, _rtimer, UI).
+ * Per Q3.a ruling: applies uniformly to all roles including NoAccess.
+ */
+function _forceIdleLogout() {
+  _hideIdleWarningModal();
+  if (_idleCheckTimer) { clearInterval(_idleCheckTimer); _idleCheckTimer = null; }
+  toast('⏱ Logged out due to inactivity. / تم تسجيل الخروج لعدم النشاط.', 'info');
+  setTimeout(doLogout, 1500);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 
 function doLogout() {
   // Phase 12 Step 6: fire backend logout call (fire-and-forget) to invalidate
@@ -3955,6 +4131,14 @@ function doLogout() {
   _session = null;
   if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
   if (_rtimer)       { clearInterval(_rtimer);       _rtimer = null; }
+
+  // Patch J-idle-logout: clear idle state on logout.
+  // Event listeners stay registered (idempotent — they no-op when _session is
+  // null) but the periodic check timer and any countdown stop here.
+  if (_idleCheckTimer)     { clearInterval(_idleCheckTimer);     _idleCheckTimer = null; }
+  if (_idleCountdownTimer) { clearInterval(_idleCountdownTimer); _idleCountdownTimer = null; }
+  _hideIdleWarningModal();
+  _inflightCount = 0;  // reset; new session starts clean
 
   // Hide session bar + desktop session info
   document.getElementById('session-bar').classList.remove('show');
@@ -14283,6 +14467,72 @@ function fmtMoney(val) {
     }
 
     /* ══════════════════════════════════════════════════════════════════════ */
+    /* Patch J-idle-logout — 30-second warning modal                          */
+    /* Mirrors session-expired-overlay style; lighter backdrop opacity (0.85  */
+    /* vs 0.97) and gold accent color to distinguish "warning" from "ended". */
+    /* z-index: 99998 — just below session-expired-overlay (99999) so a      */
+    /* zombie-session-expired event takes visual priority.                   */
+    /* ══════════════════════════════════════════════════════════════════════ */
+    .idle-warning-modal {
+      position: fixed;
+      inset: 0;
+      background: var(--navy);
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.25s ease;
+      z-index: 99998;
+      cursor: pointer;
+    }
+    .idle-warning-modal.show {
+      opacity: 0.85;
+      pointer-events: auto;
+    }
+    .idle-warning-card {
+      text-align: center;
+      color: white;
+      padding: 2rem;
+      max-width: 320px;
+    }
+    .idle-warning-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+    .idle-warning-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .idle-warning-subtitle {
+      font-size: 0.95rem;
+      opacity: 0.8;
+      margin-bottom: 1.25rem;
+    }
+    .idle-warning-countdown-wrap {
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 3rem;
+      font-weight: 500;
+      color: var(--gold, #d4a017);
+      letter-spacing: -2px;
+      margin-bottom: 1.25rem;
+      line-height: 1;
+    }
+    .idle-warning-countdown-unit {
+      font-size: 1.5rem;
+      opacity: 0.7;
+      margin-left: 4px;
+    }
+    .idle-warning-hint {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      line-height: 1.6;
+    }
+    .idle-warning-hint .l-ar { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+    .idle-warning-hint .l-en { display: block; }
+
+    /* ══════════════════════════════════════════════════════════════════════ */
     /* Phase 12 Step 7 — edit lock countdown + modals                        */
     /* ══════════════════════════════════════════════════════════════════════ */
 
@@ -14434,6 +14684,27 @@ function fmtMoney(val) {
     <div class="session-expired-title">انتهت صلاحيةالجلسة</div>
     <div class="session-expired-subtitle">Session ended</div>
     <div class="session-expired-hint">الرجاء إعادة تسجيل الدخول<br>Please log in again</div>
+  </div>
+</div>
+
+<!-- Patch J-idle-logout: 30-second warning modal -->
+<!-- Shown at 4:30 mark of the 5-minute idle threshold. Click anywhere on -->
+<!-- backdrop or interact (mousemove, key, scroll) to dismiss + reset timer. -->
+<!-- Click handler is on the modal backdrop itself; the document-level event -->
+<!-- listeners registered in _startIdleTracking() handle the rest. -->
+<div id="idle-warning-modal" class="idle-warning-modal" onclick="_onUserInteraction()">
+  <div class="idle-warning-card">
+    <div class="idle-warning-icon">⏱</div>
+    <div class="idle-warning-title">انتهاء الجلسة قريبا</div>
+    <div class="idle-warning-subtitle">Session expires soon</div>
+    <div class="idle-warning-countdown-wrap">
+      <span id="idle-warning-countdown">30</span>
+      <span class="idle-warning-countdown-unit">s</span>
+    </div>
+    <div class="idle-warning-hint">
+      <span class="l-ar">انقر في أي مكان للبقاء</span><br>
+      <span class="l-en">Click anywhere to stay logged in</span>
+    </div>
   </div>
 </div>
 

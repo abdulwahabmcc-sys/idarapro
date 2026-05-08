@@ -4916,7 +4916,12 @@ function _renderStmtCard(s, world) {
         syncLabel + '</button>';
     }
     if (!s.pdfFileId) {
-      leftContent += '<span class="pending-tag" style="margin-top:4px;">⏳ PDF pending</span>';
+      // Phase 16 Tier 2: on-demand generation when processPdfQueue hasn't
+      // populated col K yet. Backend getStatementPdfOnDemand handles
+      // permission check + generation + col K + col U writes.
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.stmtId) + '\',\'' + world + '\')">' +
+        'تحميل PDF (إنشاء عند الطلب) / Download PDF (on-demand)</button>';
     } else {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
     }
@@ -4931,6 +4936,14 @@ function _renderStmtCard(s, world) {
     leftContent += '<div style="font-size:11px;font-weight:700;color:var(--navy);">Sent ●</div>';
     if (s.pdfFileId) {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
+    } else {
+      // Phase 16 Tier 2: on-demand fallback for Sent rows whose PDF was never
+      // generated (rare — Sent state implies dispatch happened, so col K
+      // usually populated; covers edge cases like manual mark-Sent without
+      // PDF or processPdfQueue failure).
+      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
+        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.stmtId) + '\',\'' + world + '\')">' +
+        'تحميل PDF (إنشاء عند الطلب) / Download PDF (on-demand)</button>';
     }
   } else if (status === 'skipped') {
     leftContent += '<span class="pill pill-skip">تخطّى</span>';
@@ -4959,10 +4972,24 @@ function _renderStmtCard(s, world) {
     if (s.email) {
       rightContent += '<div class="stmt-date" style="direction:ltr;text-align:left;color:var(--forest);font-size:10px;font-weight:600;">📧 ' + escHtml(s.email) + '</div>';
     }
+    // Phase 16 Tier 2: Preview link extended to Approved state per audit IS3.
+    if (s.htmlFileId) {
+      rightContent += '<div class="stmt-actions">' +
+        '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+          'onclick="openStmtPreview(\'' + escHtml(s.htmlFileId) + '\')">معاينة / Preview</span>' +
+        '</div>';
+    }
   }
   if (status === 'sent') {
     rightContent += '<div class="stmt-date" style="color:var(--navy);">أُرسل: <span style="direction:ltr;unicode-bidi:embed;">' +
       fmtDateTime(s.dispatchedAt) + (s.dispatchChannel ? ' · ' + escHtml(s.dispatchChannel) : '') + '</span></div>';
+    // Phase 16 Tier 2: Preview link extended to Sent state per audit IS3.
+    if (s.htmlFileId) {
+      rightContent += '<div class="stmt-actions">' +
+        '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+          'onclick="openStmtPreview(\'' + escHtml(s.htmlFileId) + '\')">معاينة / Preview</span>' +
+        '</div>';
+    }
   }
 
   return '<div class="stmt-card">' +
@@ -5528,6 +5555,15 @@ function renderBuildingCard(parent, status) {
         fmtDateTime(parent.reviewedAt) + (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') +
       '</span></div>';
 
+    // Phase 16 Tier 2: Preview link extended to Building Approved state per audit IS3.
+    if (parent.htmlFileId) {
+      rightContent +=
+        '<div class="stmt-actions">' +
+          '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+            'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</span>' +
+        '</div>';
+    }
+
     // Stats row
     rightContent +=
       '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">' +
@@ -5574,7 +5610,13 @@ function renderBuildingCard(parent, status) {
           childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
             'onclick="downloadStmtPdf(\'' + escHtml(child.pdfFileId) + '\')">تحميل PDF</button> ';
         } else {
-          childActions += '<span class="pending-tag" style="font-size:9px;">⏳ PDF</span> ';
+          // Phase 16 Tier 2: on-demand for child rows. Building children
+          // share parent's PDF after parent generation; if child.pdfFileId
+          // empty, getStatementPdfOnDemand reads the row by stmtId, finds
+          // it's a Building child, regenerates from htmlFileId.
+          childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+            'onclick="downloadStmtPdfOnDemand(\'' + escHtml(child.stmtId) + '\',\'building\')">' +
+            'تحميل PDF / On-demand</button> ';
         }
         // Mark as Sent — Manual + Pending only
         if (child.dispatchChannel === 'Manual' && child.status === 'Pending') {
@@ -5621,6 +5663,15 @@ function renderBuildingCard(parent, status) {
       '<div class="stmt-date" style="color:var(--navy);">مُرسَل: <span style="direction:ltr;unicode-bidi:embed;">' +
         fmtDateTime(parent.dispatchedAt) +
       '</span></div>';
+
+    // Phase 16 Tier 2: Preview link extended to Building Sent state per audit IS3.
+    if (parent.htmlFileId) {
+      rightContent +=
+        '<div class="stmt-actions">' +
+          '<span style="font-size:9px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+            'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</span>' +
+        '</div>';
+    }
 
     // Stats row
     rightContent +=
@@ -5680,6 +5731,13 @@ function renderBuildingCard(parent, status) {
       leftContent +=
         '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
           'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">تحميل PDF</button>';
+    } else {
+      // Phase 16 Tier 2: on-demand fallback. Same edge-case rationale as
+      // Section Sent — rare for Building parent; defensive coverage.
+      leftContent +=
+        '<button type="button" class="navy-btn" style="margin-top:6px;" ' +
+          'onclick="downloadStmtPdfOnDemand(\'' + escHtml(parent.stmtId) + '\',\'building\')">' +
+          'تحميل PDF (إنشاء عند الطلب) / Download PDF (on-demand)</button>';
     }
   }
 
@@ -6137,6 +6195,40 @@ function downloadStmtPdf(fileId) {
       toast('✅ PDF downloaded / تم التحميل', 'ok');
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+}
+
+// ── Phase 16-html-first Tier 2 — On-demand PDF download ────────────────────
+// Sibling of downloadStmtPdf for the case where col K (PDF_File_ID) is empty.
+// Calls getStatementPdfOnDemand backend (Statements_Common.gs); backend
+// generates PDF on demand via existing PDF generator + writes col K + col U
+// = GENERATED on success. Frontend triggers download via same data: URL
+// anchor pattern as downloadStmtPdf.
+//
+// Latency: ~2-4s for generation path (admin-initiated; acceptable per
+// audit IS3). Cached path (status=GENERATED + col K populated) responds
+// in ~1.5s.
+//
+// Backend bilingual error messages flow through catch handler and display
+// via toast (Permission denied / Generation in progress / Generation
+// previously failed / HTML source not available all returned bilingual).
+function downloadStmtPdfOnDemand(stmtId, world) {
+  if (!sessionValid() || !stmtId) return;
+  toast('⏳ جارٍ إنشاء الـPDF... / Generating PDF...', 'info');
+  gasPost({
+    action:  'getStatementPdfOnDemand',
+    payload: { stmtId: stmtId, world: world },
+    token:   _session.token
+  }).then(function(r) {
+    var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+    if (!parsed.base64) { toast('❌ PDF not available', 'fail'); return; }
+    var a = document.createElement('a');
+    a.href     = 'data:application/pdf;base64,' + parsed.base64;
+    a.download = parsed.filename || 'statement.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('✅ PDF downloaded / تم التحميل', 'ok');
+  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
 }
 
 // ── Communications tab ──────────────────────────────────────────────────────

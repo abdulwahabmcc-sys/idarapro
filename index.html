@@ -4919,8 +4919,13 @@ function _renderStmtCard(s, world) {
       // Phase 16 Tier 2: on-demand generation when processPdfQueue hasn't
       // populated col K yet. Backend getStatementPdfOnDemand handles
       // permission check + generation + col K + col U writes.
+      // Property name: s.statementId (NOT s.stmtId) per getSectionStatements
+      // response shape (Statements.gs:1083). Section world list-fetch
+      // uses statementId; Building world list-fetch uses stmtId. Property
+      // name inconsistency is pre-existing (catch 13 surfaced 2026-05-08
+      // smoke S8); fix scoped to Phase 16 sites only.
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
-        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.stmtId) + '\',\'' + world + '\')">' +
+        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.statementId) + '\',\'' + world + '\')">' +
         'تحميل PDF (إنشاء عند الطلب) / Download PDF (on-demand)</button>';
     } else {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
@@ -4941,8 +4946,9 @@ function _renderStmtCard(s, world) {
       // generated (rare — Sent state implies dispatch happened, so col K
       // usually populated; covers edge cases like manual mark-Sent without
       // PDF or processPdfQueue failure).
+      // Property name: s.statementId (NOT s.stmtId) — see Site 1 docblock.
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" ' +
-        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.stmtId) + '\',\'' + world + '\')">' +
+        'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.statementId) + '\',\'' + world + '\')">' +
         'تحميل PDF (إنشاء عند الطلب) / Download PDF (on-demand)</button>';
     }
   } else if (status === 'skipped') {

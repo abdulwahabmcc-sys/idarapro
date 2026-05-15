@@ -3197,6 +3197,14 @@ function gasGet(action, token) {
 }
 
 function gasPost(body) {
+  // Phase 14b: auto-inject deviceId at every payload per Decision D1a.
+  // Single point of change at gasPost helper avoids per-call-site modification
+  // (~94 call sites in index.html). Pattern parallels Phase 12 auto-injection
+  // of _session.token from previously-issued login state. Empty deviceId is
+  // safe per Phase 14b backward-compatibility design (incognito clients;
+  // _hashDeviceId(null) returns ''; validateToken sees empty-vs-empty match).
+  body.deviceId = body.deviceId || (_session && _session.deviceId) || getOrCreateDeviceId();
+
   // Patch J in-flight tracking — used by _idleCheckLogout to defer logout
   // when call in progress. Counter incremented before fetch; decremented
   // exactly once via the _decremented flag pattern (prevents double-count
@@ -3952,11 +3960,12 @@ function onLoginSuccess(auth, token) {
 function startSession(auth, token) {
   var now = Date.now();
   _session = {
-    token:      token,
+    token:       token,
     name:        auth.name,
     role:        auth.role,
     permissions: auth.permissions,
-    expires:     now + SESSION_DURATION_MS
+    expires:     now + SESSION_DURATION_MS,
+    deviceId:    getOrCreateDeviceId()  // Phase 14b: bind session to issuing device
   };
 
   // Auto-expire

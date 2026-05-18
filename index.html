@@ -4910,6 +4910,14 @@ function _loadStmtSubtabData(world, tab) {
 function _renderStmtCard(s, world) {
   var status = String(s.status || '').toLowerCase();
 
+  // Building Approved sub-tab collapsible card branch — structural fix 2026-05-18
+  // Other 7 sub-tabs (Section Approved + Building Draft/Sent + Section Draft/Sent +
+  // Building Unprocessed + Section Unprocessed) fall through to legacy stmt-card flow.
+  // Family enumeration documented at dispatch closure per Wave 9 §7 Decision D1a.
+  if (world === 'building' && status === 'approved') {
+    return _renderBldApprovedCard(s);
+  }
+
   var leftContent = '';
   if (status === 'draft') {
     leftContent += '<div class="draft-status">Draft ●</div>';
@@ -5027,6 +5035,126 @@ function _renderStmtCard(s, world) {
 }
 
 // ============================================================
+// A1.5 — BUILDING APPROVED COLLAPSIBLE CARD — structural fix 2026-05-18
+// Architect dispatch: Building Approved sub-tab ONLY (Section Approved +
+// other 6 sub-tabs deferred to forward-cycle separate authorization).
+// Closed default; tap card to expand; reset on sub-tab switch.
+// Eliminates action-button breakout defect (root cause: .stmt-inner
+// align-items:center + tall left column overflow into right column space)
+// by moving actions to dedicated .stmt-action-row in own row at card
+// bottom inside .stmt-expand-area.
+// ============================================================
+
+// Set of currently-expanded Building Approved row indices. Reset to empty
+// at every renderStmtList invocation (sub-tab switch + tab nav away+return).
+// No localStorage persistence per architect dispatch state-rule (d).
+var _openBldApprovedRows = {};
+
+function _renderBldApprovedCard(s) {
+  var rowIndex = s.rowIndex;
+  var isOpen = !!_openBldApprovedRows[rowIndex];
+  var lbl = fmtReportLabel(s.reportType, s.period);
+
+  // ── COLLAPSED ROW (always visible) ──
+  // Row number + occupant name + dispatch channel select + status pill + Download PDF + chevron
+  // No card actions in this row — only essentials per architect dispatch (c).
+  var collapsedHtml =
+    '<div class="stmt-collapsed-row">' +
+      '<span class="stmt-chevron">▾</span>' +
+      '<div class="stmt-collapsed-actions" onclick="event.stopPropagation();">' +
+        '<select class="dispatch-sel" data-row-index="' + rowIndex + '" ' +
+          'onchange="assignDispatcher(' + rowIndex + ',this.value,\'building\')">' +
+          '<option value="Email"'    + (s.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+          '<option value="Manual"'   + (s.dispatchChannel === 'Manual'   ? ' selected' : '') + '>يدوي / Manual</option>' +
+          '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="stmt-collapsed-info">' +
+        '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
+        '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>' +
+      '</div>' +
+    '</div>';
+
+  // ── EXPANDED AREA (visible when card-expanded class present) ──
+  // Section details (reviewed metadata + email + Preview link) above action row
+  var detailHtml = '<div class="stmt-detail-row">';
+  detailHtml += '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
+    fmtDateTime(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</span></div>';
+  if (s.email) {
+    detailHtml += '<div class="stmt-date" style="direction:ltr;text-align:left;color:var(--forest);font-size:10px;font-weight:600;">📧 ' + escHtml(s.email) + '</div>';
+  }
+  if (s.htmlFileId) {
+    detailHtml += '<div class="stmt-actions">' +
+      '<span style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
+        'onclick="event.stopPropagation();openStmtPreview(\'' + escHtml(s.htmlFileId) + '\')">معاينة / Preview</span>' +
+      '</div>';
+  }
+  detailHtml += '</div>';
+
+  // Action row — Sync (conditional) + Download PDF + Broadcast + Undo
+  // ALL actions live in this row at card bottom (no breakout; flex-wrap handles overflow)
+  // event.stopPropagation prevents card-toggle when tapping action button
+  var actionHtml = '<div class="stmt-action-row" onclick="event.stopPropagation();">';
+
+  // Sync conditional (no email + Email/WhatsApp channel)
+  if (!s.email && (s.dispatchChannel === 'Email' || s.dispatchChannel === 'WhatsApp')) {
+    var syncLabel = s.dispatchChannel === 'WhatsApp'
+      ? 'تحديث واتساب / Sync WhatsApp'
+      : 'تحديث البريد / Sync Email';
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="syncStmtContactChannel(' + rowIndex + ',\'building\')">' +
+      syncLabel + '</button>';
+  }
+
+  // Download PDF (on-demand if no pdfFileId)
+  if (!s.pdfFileId) {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.statementId) + '\',\'building\')">' +
+      'تحميل PDF (إنشاء عند الطلب)</button>';
+  } else {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
+  }
+
+  // Broadcast (Building-world specific)
+  actionHtml += '<button type="button" class="navy-btn" ' +
+    'onclick="triggerBuildingBroadcast(' + rowIndex + ')">بث / Broadcast</button>';
+
+  // Undo
+  actionHtml += '<button type="button" class="muted-btn" ' +
+    'onclick="revokeSingleStatement(' + rowIndex + ',\'building\')">تراجع / Undo</button>';
+
+  actionHtml += '</div>';
+
+  var expandedClass = isOpen ? ' stmt-card-expanded' : '';
+
+  return '<div class="stmt-card stmt-card-collapsible' + expandedClass + '" ' +
+    'data-row-index="' + rowIndex + '" ' +
+    'onclick="_toggleBldApprovedCard(' + rowIndex + ')">' +
+    collapsedHtml +
+    '<div class="stmt-expand-area">' +
+      detailHtml +
+      actionHtml +
+    '</div>' +
+  '</div>';
+}
+
+function _toggleBldApprovedCard(rowIndex) {
+  // Toggle expand state for this card; no other cards affected (multi-open allowed)
+  if (_openBldApprovedRows[rowIndex]) {
+    delete _openBldApprovedRows[rowIndex];
+  } else {
+    _openBldApprovedRows[rowIndex] = true;
+  }
+  // Direct DOM toggle rather than full re-render to preserve scroll position +
+  // dispatch select state. Card already has data-row-index attribute set.
+  var cardEl = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
+  if (cardEl) {
+    cardEl.classList.toggle('stmt-card-expanded');
+  }
+}
+
+// ============================================================
 // A2 — STATEMENT LIST RENDERER — unified for both worlds
 // Replaces renderSecStmtList and provides correct scope param
 // ============================================================
@@ -5036,6 +5164,13 @@ function renderStmtList(world, status) {
   var scopeVal    = (world === 'building') ? 'Building' : 'Section';
   var prefix      = (world === 'building') ? 'bld' : 'sec';
   var statusKey   = status.toLowerCase();
+  // Reset Building Approved collapsible card state on every render — matches
+  // architect dispatch state-rule (d): reset to closed on sub-tab switch + on
+  // full tab navigation. No localStorage persistence. Building Approved only
+  // per cycle scope; other sub-tabs untouched.
+  if (world === 'building' && statusKey === 'approved') {
+    _openBldApprovedRows = {};
+  }
   var containerId = prefix + '-' + statusKey + '-list';
   var listEl      = document.getElementById(containerId);
   if (!listEl) return;
@@ -14509,6 +14644,23 @@ function fmtMoney(val) {
     .dispatch-row { display:flex; align-items:center; gap:7px; margin-top:5px; }
     .dispatch-lbl { font-size:9px; color:var(--muted); font-weight:700; direction:ltr; }
     .dispatch-sel { font-family:var(--font); font-size:11px; font-weight:600; padding:4px 10px; border:1px solid var(--bdr); border-radius:8px; background:var(--bg); color:var(--navy); appearance:none; }
+    /* Building Approved collapsible card — structural fix 2026-05-18 per architect dispatch */
+    /* Closed default; tap card to expand; reset on sub-tab switch; action row in own row at card bottom */
+    .stmt-card-collapsible { cursor:pointer; user-select:none; transition:box-shadow 0.18s ease-out; }
+    .stmt-card-collapsible:hover { box-shadow:0 2px 8px rgba(27,42,74,0.08); }
+    .stmt-collapsed-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .stmt-collapsed-info { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:1; min-width:0; }
+    .stmt-collapsed-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+    .stmt-chevron { font-size:14px; color:var(--muted); transition:transform 0.2s ease-out; flex-shrink:0; user-select:none; }
+    .stmt-card-collapsible.stmt-card-expanded .stmt-chevron { transform:rotate(180deg); }
+    .stmt-expand-area { max-height:0; overflow:hidden; opacity:0; transition:max-height 0.22s ease-out, opacity 0.18s ease-out, margin-top 0.22s ease-out; margin-top:0; }
+    .stmt-card-collapsible.stmt-card-expanded .stmt-expand-area { max-height:500px; opacity:1; margin-top:12px; }
+    .stmt-detail-row { padding-top:10px; border-top:1px solid var(--bdr); display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+    .stmt-action-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px dashed var(--bdr); }
+    .stmt-action-row button { flex:0 0 auto; }
+    /* Status pill inside collapsed row */
+    .stmt-status-pill { font-size:10px; font-weight:700; color:var(--forest); white-space:nowrap; }
+    .stmt-row-num { font-size:13px; font-weight:700; color:var(--muted); min-width:18px; text-align:center; flex-shrink:0; }
     .pending-tag { font-size:9px; font-weight:700; color:#7a5c0a; background:rgba(201,168,76,0.15); padding:3px 8px; border-radius:6px; }
     .bulk-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--bdr); margin-bottom:12px; }
     .bulk-lbl { font-size:10px; font-weight:700; color:var(--muted); direction:ltr; }

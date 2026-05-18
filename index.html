@@ -14763,7 +14763,10 @@ function fmtMoney(val) {
     #bld-approved-list { max-height:none; overflow:visible; }
     .stmt-detail-row { padding-top:10px; border-top:1px solid var(--bdr); display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
     .stmt-action-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px dashed var(--bdr); }
-    .stmt-action-row button { flex:0 0 auto; }
+    .stmt-action-row button { flex:1 1 0; min-width:64px; padding:5px 6px; font-size:10px; }
+    .stmt-action-row .bilingual-stack { gap:0; }
+    .stmt-action-row .bilingual-stack .bi-ar { font-size:11px; }
+    .stmt-action-row .bilingual-stack .bi-en { font-size:8px; }
     /* Status pill inside collapsed row */
     .stmt-status-pill { font-size:10px; font-weight:700; color:var(--forest); white-space:nowrap; }
     .stmt-row-num { font-size:13px; font-weight:700; color:var(--muted); min-width:18px; text-align:center; flex-shrink:0; }

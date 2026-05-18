@@ -1865,6 +1865,14 @@
       }
 
       .dt-tab { display: flex; align-items: center; gap: 8px; padding: 0 22px; border: none; background: none; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; transition: color 0.18s, background-color 0.18s, border-bottom-color 0.18s; }
+    /* Desktop tab bilingual stacking — parallel classes per architect Path B 2026-05-18 */
+    .dt-tab { display:flex !important; flex-direction:column; align-items:center; gap:1px; }
+    .dt-tab-ico { font-size:18px; line-height:1; }
+    .dt-tab-ar { font-size:13px; font-weight:700; line-height:1.1; }
+    .dt-tab-en { font-size:9px; font-weight:500; opacity:0.7; line-height:1.1; }
+    .dt-tab.dt-inc .dt-tab-ar, .dt-tab.dt-inc .dt-tab-en { color:var(--forest); opacity:1; }
+    .dt-tab.dt-exp .dt-tab-ar, .dt-tab.dt-exp .dt-tab-en { color:var(--burg); opacity:1; }
+    .dt-tab.dt-rep .dt-tab-ar, .dt-tab.dt-rep .dt-tab-en { color:var(--navy); opacity:1; }
       .dt-tab:hover { color: var(--navy); background: rgba(27,42,74,0.025); }
       .dt-tab.dt-inc { border-bottom-color: var(--forest); color: var(--forest); }
       .dt-tab.dt-exp { border-bottom-color: var(--burg);   color: var(--burg);   }
@@ -2884,6 +2892,37 @@
 
   </form>
 
+  <!-- Revenue Log + Expense Log scaffolding — sub-cycle 4A frontend-only 2026-05-18 -->
+  <!-- Backend listRecentEntries endpoint sub-cycle 4B DEFERRED to forward backlog -->
+  <!-- Visibility toggled via existing setTab() hide/show pattern per Income/Expense branches -->
+  <!-- Placeholder bilingual empty-state per architect ruling R3.b -->
+  <div class="card hide" id="log-inc">
+    <div class="log-lbl" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;gap:1px;margin-bottom:8px;">
+      <span style="font-size:11px;">سجل الإيرادات</span>
+      <span style="font-size:9px;opacity:0.85;">Revenue Log</span>
+    </div>
+    <div class="log-scroll" id="log-inc-list">
+      <div style="text-align:center;color:var(--muted);padding:16px;font-size:11px;">
+        <div>قريباً — سجل الإيرادات الأخيرة</div>
+        <div style="margin-top:4px;opacity:0.7;">Coming soon — recent revenue entries</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hide" id="log-exp">
+    <div class="log-lbl" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;gap:1px;margin-bottom:8px;">
+      <span style="font-size:11px;">سجل المصاريف</span>
+      <span style="font-size:9px;opacity:0.85;">Expense Log</span>
+    </div>
+    <div class="log-scroll" id="log-exp-list">
+      <div style="text-align:center;color:var(--muted);padding:16px;font-size:11px;">
+        <div>قريباً — سجل المصاريف الأخيرة</div>
+        <div style="margin-top:4px;opacity:0.7;">Coming soon — recent expense entries</div>
+      </div>
+    </div>
+  </div>
+
+
 </div><!-- /scroll -->
 
 <!-- ══════════════════════════════════════════════
@@ -2893,13 +2932,13 @@
   <div class="nav-tabs">
     <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
       <span class="nav-ico">💰</span>
-      <span class="nav-ar">قبض</span>
-      <span class="nav-en">Income</span>
+      <span class="nav-ar">إيرادات</span>
+      <span class="nav-en">Revenues</span>
     </button>
     <button class="nav-tab" id="t-exp" onclick="setTab('Expense')">
       <span class="nav-ico">📉</span>
-      <span class="nav-ar">مصروف</span>
-      <span class="nav-en">Expense</span>
+      <span class="nav-ar">مصاريف</span>
+      <span class="nav-en">Expenses</span>
     </button>
     <button class="nav-tab" id="t-rep" onclick="setTab('Report')">
       <span class="nav-ico">📄</span>
@@ -2918,7 +2957,7 @@
     </button>
     <button class="nav-tab hide" id="t-pay" onclick="setTab('Pay')">
       <span class="nav-ico">💳</span>
-      <span class="nav-ar">Pay Hub</span>
+      <span class="nav-ar">مركز الدفع</span>
       <span class="nav-en">Pay Hub</span>
     </button>
   </div>
@@ -3043,22 +3082,34 @@
   <div id="dt-content">
     <div id="dt-tabs">
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
-        <span class="dt-tab-ico">💰</span> قبض / Income
+        <span class="dt-tab-ico">💰</span>
+        <span class="dt-tab-ar">إيرادات</span>
+        <span class="dt-tab-en">Revenues</span>
       </button>
-      <button class="dt-tab" id="dt-t-exp" onclick="setTab('Expense')">
-        <span class="dt-tab-ico">📉</span> مصروف / Expense
+      <button class="dt-tab dt-exp" id="dt-t-exp" onclick="setTab('Expense')">
+        <span class="dt-tab-ico">📉</span>
+        <span class="dt-tab-ar">مصاريف</span>
+        <span class="dt-tab-en">Expenses</span>
       </button>
-      <button class="dt-tab" id="dt-t-rep" onclick="setTab('Report')">
-        <span class="dt-tab-ico">📄</span> تقارير / Reports
+      <button class="dt-tab dt-rep" id="dt-t-rep" onclick="setTab('Report')">
+        <span class="dt-tab-ico">📄</span>
+        <span class="dt-tab-ar">تقارير</span>
+        <span class="dt-tab-en">Reports</span>
       </button>
       <button class="dt-tab hide" id="dt-t-mtr" onclick="setTab('Meter')">
-        <span class="dt-tab-ico">📈</span> عدادات / Meters
+        <span class="dt-tab-ico">📈</span>
+        <span class="dt-tab-ar">عدادات</span>
+        <span class="dt-tab-en">Meters</span>
       </button>
       <button class="dt-tab hide" id="dt-t-com" onclick="setTab('Communications')">
-        <span class="dt-tab-ico">📡</span> مراسلات / Comms
+        <span class="dt-tab-ico">📡</span>
+        <span class="dt-tab-ar">مراسلات</span>
+        <span class="dt-tab-en">Comms</span>
       </button>
       <button class="dt-tab hide" id="dt-t-pay" onclick="setTab('Pay')">
-        <span class="dt-tab-ico">💳</span> Pay Hub
+        <span class="dt-tab-ico">💳</span>
+        <span class="dt-tab-ar">مركز الدفع</span>
+        <span class="dt-tab-en">Pay Hub</span>
       </button>
     </div>
   </div>
@@ -4580,7 +4631,12 @@ function setTab(type) {
   // Hide all content panels
   // Patch I-perms-parity (Path B): added 'f-noaccess' to hide-list so the
   // placeholder is hidden when switching to any other panel type.
-  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay','f-noaccess'].forEach(function(id) {
+  // R7 Path γ extension 2026-05-18: added 'log-inc' + 'log-exp' to hide-list
+  // per architect Pass C ruling — Revenue Log + Expense Log containers
+  // follow sibling-symmetric pattern with f-inc/f-exp (initial class="hide"
+  // at L2899/L2912 + hide-list cascade at this line). Lesson L verbatim
+  // reuse of working visibility-cascade list across new content panels.
+  ['f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay','f-noaccess','log-inc','log-exp'].forEach(function(id) {
     var el = _el(id);
     if (el) el.classList.add('hide');
   });
@@ -4598,6 +4654,9 @@ function setTab(type) {
     var dtInc = _el('dt-t-inc'); if (dtInc) dtInc.classList.add('dt-inc');
     _el('f-inc').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
+    // Revenue Log visibility wiring — sub-cycle 4A frontend-only 2026-05-18
+    var logIncEl = _el('log-inc'); if (logIncEl) logIncEl.classList.remove('hide');
+    var logExpEl = _el('log-exp'); if (logExpEl) logExpEl.classList.add('hide');
     fillCats('income');
     btn.className = 'btn-sub b-inc';
     ico.textContent = '💰'; txt.textContent = 'تسجيل الدفعة / Record Payment';
@@ -4607,6 +4666,9 @@ function setTab(type) {
     var dtExp = _el('dt-t-exp'); if (dtExp) dtExp.classList.add('dt-exp');
     _el('f-exp').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
+    // Expense Log visibility wiring — sub-cycle 4A frontend-only 2026-05-18
+    var logIncEl2 = _el('log-inc'); if (logIncEl2) logIncEl2.classList.add('hide');
+    var logExpEl2 = _el('log-exp'); if (logExpEl2) logExpEl2.classList.remove('hide');
     fillCats('expense');
     btn.className = 'btn-sub b-exp';
     ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
@@ -14763,10 +14825,10 @@ function fmtMoney(val) {
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Permissions / الصلاحيات</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="usr-perms-grid">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-inc"> Income / قبض
+          <input type="checkbox" id="usr-perm-inc"> Revenues / إيرادات
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-exp"> Expense / مصروف
+          <input type="checkbox" id="usr-perm-exp"> Expenses / مصاريف
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-rep-bld"> Building Reports / تقارير المبنى

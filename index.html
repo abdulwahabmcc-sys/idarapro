@@ -3191,6 +3191,13 @@ function getOrCreateDeviceId() {
 function gasGet(action, token) {
   var url = GAS + '?action=' + encodeURIComponent(action);
   if (token) url += '&token=' + encodeURIComponent(token);
+  // Phase 14b hotfix: auto-inject deviceId mirroring gasPost helper per Decision D1a
+  // single-point-of-change discipline corrected to BOTH GET + POST helpers.
+  // Original Phase 14b Edit (f) applied to gasPost only; gasGet missed → admin-tab
+  // GET fetches sent payload.deviceId=undefined → validateToken silent null → all
+  // settings tabs failed simultaneously. Hotfix restores parity between helpers.
+  var deviceId = (_session && _session.deviceId) || getOrCreateDeviceId();
+  if (deviceId) url += '&deviceId=' + encodeURIComponent(deviceId);
   return fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(r) { if (!r.ok) throw new Error(r.error); return r.data; });

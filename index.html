@@ -4910,14 +4910,6 @@ function _loadStmtSubtabData(world, tab) {
 function _renderStmtCard(s, world) {
   var status = String(s.status || '').toLowerCase();
 
-  // Building Approved sub-tab collapsible card branch — structural fix 2026-05-18
-  // Other 7 sub-tabs (Section Approved + Building Draft/Sent + Section Draft/Sent +
-  // Building Unprocessed + Section Unprocessed) fall through to legacy stmt-card flow.
-  // Family enumeration documented at dispatch closure per Wave 9 §7 Decision D1a.
-  if (world === 'building' && status === 'approved') {
-    return _renderBldApprovedCard(s);
-  }
-
   var leftContent = '';
   if (status === 'draft') {
     leftContent += '<div class="draft-status">Draft ●</div>';
@@ -5036,6 +5028,9 @@ function _renderStmtCard(s, world) {
 
 // ============================================================
 // A1.5 — BUILDING APPROVED COLLAPSIBLE CARD — structural fix 2026-05-18
+// CORRECTED 2026-05-18: branches renderBuildingCard NOT _renderStmtCard
+// (prior cycle refactored dead code; loadBuildingStatements + renderBuildingCard
+// supersede renderStmtList for Building world per index.html L5638 comment).
 // Architect dispatch: Building Approved sub-tab ONLY (Section Approved +
 // other 6 sub-tabs deferred to forward-cycle separate authorization).
 // Closed default; tap card to expand; reset on sub-tab switch.
@@ -5046,85 +5041,134 @@ function _renderStmtCard(s, world) {
 // ============================================================
 
 // Set of currently-expanded Building Approved row indices. Reset to empty
-// at every renderStmtList invocation (sub-tab switch + tab nav away+return).
-// No localStorage persistence per architect dispatch state-rule (d).
+// at every loadBuildingStatements('Approved') invocation (sub-tab switch +
+// tab nav away+return). No localStorage persistence per architect dispatch
+// state-rule (d).
 var _openBldApprovedRows = {};
 
-function _renderBldApprovedCard(s) {
-  var rowIndex = s.rowIndex;
+function _renderBldApprovedCardCollapsible(parent) {
+  var rowIndex = parent.rowIndex;
   var isOpen = !!_openBldApprovedRows[rowIndex];
-  var lbl = fmtReportLabel(s.reportType, s.period);
+  var lbl = fmtReportLabel(parent.reportType, parent.period);
 
   // ── COLLAPSED ROW (always visible) ──
-  // Row number + occupant name + dispatch channel select + status pill + Download PDF + chevron
-  // No card actions in this row — only essentials per architect dispatch (c).
+  // Title + period + chevron + Approved status pill.
+  // Tapping anywhere on card toggles expand (full-card tap target per
+  // architect dispatch state-rule (f)).
   var collapsedHtml =
     '<div class="stmt-collapsed-row">' +
       '<span class="stmt-chevron">▾</span>' +
-      '<div class="stmt-collapsed-actions" onclick="event.stopPropagation();">' +
-        '<select class="dispatch-sel" data-row-index="' + rowIndex + '" ' +
-          'onchange="assignDispatcher(' + rowIndex + ',this.value,\'building\')">' +
-          '<option value="Email"'    + (s.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
-          '<option value="Manual"'   + (s.dispatchChannel === 'Manual'   ? ' selected' : '') + '>يدوي / Manual</option>' +
-          '<option value="WhatsApp"' + (s.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
-        '</select>' +
-      '</div>' +
       '<div class="stmt-collapsed-info">' +
-        '<div class="stmt-name">' + escHtml(s.section || '') + (s.occupantName ? ' — ' + escHtml(s.occupantName) : '') + '</div>' +
-        '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(lbl.typeLabel) + '</div>' +
+        '<div class="stmt-name">تقرير المبنى — ' + escHtml(lbl.typeLabel) + '</div>' +
+        '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(parent.period || '') + '</div>' +
+        '<div class="stmt-status-pill" style="color:var(--forest);margin-top:2px;">Approved ●</div>' +
       '</div>' +
     '</div>';
 
-  // ── EXPANDED AREA (visible when card-expanded class present) ──
-  // Section details (reviewed metadata + email + Preview link) above action row
+  // ── EXPANDED AREA — reviewed metadata + stats + child table + action row ──
+
+  // Reviewed metadata row
   var detailHtml = '<div class="stmt-detail-row">';
   detailHtml += '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
-    fmtDateTime(s.reviewedAt) + (s.reviewedBy ? ' · ' + escHtml(s.reviewedBy) : '') + '</span></div>';
-  if (s.email) {
-    detailHtml += '<div class="stmt-date" style="direction:ltr;text-align:left;color:var(--forest);font-size:10px;font-weight:600;">📧 ' + escHtml(s.email) + '</div>';
-  }
-  if (s.htmlFileId) {
+    fmtDateTime(parent.reviewedAt) + (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') + '</span></div>';
+  if (parent.htmlFileId) {
     detailHtml += '<div class="stmt-actions">' +
       '<span style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
-        'onclick="event.stopPropagation();openStmtPreview(\'' + escHtml(s.htmlFileId) + '\')">معاينة / Preview</span>' +
+        'onclick="event.stopPropagation();openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</span>' +
       '</div>';
   }
+
+  // Stats row (Total / Pending / Sent / Closed out)
+  detailHtml +=
+    '<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;width:100%;justify-content:flex-end;">' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;">' + (parent.totalCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+      '</div>' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;color:#BA7517;">' + (parent.pendingCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Pending</div>' +
+      '</div>' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;color:#185FA5;">' + (parent.sentCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+      '</div>' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;color:#534AB7;">' + (parent.closedOutCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+      '</div>' +
+    '</div>';
+
+  // Child table (Section / Occupant / Channel / Status / per-child actions)
+  // event.stopPropagation on table prevents card toggle when interacting with row controls
+  if (parent.children && parent.children.length) {
+    detailHtml +=
+      '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;" onclick="event.stopPropagation();">' +
+        '<thead><tr>' +
+          '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Section</th>' +
+          '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Occupant</th>' +
+          '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Channel</th>' +
+          '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Status</th>' +
+          '<th style="padding:4px 6px;border-bottom:0.5px solid var(--bdr);"></th>' +
+        '</tr></thead>' +
+        '<tbody>';
+
+    parent.children.forEach(function(child) {
+      var childStatusPill = '';
+      if (child.status === 'Pending')    childStatusPill = '<span class="pill pill-pending" style="font-size:9px;">● Pending</span>';
+      if (child.status === 'Sent')       childStatusPill = '<span class="pill pill-sent" style="font-size:9px;">● Sent</span>';
+      if (child.status === 'Closed Out') childStatusPill = '<span style="font-size:9px;color:var(--muted);">● Closed Out</span>';
+
+      var childActions = '';
+      if (child.pdfFileId) {
+        childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+          'onclick="downloadStmtPdf(\'' + escHtml(child.pdfFileId) + '\')">تحميل PDF</button> ';
+      } else {
+        childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+          'onclick="downloadStmtPdfOnDemand(\'' + escHtml(child.stmtId) + '\',\'building\')">' +
+          'تحميل PDF / On-demand</button> ';
+      }
+      if (child.dispatchChannel === 'Manual' && child.status === 'Pending') {
+        childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
+          'onclick="markChildSentUI(' + child.rowIndex + ')">Mark Sent</button>';
+      }
+
+      detailHtml +=
+        '<tr data-row-index="' + child.rowIndex + '" style="border-bottom:0.5px solid var(--bdr);">' +
+          '<td style="padding:5px 6px;text-align:right;">' + escHtml(child.section) + '</td>' +
+          '<td style="padding:5px 6px;text-align:right;font-size:11px;">' + escHtml(child.occupantName) + '</td>' +
+          '<td style="padding:5px 6px;">' +
+            '<select data-row-index="' + child.rowIndex + '" ' +
+              'onchange="assignChildChannelUI(' + child.rowIndex + ', this.value)" ' +
+              'style="font-size:10px;padding:2px 4px;">' +
+              '<option value=""'         + (!child.dispatchChannel ? ' selected' : '') + '>— assign —</option>' +
+              '<option value="Email"'    + (child.dispatchChannel === 'Email'    ? ' selected' : '') + '>Email</option>' +
+              '<option value="WhatsApp"' + (child.dispatchChannel === 'WhatsApp' ? ' selected' : '') + '>WhatsApp</option>' +
+              '<option value="Manual"'   + (child.dispatchChannel === 'Manual'   ? ' selected' : '') + '>Manual</option>' +
+            '</select>' +
+          '</td>' +
+          '<td style="padding:5px 6px;">' + childStatusPill + '</td>' +
+          '<td style="padding:5px 6px;">' + childActions + '</td>' +
+        '</tr>';
+    });
+
+    detailHtml += '</tbody></table>';
+  }
+
   detailHtml += '</div>';
 
-  // Action row — Sync (conditional) + Download PDF + Broadcast + Undo
+  // Action row — Broadcast + Mark Complete + Undo (parent-level actions)
   // ALL actions live in this row at card bottom (no breakout; flex-wrap handles overflow)
   // event.stopPropagation prevents card-toggle when tapping action button
-  var actionHtml = '<div class="stmt-action-row" onclick="event.stopPropagation();">';
-
-  // Sync conditional (no email + Email/WhatsApp channel)
-  if (!s.email && (s.dispatchChannel === 'Email' || s.dispatchChannel === 'WhatsApp')) {
-    var syncLabel = s.dispatchChannel === 'WhatsApp'
-      ? 'تحديث واتساب / Sync WhatsApp'
-      : 'تحديث البريد / Sync Email';
-    actionHtml += '<button type="button" class="navy-btn" ' +
-      'onclick="syncStmtContactChannel(' + rowIndex + ',\'building\')">' +
-      syncLabel + '</button>';
-  }
-
-  // Download PDF (on-demand if no pdfFileId)
-  if (!s.pdfFileId) {
-    actionHtml += '<button type="button" class="navy-btn" ' +
-      'onclick="downloadStmtPdfOnDemand(\'' + escHtml(s.statementId) + '\',\'building\')">' +
-      'تحميل PDF (إنشاء عند الطلب)</button>';
-  } else {
-    actionHtml += '<button type="button" class="navy-btn" ' +
-      'onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
-  }
-
-  // Broadcast (Building-world specific)
-  actionHtml += '<button type="button" class="navy-btn" ' +
-    'onclick="triggerBuildingBroadcast(' + rowIndex + ')">بث / Broadcast</button>';
-
-  // Undo
-  actionHtml += '<button type="button" class="muted-btn" ' +
-    'onclick="revokeSingleStatement(' + rowIndex + ',\'building\')">تراجع / Undo</button>';
-
-  actionHtml += '</div>';
+  var actionHtml =
+    '<div class="stmt-action-row" onclick="event.stopPropagation();">' +
+      '<button type="button" class="navy-btn" ' +
+        'onclick="triggerBuildingBroadcast(' + rowIndex + ')">بث / Broadcast</button>' +
+      '<button type="button" class="navy-btn" ' +
+        'onclick="triggerMarkComplete(' + rowIndex + ')">تمّ الإنجاز / Mark Complete</button>' +
+      '<button type="button" class="muted-btn" ' +
+        'onclick="triggerBuildingUndo(' + rowIndex + ')">تراجع / Undo</button>' +
+    '</div>';
 
   var expandedClass = isOpen ? ' stmt-card-expanded' : '';
 
@@ -5164,13 +5208,6 @@ function renderStmtList(world, status) {
   var scopeVal    = (world === 'building') ? 'Building' : 'Section';
   var prefix      = (world === 'building') ? 'bld' : 'sec';
   var statusKey   = status.toLowerCase();
-  // Reset Building Approved collapsible card state on every render — matches
-  // architect dispatch state-rule (d): reset to closed on sub-tab switch + on
-  // full tab navigation. No localStorage persistence. Building Approved only
-  // per cycle scope; other sub-tabs untouched.
-  if (world === 'building' && statusKey === 'approved') {
-    _openBldApprovedRows = {};
-  }
   var containerId = prefix + '-' + statusKey + '-list';
   var listEl      = document.getElementById(containerId);
   if (!listEl) return;
@@ -5641,6 +5678,12 @@ function renderBldUnprocessed() {
 function loadBuildingStatements(status) {
   if (!sessionValid()) return;
   var statusKey   = status.toLowerCase();
+  // Reset Building Approved collapsible card state on every render per architect
+  // dispatch state-rule (d): reset to closed on sub-tab switch + tab nav away+return.
+  // No localStorage persistence. Building Approved only per cycle scope.
+  if (statusKey === 'approved') {
+    _openBldApprovedRows = {};
+  }
   var containerId = 'bld-' + statusKey + '-list';
   var listEl      = document.getElementById(containerId);
   if (!listEl) return;
@@ -5676,6 +5719,15 @@ function loadBuildingStatements(status) {
 // ============================================================================
 
 function renderBuildingCard(parent, status) {
+
+  // Building Approved sub-tab collapsible card branch — structural fix 2026-05-18.
+  // Other 2 states (Draft + Sent) fall through to legacy stmt-card flow at this
+  // function. Family enumeration documented at dispatch closure per Wave 9 §7
+  // Decision D1a. Section world untouched (separate renderer via _renderStmtCard).
+  if (status === 'approved') {
+    return _renderBldApprovedCardCollapsible(parent);
+  }
+
   var leftContent  = '';
   var rightContent = '';
 

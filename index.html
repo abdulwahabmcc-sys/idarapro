@@ -5067,8 +5067,8 @@ function _renderBldApprovedCardCollapsible(parent) {
 
   // ── EXPANDED AREA — reviewed metadata + stats + child table + action row ──
 
-  // Reviewed metadata row
-  // Preview consolidated to action row at card bottom per UI refinement 2026-05-18
+  // Reviewed metadata + stats row (action row inserted between this section and child table per UI refinement 2026-05-18)
+  // Preview consolidated to action row per UI refinement 2026-05-18
   var detailHtml = '<div class="stmt-detail-row">';
   detailHtml += '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
     fmtDateTime(parent.reviewedAt) + (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') + '</span></div>';
@@ -5094,10 +5094,14 @@ function _renderBldApprovedCardCollapsible(parent) {
       '</div>' +
     '</div>';
 
+  detailHtml += '</div>'; // close stmt-detail-row
+
   // Child table (Section / Occupant / Channel / Status / per-child actions)
   // event.stopPropagation on table prevents card toggle when interacting with row controls
+  // CHILD TABLE BUILT AS SEPARATE VAR — emitted AFTER action row per UI refinement 2026-05-18
+  var childTableHtml = '';
   if (parent.children && parent.children.length) {
-    detailHtml +=
+    childTableHtml +=
       // Child table: per-child PDF column removed per UI refinement 2026-05-18 —
       // Building parent serves single PDF for all sections via parent-level action row.
       // Per-child PDF preserved for Section world (different report per section).
@@ -5127,7 +5131,7 @@ function _renderBldApprovedCardCollapsible(parent) {
           'onclick="markChildSentUI(' + child.rowIndex + ')">Mark Sent</button>';
       }
 
-      detailHtml +=
+      childTableHtml +=
         '<tr data-row-index="' + child.rowIndex + '" style="border-bottom:0.5px solid var(--bdr);">' +
           '<td style="padding:5px 6px;text-align:right;">' + escHtml(child.section) + '</td>' +
           '<td style="padding:5px 6px;text-align:right;font-size:11px;">' + escHtml(child.occupantName) + '</td>' +
@@ -5146,10 +5150,8 @@ function _renderBldApprovedCardCollapsible(parent) {
         '</tr>';
     });
 
-    detailHtml += '</tbody></table>';
+    childTableHtml += '</tbody></table>';
   }
-
-  detailHtml += '</div>';
 
   // Action row — Preview + PDF + Broadcast + Mark Complete + Undo (parent-level)
   // UI refinement 2026-05-18:
@@ -5214,23 +5216,36 @@ function _renderBldApprovedCardCollapsible(parent) {
     '<div class="stmt-expand-area">' +
       detailHtml +
       actionHtml +
+      childTableHtml +
     '</div>' +
   '</div>';
 }
 
 function _toggleBldApprovedCard(rowIndex) {
-  // Toggle expand state for this card; no other cards affected (multi-open allowed)
-  if (_openBldApprovedRows[rowIndex]) {
+  // Single-open accordion behavior per project-owner refinement 2026-05-18:
+  // opening any card auto-collapses all other open cards. Closing this card
+  // (when already open) does NOT open any other.
+  var wasOpen = !!_openBldApprovedRows[rowIndex];
+
+  if (wasOpen) {
+    // Simple close — just collapse this card; state untouched for others
     delete _openBldApprovedRows[rowIndex];
-  } else {
-    _openBldApprovedRows[rowIndex] = true;
+    var cardEl = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
+    if (cardEl) cardEl.classList.remove('stmt-card-expanded');
+    return;
   }
-  // Direct DOM toggle rather than full re-render to preserve scroll position +
-  // dispatch select state. Card already has data-row-index attribute set.
-  var cardEl = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
-  if (cardEl) {
-    cardEl.classList.toggle('stmt-card-expanded');
-  }
+
+  // Opening — first close all currently-open cards (DOM + state)
+  Object.keys(_openBldApprovedRows).forEach(function(openIdx) {
+    var openCard = document.querySelector('.stmt-card-collapsible[data-row-index="' + openIdx + '"]');
+    if (openCard) openCard.classList.remove('stmt-card-expanded');
+  });
+  _openBldApprovedRows = {};
+
+  // Now open this card
+  _openBldApprovedRows[rowIndex] = true;
+  var thisCard = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
+  if (thisCard) thisCard.classList.add('stmt-card-expanded');
 }
 
 // ============================================================
@@ -14742,6 +14757,10 @@ function fmtMoney(val) {
     .stmt-card-collapsible.stmt-card-expanded .stmt-chevron { transform:rotate(180deg); }
     .stmt-expand-area { max-height:0; overflow:hidden; opacity:0; transition:max-height 0.22s ease-out, opacity 0.18s ease-out, margin-top 0.22s ease-out; margin-top:0; }
     .stmt-card-collapsible.stmt-card-expanded .stmt-expand-area { max-height:5000px; opacity:1; margin-top:12px; }
+    /* Building Approved sub-tab: remove inner scroll per project-owner refinement 2026-05-18 —
+       user scrolls page naturally; Section world (#sec-*-list) preserves inner scroll for
+       per-section paginated view */
+    #bld-approved-list { max-height:none; overflow:visible; }
     .stmt-detail-row { padding-top:10px; border-top:1px solid var(--bdr); display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
     .stmt-action-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px dashed var(--bdr); }
     .stmt-action-row button { flex:0 0 auto; }

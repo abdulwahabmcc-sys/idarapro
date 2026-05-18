@@ -5249,6 +5249,173 @@ function _toggleBldApprovedCard(rowIndex) {
 }
 
 // ============================================================
+// A1.6 — BUILDING SENT COLLAPSIBLE CARD — structural fix 2026-05-18
+// Same pattern as A1.5 Building Approved (collapsed default + tap-to-expand +
+// single-open accordion + action row above child table). Sent-specific:
+//   • Stats row: 3 stats (Total/Sent/Closed out) — NO Pending
+//   • Date label: 'مُرسَل: <dispatchedAt>' instead of 'معتمد: <reviewedAt>'
+//   • Action row: Preview + PDF only (no Broadcast/Mark Complete/Undo since
+//     Sent is post-dispatch terminal state)
+//   • Child table: Section/Occupant/Channel/Dispatched/Status — read-only
+//     (no per-child actions; no channel select)
+//   • Closed Out children rendered at opacity:0.5
+// Uses separate _openBldSentRows state (independent from Approved accordion)
+// per cycle scope. Different rowIndex namespace — collisions impossible since
+// data comes from different sub-tabs.
+// ============================================================
+
+var _openBldSentRows = {};
+
+function _renderBldSentCardCollapsible(parent) {
+  var rowIndex = parent.rowIndex;
+  var isOpen = !!_openBldSentRows[rowIndex];
+  var lbl = fmtReportLabel(parent.reportType, parent.period);
+
+  // ── COLLAPSED ROW ──
+  var collapsedHtml =
+    '<div class="stmt-collapsed-row">' +
+      '<span class="stmt-chevron">▾</span>' +
+      '<div class="stmt-collapsed-info">' +
+        '<div class="stmt-name">تقرير المبنى — ' + escHtml(lbl.typeLabel) + '</div>' +
+        '<div class="stmt-meta">' + escHtml(lbl.display) + ' · ' + escHtml(parent.period || '') + '</div>' +
+        '<div class="stmt-status-pill" style="color:var(--navy);margin-top:2px;">Sent ●</div>' +
+      '</div>' +
+    '</div>';
+
+  // ── EXPANDED AREA — dispatch metadata + stats (Total/Sent/Closed out) ──
+
+  var detailHtml = '<div class="stmt-detail-row">';
+  detailHtml += '<div class="stmt-date" style="color:var(--navy);">مُرسَل: <span style="direction:ltr;unicode-bidi:embed;">' +
+    fmtDateTime(parent.dispatchedAt) + '</span></div>';
+
+  // Stats row (Total / Sent / Closed out — NO Pending since Sent is post-dispatch)
+  detailHtml +=
+    '<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;width:100%;justify-content:flex-end;">' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;">' + (parent.totalCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Total</div>' +
+      '</div>' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;color:#185FA5;">' + (parent.sentCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Sent</div>' +
+      '</div>' +
+      '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 10px;">' +
+        '<div style="font-size:16px;font-weight:500;color:#534AB7;">' + (parent.closedOutCount || 0) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);">Closed out</div>' +
+      '</div>' +
+    '</div>';
+
+  detailHtml += '</div>'; // close stmt-detail-row
+
+  // ── ACTION ROW — Preview + PDF only (Sent state subset of Approved actions) ──
+  // No Broadcast/Mark Complete/Undo per Sent-state semantics:
+  //   - Broadcast: not applicable post-dispatch (already broadcast)
+  //   - Mark Complete: Approved→Sent transition only; Sent is downstream
+  //   - Undo: not exposed for Sent state per existing legacy renderer pattern
+  var actionHtml = '<div class="stmt-action-row" onclick="event.stopPropagation();">';
+
+  // Preview (bilingual-stacked); conditional on htmlFileId
+  if (parent.htmlFileId) {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">معاينة</span><span class="bi-en">Preview</span></span>' +
+      '</button>';
+  }
+
+  // PDF (single parent-level button; on-demand fallback if parent.pdfFileId empty)
+  if (parent.pdfFileId) {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">تحميل PDF</span><span class="bi-en">Download PDF</span></span>' +
+      '</button>';
+  } else {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdfOnDemand(\'' + escHtml(parent.stmtId) + '\',\'building\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">تحميل PDF</span><span class="bi-en">On-demand</span></span>' +
+      '</button>';
+  }
+
+  actionHtml += '</div>';
+
+  // ── CHILD TABLE — Section/Occupant/Channel/Dispatched/Status — read-only ──
+  // event.stopPropagation on table prevents card toggle when interacting
+  // No per-child actions (no Mark Sent button; no channel select — dispatched
+  // is read-only post-dispatch). Closed Out children rendered at opacity:0.5
+  var childTableHtml = '';
+  if (parent.children && parent.children.length) {
+    childTableHtml +=
+      '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;" onclick="event.stopPropagation();">' +
+        '<thead><tr>' +
+          '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Section</th>' +
+          '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Occupant</th>' +
+          '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Channel</th>' +
+          '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Dispatched</th>' +
+          '<th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Status</th>' +
+        '</tr></thead>' +
+        '<tbody>';
+
+    parent.children.forEach(function(child) {
+      var rowStyle = child.status === 'Closed Out'
+        ? 'opacity:0.5;border-bottom:0.5px solid var(--bdr);'
+        : 'border-bottom:0.5px solid var(--bdr);';
+
+      var childStatusPill = '';
+      if (child.status === 'Sent')       childStatusPill = '<span class="pill pill-sent" style="font-size:9px;">● Sent</span>';
+      if (child.status === 'Closed Out') childStatusPill = '<span style="font-size:9px;color:var(--muted);">● Closed Out</span>';
+      if (child.status === 'Pending')    childStatusPill = '<span class="pill pill-pending" style="font-size:9px;">● Pending</span>';
+
+      childTableHtml +=
+        '<tr data-row-index="' + child.rowIndex + '" style="' + rowStyle + '">' +
+          '<td style="padding:5px 6px;text-align:right;">' + escHtml(child.section) + '</td>' +
+          '<td style="padding:5px 6px;text-align:right;font-size:11px;">' + escHtml(child.occupantName) + '</td>' +
+          '<td style="padding:5px 6px;">' + escHtml(child.dispatchChannel || '—') + '</td>' +
+          '<td style="padding:5px 6px;direction:ltr;font-size:10px;">' + fmtDateTime(child.dispatchedAt) + '</td>' +
+          '<td style="padding:5px 6px;">' + childStatusPill + '</td>' +
+        '</tr>';
+    });
+
+    childTableHtml += '</tbody></table>';
+  }
+
+  var expandedClass = isOpen ? ' stmt-card-expanded' : '';
+
+  return '<div class="stmt-card stmt-card-collapsible' + expandedClass + '" ' +
+    'data-row-index="' + rowIndex + '" ' +
+    'onclick="_toggleBldSentCard(' + rowIndex + ')">' +
+    collapsedHtml +
+    '<div class="stmt-expand-area">' +
+      detailHtml +
+      actionHtml +
+      childTableHtml +
+    '</div>' +
+  '</div>';
+}
+
+function _toggleBldSentCard(rowIndex) {
+  // Single-open accordion behavior — same pattern as Approved
+  var wasOpen = !!_openBldSentRows[rowIndex];
+
+  if (wasOpen) {
+    delete _openBldSentRows[rowIndex];
+    var cardEl = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
+    if (cardEl) cardEl.classList.remove('stmt-card-expanded');
+    return;
+  }
+
+  // Close all currently-open Sent cards first
+  Object.keys(_openBldSentRows).forEach(function(openIdx) {
+    var openCard = document.querySelector('.stmt-card-collapsible[data-row-index="' + openIdx + '"]');
+    if (openCard) openCard.classList.remove('stmt-card-expanded');
+  });
+  _openBldSentRows = {};
+
+  // Open this card
+  _openBldSentRows[rowIndex] = true;
+  var thisCard = document.querySelector('.stmt-card-collapsible[data-row-index="' + rowIndex + '"]');
+  if (thisCard) thisCard.classList.add('stmt-card-expanded');
+}
+
+// ============================================================
 // A2 — STATEMENT LIST RENDERER — unified for both worlds
 // Replaces renderSecStmtList and provides correct scope param
 // ============================================================
@@ -5728,11 +5895,14 @@ function renderBldUnprocessed() {
 function loadBuildingStatements(status) {
   if (!sessionValid()) return;
   var statusKey   = status.toLowerCase();
-  // Reset Building Approved collapsible card state on every render per architect
-  // dispatch state-rule (d): reset to closed on sub-tab switch + tab nav away+return.
-  // No localStorage persistence. Building Approved only per cycle scope.
+  // Reset Building Approved + Sent collapsible card state on every render per
+  // architect dispatch state-rule (d): reset to closed on sub-tab switch + tab
+  // nav away+return. No localStorage persistence.
   if (statusKey === 'approved') {
     _openBldApprovedRows = {};
+  }
+  if (statusKey === 'sent') {
+    _openBldSentRows = {};
   }
   var containerId = 'bld-' + statusKey + '-list';
   var listEl      = document.getElementById(containerId);
@@ -5770,12 +5940,15 @@ function loadBuildingStatements(status) {
 
 function renderBuildingCard(parent, status) {
 
-  // Building Approved sub-tab collapsible card branch — structural fix 2026-05-18.
-  // Other 2 states (Draft + Sent) fall through to legacy stmt-card flow at this
-  // function. Family enumeration documented at dispatch closure per Wave 9 §7
-  // Decision D1a. Section world untouched (separate renderer via _renderStmtCard).
+  // Building Approved + Sent collapsible card branches — structural fix 2026-05-18.
+  // Building Draft still falls through to legacy stmt-card flow at this function.
+  // Family enumeration documented at dispatch closure per Wave 9 §7 Decision D1a.
+  // Section world untouched (separate renderer via _renderStmtCard).
   if (status === 'approved') {
     return _renderBldApprovedCardCollapsible(parent);
+  }
+  if (status === 'sent') {
+    return _renderBldSentCardCollapsible(parent);
   }
 
   var leftContent  = '';
@@ -14757,10 +14930,10 @@ function fmtMoney(val) {
     .stmt-card-collapsible.stmt-card-expanded .stmt-chevron { transform:rotate(180deg); }
     .stmt-expand-area { max-height:0; overflow:hidden; opacity:0; transition:max-height 0.22s ease-out, opacity 0.18s ease-out, margin-top 0.22s ease-out; margin-top:0; }
     .stmt-card-collapsible.stmt-card-expanded .stmt-expand-area { max-height:5000px; opacity:1; margin-top:12px; }
-    /* Building Approved sub-tab: remove inner scroll per project-owner refinement 2026-05-18 —
-       user scrolls page naturally; Section world (#sec-*-list) preserves inner scroll for
-       per-section paginated view */
-    #bld-approved-list { max-height:none; overflow:visible; }
+    /* Building Approved + Sent sub-tabs: remove inner scroll per project-owner
+       refinement 2026-05-18 — user scrolls page naturally; Section world
+       (#sec-*-list) preserves inner scroll for per-section paginated view */
+    #bld-approved-list, #bld-sent-list { max-height:none; overflow:visible; }
     .stmt-detail-row { padding-top:10px; border-top:1px solid var(--bdr); display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
     .stmt-action-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px dashed var(--bdr); }
     .stmt-action-row button { flex:1 1 0; min-width:64px; padding:5px 6px; font-size:10px; }

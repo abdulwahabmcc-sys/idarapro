@@ -5068,15 +5068,10 @@ function _renderBldApprovedCardCollapsible(parent) {
   // ── EXPANDED AREA — reviewed metadata + stats + child table + action row ──
 
   // Reviewed metadata row
+  // Preview consolidated to action row at card bottom per UI refinement 2026-05-18
   var detailHtml = '<div class="stmt-detail-row">';
   detailHtml += '<div class="stmt-date" style="color:var(--forest);">معتمد: <span style="direction:ltr;unicode-bidi:embed;">' +
     fmtDateTime(parent.reviewedAt) + (parent.reviewedBy ? ' · ' + escHtml(parent.reviewedBy) : '') + '</span></div>';
-  if (parent.htmlFileId) {
-    detailHtml += '<div class="stmt-actions">' +
-      '<span style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer;" ' +
-        'onclick="event.stopPropagation();openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">معاينة / Preview</span>' +
-      '</div>';
-  }
 
   // Stats row (Total / Pending / Sent / Closed out)
   detailHtml +=
@@ -5103,6 +5098,10 @@ function _renderBldApprovedCardCollapsible(parent) {
   // event.stopPropagation on table prevents card toggle when interacting with row controls
   if (parent.children && parent.children.length) {
     detailHtml +=
+      // Child table: per-child PDF column removed per UI refinement 2026-05-18 —
+      // Building parent serves single PDF for all sections via parent-level action row.
+      // Per-child PDF preserved for Section world (different report per section).
+      // Mark-Sent button preserved for Manual+Pending children only.
       '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;" onclick="event.stopPropagation();">' +
         '<thead><tr>' +
           '<th style="text-align:right;padding:4px 6px;border-bottom:0.5px solid var(--bdr);font-size:10px;color:var(--muted);">Section</th>' +
@@ -5119,15 +5118,10 @@ function _renderBldApprovedCardCollapsible(parent) {
       if (child.status === 'Sent')       childStatusPill = '<span class="pill pill-sent" style="font-size:9px;">● Sent</span>';
       if (child.status === 'Closed Out') childStatusPill = '<span style="font-size:9px;color:var(--muted);">● Closed Out</span>';
 
+      // Per-child PDF button REMOVED for Building world (single parent PDF covers
+      // all sections per UI refinement 2026-05-18). Mark Sent preserved for
+      // Manual+Pending children only (manual-delivery confirmation flow).
       var childActions = '';
-      if (child.pdfFileId) {
-        childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
-          'onclick="downloadStmtPdf(\'' + escHtml(child.pdfFileId) + '\')">تحميل PDF</button> ';
-      } else {
-        childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
-          'onclick="downloadStmtPdfOnDemand(\'' + escHtml(child.stmtId) + '\',\'building\')">' +
-          'تحميل PDF / On-demand</button> ';
-      }
       if (child.dispatchChannel === 'Manual' && child.status === 'Pending') {
         childActions += '<button type="button" class="navy-btn" style="font-size:9px;padding:2px 7px;" ' +
           'onclick="markChildSentUI(' + child.rowIndex + ')">Mark Sent</button>';
@@ -5157,18 +5151,59 @@ function _renderBldApprovedCardCollapsible(parent) {
 
   detailHtml += '</div>';
 
-  // Action row — Broadcast + Mark Complete + Undo (parent-level actions)
+  // Action row — Preview + PDF + Broadcast + Mark Complete + Undo (parent-level)
+  // UI refinement 2026-05-18:
+  //  - Preview moved from inline detail row to action row alongside other actions
+  //  - PDF moved from per-child table column to single parent-level button
+  //    (Building report is single PDF covering all sections; per-child preserved
+  //    for Section world via separate renderer)
+  //  - Broadcast was missing from prior cycle; restored at this refinement
+  //  - Preview + Broadcast bilingual-stacked per architect dispatch UI spec
   // ALL actions live in this row at card bottom (no breakout; flex-wrap handles overflow)
   // event.stopPropagation prevents card-toggle when tapping action button
-  var actionHtml =
-    '<div class="stmt-action-row" onclick="event.stopPropagation();">' +
-      '<button type="button" class="navy-btn" ' +
-        'onclick="triggerBuildingBroadcast(' + rowIndex + ')">بث / Broadcast</button>' +
-      '<button type="button" class="navy-btn" ' +
-        'onclick="triggerMarkComplete(' + rowIndex + ')">تمّ الإنجاز / Mark Complete</button>' +
-      '<button type="button" class="muted-btn" ' +
-        'onclick="triggerBuildingUndo(' + rowIndex + ')">تراجع / Undo</button>' +
-    '</div>';
+  var actionHtml = '<div class="stmt-action-row" onclick="event.stopPropagation();">';
+
+  // Preview (bilingual-stacked); conditional on htmlFileId
+  if (parent.htmlFileId) {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="openStmtPreview(\'' + escHtml(parent.htmlFileId) + '\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">معاينة</span><span class="bi-en">Preview</span></span>' +
+      '</button>';
+  }
+
+  // PDF (single parent-level button; covers all sections)
+  // On-demand fallback if parent.pdfFileId empty (rare; defensive coverage)
+  if (parent.pdfFileId) {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdf(\'' + escHtml(parent.pdfFileId) + '\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">تحميل PDF</span><span class="bi-en">Download PDF</span></span>' +
+      '</button>';
+  } else {
+    actionHtml += '<button type="button" class="navy-btn" ' +
+      'onclick="downloadStmtPdfOnDemand(\'' + escHtml(parent.stmtId) + '\',\'building\')">' +
+      '<span class="bilingual-stack"><span class="bi-ar">تحميل PDF</span><span class="bi-en">On-demand</span></span>' +
+      '</button>';
+  }
+
+  // Broadcast (bilingual-stacked)
+  actionHtml += '<button type="button" class="navy-btn" ' +
+    'onclick="triggerBuildingBroadcast(' + rowIndex + ')">' +
+    '<span class="bilingual-stack"><span class="bi-ar">بث</span><span class="bi-en">Broadcast</span></span>' +
+    '</button>';
+
+  // Mark Complete (bilingual-stacked per project-owner extension 2026-05-18)
+  actionHtml += '<button type="button" class="navy-btn" ' +
+    'onclick="triggerMarkComplete(' + rowIndex + ')">' +
+    '<span class="bilingual-stack"><span class="bi-ar">تمّ الإنجاز</span><span class="bi-en">Mark Complete</span></span>' +
+    '</button>';
+
+  // Undo (bilingual-stacked per project-owner extension 2026-05-18)
+  actionHtml += '<button type="button" class="muted-btn" ' +
+    'onclick="triggerBuildingUndo(' + rowIndex + ')">' +
+    '<span class="bilingual-stack"><span class="bi-ar">تراجع</span><span class="bi-en">Undo</span></span>' +
+    '</button>';
+
+  actionHtml += '</div>';
 
   var expandedClass = isOpen ? ' stmt-card-expanded' : '';
 

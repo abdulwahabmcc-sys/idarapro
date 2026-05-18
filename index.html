@@ -3327,6 +3327,121 @@ function gasPost(body) {
     });
 }
 
+// ============================================================================
+// Revenue Log + Expense Log — Cycle 4B.2 frontend implementation 2026-05-18
+// ============================================================================
+// Per architect Pass C ratification: fresh fetch on every tab activation;
+// 5 visible + scroll for 6-20 (max-height:280px on container per Pass C);
+// cache invalidation on processEntry submit success (called from onOk hook).
+// Read-only display; no click handlers; no edit/delete actions per Lesson J.
+// ============================================================================
+
+function loadRevenueLog() {
+  if (!sessionValid()) return;
+  var listEl = document.getElementById('log-inc-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:11px;">جاري التحميل... / Loading...</div>';
+
+  gasPost({
+    action: 'listRecentEntries',
+    payload: { type: 'INC', limit: 20 },
+    token: _session.token
+  })
+  .then(function(r) {
+    var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+    if (!parsed || !parsed.ok) {
+      listEl.innerHTML = '<div class="log-row-empty">' + (parsed && parsed.error ? escHtml(parsed.error) : 'خطأ / Error') + '</div>';
+      return;
+    }
+    renderRevenueLog(parsed.entries || []);
+  })
+  .catch(function(e) {
+    listEl.innerHTML = '<div class="log-row-empty">' + escHtml(e.message || String(e)) + '</div>';
+  });
+}
+
+function loadExpenseLog() {
+  if (!sessionValid()) return;
+  var listEl = document.getElementById('log-exp-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:11px;">جاري التحميل... / Loading...</div>';
+
+  gasPost({
+    action: 'listRecentEntries',
+    payload: { type: 'EXP', limit: 20 },
+    token: _session.token
+  })
+  .then(function(r) {
+    var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+    if (!parsed || !parsed.ok) {
+      listEl.innerHTML = '<div class="log-row-empty">' + (parsed && parsed.error ? escHtml(parsed.error) : 'خطأ / Error') + '</div>';
+      return;
+    }
+    renderExpenseLog(parsed.entries || []);
+  })
+  .catch(function(e) {
+    listEl.innerHTML = '<div class="log-row-empty">' + escHtml(e.message || String(e)) + '</div>';
+  });
+}
+
+function renderRevenueLog(entries) {
+  var listEl = document.getElementById('log-inc-list');
+  if (!listEl) return;
+
+  if (!entries || entries.length === 0) {
+    listEl.innerHTML = '<div class="log-row-empty">لا توجد معاملات حديثة / No recent transactions</div>';
+    return;
+  }
+
+  var html = entries.map(function(e) {
+    var amountFmt = (e.amount || 0).toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:0 });
+    return '<div class="log-row log-row-inc">' +
+      '<div class="log-row-left">' +
+        '<div class="log-row-unit">' + escHtml(e.unit || '') + '</div>' +
+        '<div class="log-row-occupant">' + escHtml(e.occupant || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-mid">' +
+        '<div class="log-row-category">' + escHtml(e.category || '') + '</div>' +
+        '<div class="log-row-date">' + escHtml(e.date || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-right">' +
+        '<div class="log-row-amount log-row-amount-inc">+' + amountFmt + ' $</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  listEl.innerHTML = html;
+}
+
+function renderExpenseLog(entries) {
+  var listEl = document.getElementById('log-exp-list');
+  if (!listEl) return;
+
+  if (!entries || entries.length === 0) {
+    listEl.innerHTML = '<div class="log-row-empty">لا توجد معاملات حديثة / No recent transactions</div>';
+    return;
+  }
+
+  var html = entries.map(function(e) {
+    var amountFmt = (e.amount || 0).toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:0 });
+    return '<div class="log-row log-row-exp">' +
+      '<div class="log-row-left">' +
+        '<div class="log-row-category">' + escHtml(e.category || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-mid">' +
+        '<div class="log-row-description">' + escHtml(e.description || '') + '</div>' +
+        '<div class="log-row-date">' + escHtml(e.date || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-right">' +
+        '<div class="log-row-amount log-row-amount-exp">-' + amountFmt + ' $</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  listEl.innerHTML = html;
+}
+
+
 // Phase 12 Step 5: ambient zombie-session handler
 // Called by gasPost() when any backend endpoint throws an Unauthorized error.
 // Clears in-memory session, surfaces a brief toast, then transitions back to
@@ -4666,9 +4781,10 @@ function setTab(type) {
     var dtInc = _el('dt-t-inc'); if (dtInc) dtInc.classList.add('dt-inc');
     _el('f-inc').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
-    // Revenue Log visibility wiring — sub-cycle 4A frontend-only 2026-05-18
+    // Revenue Log visibility + fetch — Cycle 4B.2 2026-05-18
     var logIncEl = _el('log-inc'); if (logIncEl) logIncEl.classList.remove('hide');
     var logExpEl = _el('log-exp'); if (logExpEl) logExpEl.classList.add('hide');
+    loadRevenueLog();  // fresh fetch on every tab activation per architect Pass C
     fillCats('income');
     btn.className = 'btn-sub b-inc';
     ico.textContent = '💰'; txt.textContent = 'تسجيل الدفعة / Record Payment';
@@ -4678,9 +4794,10 @@ function setTab(type) {
     var dtExp = _el('dt-t-exp'); if (dtExp) dtExp.classList.add('dt-exp');
     _el('f-exp').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
-    // Expense Log visibility wiring — sub-cycle 4A frontend-only 2026-05-18
+    // Expense Log visibility + fetch — Cycle 4B.2 2026-05-18
     var logIncEl2 = _el('log-inc'); if (logIncEl2) logIncEl2.classList.add('hide');
     var logExpEl2 = _el('log-exp'); if (logExpEl2) logExpEl2.classList.remove('hide');
+    loadExpenseLog();  // fresh fetch on every tab activation per architect Pass C
     fillCats('expense');
     btn.className = 'btn-sub b-exp';
     ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
@@ -7535,6 +7652,9 @@ function onOk(msg) {
   if (ok && TAB !== 'Report') {
     document.getElementById('inp-amt').value = '';
     refreshDash();
+    // Cycle 4B.2 cache invalidation per architect Pass C — refresh log on successful submit
+    if (TAB === 'Income' && typeof loadRevenueLog === 'function') loadRevenueLog();
+    if (TAB === 'Expense' && typeof loadExpenseLog === 'function') loadExpenseLog();
   }
 }
 function onFail(e) {
@@ -14956,6 +15076,20 @@ function fmtMoney(val) {
 
     .log-lbl { font-size:9px; font-weight:700; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; direction:ltr; margin-bottom:6px; }
     .log-scroll { max-height:150px; overflow-y:auto; scrollbar-width:thin; }
+    /* Revenue Log + Expense Log row cards — Cycle 4B.2 per architect Pass C 2026-05-18 */
+    #log-inc-list, #log-exp-list { max-height:280px; overflow-y:auto; scrollbar-width:thin; }
+    .log-row { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--bdr); font-size:12px; gap:8px; }
+    .log-row:last-child { border-bottom:none; }
+    .log-row-left, .log-row-mid { flex:1; min-width:0; }
+    .log-row-right { flex-shrink:0; text-align:end; }
+    .log-row-unit { font-weight:700; color:var(--navy); font-size:13px; }
+    .log-row-occupant, .log-row-description { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+    .log-row-category { font-weight:500; color:var(--navy); font-size:12px; }
+    .log-row-date { font-size:9px; color:var(--muted); opacity:0.7; direction:ltr; }
+    .log-row-amount { font-weight:700; font-size:13px; direction:ltr; white-space:nowrap; }
+    .log-row-amount-inc { color:var(--forest); }
+    .log-row-amount-exp { color:var(--burg); }
+    .log-row-empty { text-align:center; padding:16px; color:var(--muted); font-size:11px; }
     .log-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--bdr); }
     .log-row:last-child { border-bottom:none; }
     .log-main { font-size:12px; font-weight:700; color:var(--navy); }

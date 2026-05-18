@@ -1866,10 +1866,22 @@
 
       .dt-tab { display: flex; align-items: center; gap: 8px; padding: 0 22px; border: none; background: none; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2.5px solid transparent; transition: color 0.18s, background-color 0.18s, border-bottom-color 0.18s; }
     /* Desktop tab bilingual stacking — parallel classes per architect Path B 2026-05-18 */
-    .dt-tab { display:flex !important; flex-direction:column; align-items:center; gap:1px; }
-    .dt-tab-ico { font-size:18px; line-height:1; }
+    /* Refinement 2026-05-18 PM: icon HORIZONTAL beside text stack (NOT above) — desktop only */
+    /* Inner text-stack is inline-flex column wrapping Arabic-over-English; outer .dt-tab keeps horizontal row */
+    .dt-tab { display:flex !important; flex-direction:row; align-items:center; justify-content:center; gap:8px; }
+    .dt-tab-ico { font-size:18px; line-height:1; flex-shrink:0; }
+    .dt-tab-ar, .dt-tab-en { display:block; text-align:center; }
     .dt-tab-ar { font-size:13px; font-weight:700; line-height:1.1; }
     .dt-tab-en { font-size:9px; font-weight:500; opacity:0.7; line-height:1.1; }
+    /* Wrap Arabic+English in a visual inline-flex column via :is selector on adjacent siblings */
+    /* Simpler: use spacer-free vertical group with display:inline-block wrapper would require markup change.
+       Pure CSS approach: make .dt-tab-ar + .dt-tab-en stack visually using a single flex group via
+       grouping pseudo-element OR markup wrapping. Since markup is already 3 spans, we use a
+       2-column layout — icon in col 1, both Arabic+English stack in col 2 via display:grid. */
+    .dt-tab { display:grid !important; grid-template-columns:auto 1fr; column-gap:8px; align-items:center; }
+    .dt-tab-ico { grid-column:1; grid-row:1 / span 2; align-self:center; }
+    .dt-tab-ar { grid-column:2; grid-row:1; }
+    .dt-tab-en { grid-column:2; grid-row:2; }
     .dt-tab.dt-inc .dt-tab-ar, .dt-tab.dt-inc .dt-tab-en { color:var(--forest); opacity:1; }
     .dt-tab.dt-exp .dt-tab-ar, .dt-tab.dt-exp .dt-tab-en { color:var(--burg); opacity:1; }
     .dt-tab.dt-rep .dt-tab-ar, .dt-tab.dt-rep .dt-tab-en { color:var(--navy); opacity:1; }

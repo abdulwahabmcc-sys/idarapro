@@ -1452,6 +1452,10 @@
     .lbl { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
     .l-ar { font-size: 13px; font-weight: 700; color: var(--navy); }
     .l-en { font-size: 9px; color: var(--muted); direction: ltr; }
+    /* Reports tab bilingual stacking — Arabic on top, English on bottom per UI fix 2026-05-18 */
+    .bilingual-stack { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; gap: 1px; vertical-align: middle; }
+    .bilingual-stack .bi-ar { font-weight: 700; }
+    .bilingual-stack .bi-en { font-size: 0.78em; opacity: 0.85; direction: ltr; font-weight: 600; }
     .inp { width: 100%; height: 54px; border: 1.5px solid var(--bdr); border-radius: 12px; background: var(--bg); font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--navy); padding: 0 14px; outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, box-shadow 0.2s; text-align: right; }
     .inp:focus { border-color: var(--navy); background: var(--surf); box-shadow: 0 0 0 3px rgba(27,42,74,0.07); }
     .inp.err { border-color: var(--burg); animation: shake 0.3s ease; }
@@ -2329,11 +2333,11 @@
       <div class="world-seg">
         <button type="button" class="w-btn on" id="w-btn-building"
           onclick="setStmtWorld('building')">
-          🏢 تقارير المبنى / Building Statements
+          🏢 <span class="bilingual-stack"><span class="bi-ar">تقارير المبنى</span><span class="bi-en">Building Statements</span></span>
         </button>
         <button type="button" class="w-btn" id="w-btn-section"
           onclick="setStmtWorld('section')">
-          📋 بيانات الأقسام / Section Statements
+          📋 <span class="bilingual-stack"><span class="bi-ar">بيانات الأقسام</span><span class="bi-en">Section Statements</span></span>
         </button>
       </div>
 
@@ -2344,11 +2348,11 @@
           <div class="panel-hsub">Building Statements · generate, approve and dispatch</div>
         </div>
         <div class="sub-tabs">
-          <button type="button" class="stab on" id="bld-stab-generate" onclick="setStmtSubtab('building','generate')">إنشاء / Generate</button>
-          <button type="button" class="stab" id="bld-stab-draft"    onclick="setStmtSubtab('building','draft')">مسودة / Draft</button>
-          <button type="button" class="stab" id="bld-stab-approved" onclick="setStmtSubtab('building','approved')">معتمد / Approved</button>
-          <button type="button" class="stab" id="bld-stab-sent"     onclick="setStmtSubtab('building','sent')">مُرسَل / Sent</button>
-          <button type="button" class="stab" id="bld-stab-unprocessed" onclick="setStmtSubtab('building','unprocessed')">معلّق / Unprocessed</button>
+          <button type="button" class="stab on" id="bld-stab-generate" onclick="setStmtSubtab('building','generate')"><span class="bilingual-stack"><span class="bi-ar">إنشاء</span><span class="bi-en">Generate</span></span></button>
+          <button type="button" class="stab" id="bld-stab-draft"    onclick="setStmtSubtab('building','draft')"><span class="bilingual-stack"><span class="bi-ar">مسودة</span><span class="bi-en">Draft</span></span></button>
+          <button type="button" class="stab" id="bld-stab-approved" onclick="setStmtSubtab('building','approved')"><span class="bilingual-stack"><span class="bi-ar">معتمد</span><span class="bi-en">Approved</span></span></button>
+          <button type="button" class="stab" id="bld-stab-sent"     onclick="setStmtSubtab('building','sent')"><span class="bilingual-stack"><span class="bi-ar">مُرسَل</span><span class="bi-en">Sent</span></span></button>
+          <button type="button" class="stab" id="bld-stab-unprocessed" onclick="setStmtSubtab('building','unprocessed')"><span class="bilingual-stack"><span class="bi-ar">معلّق</span><span class="bi-en">Unprocessed</span></span></button>
         </div>
 
         <!-- Building → Generate -->
@@ -2358,7 +2362,7 @@
             <option value="" disabled selected>جاري التحميل... / Loading...</option>
           </select>
           <button type="button" class="btn-sub b-rep" id="bld-generate-btn" onclick="generateBuildingStatement()">
-            <span class="btn-label"><span>🏢</span><span>إنشاء بيان المبنى / Generate Building Statement</span></span>
+            <span class="btn-label"><span>🏢</span><span class="bilingual-stack"><span class="bi-ar">إنشاء بيان المبنى</span><span class="bi-en">Generate Building Statement</span></span></span>
           </button>
           <div style="margin-top:18px;">
             <div class="log-lbl">سجل الإنشاء / Generation Log</div>
@@ -2375,7 +2379,7 @@
           </div>
           <button type="button" class="btn-sub b-forest hide" id="bld-approve-all-btn"
             onclick="approveAllBuildingStatements()" style="margin-top:10px;">
-            ✅ اعتماد الجميع / Approve All
+            ✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>
           </button>
         </div>
 
@@ -2397,7 +2401,7 @@
         <div class="panel-body hide" id="bld-pane-unprocessed">
           <div class="stmt-scroll" id="bld-unprocessed-list">
             <div style="padding:16px;color:var(--muted);font-size:12px;text-align:center;">
-              قريباً — هذا التبويب سيعرض البيانات غير المكتملة / Coming soon
+              <span class="bilingual-stack"><span class="bi-ar">قريباً — هذا التبويب سيعرض البيانات غير المكتملة</span><span class="bi-en">Coming soon</span></span>
             </div>
           </div>
         </div>
@@ -2411,11 +2415,11 @@
           <div class="panel-hsub">Section Statements · per-occupant PDF statements</div>
         </div>
         <div class="sub-tabs">
-          <button type="button" class="stab on" id="sec-stab-generate"    onclick="setStmtSubtab('section','generate')">إنشاء / Generate</button>
-          <button type="button" class="stab" id="sec-stab-draft"          onclick="setStmtSubtab('section','draft')">مسودة / Draft</button>
-          <button type="button" class="stab" id="sec-stab-approved"       onclick="setStmtSubtab('section','approved')">معتمد / Approved</button>
-          <button type="button" class="stab" id="sec-stab-sent"           onclick="setStmtSubtab('section','sent')">مُرسَل / Sent</button>
-          <button type="button" class="stab" id="sec-stab-unprocessed"    onclick="setStmtSubtab('section','unprocessed')">معلّق / Unprocessed</button>
+          <button type="button" class="stab on" id="sec-stab-generate"    onclick="setStmtSubtab('section','generate')"><span class="bilingual-stack"><span class="bi-ar">إنشاء</span><span class="bi-en">Generate</span></span></button>
+          <button type="button" class="stab" id="sec-stab-draft"          onclick="setStmtSubtab('section','draft')"><span class="bilingual-stack"><span class="bi-ar">مسودة</span><span class="bi-en">Draft</span></span></button>
+          <button type="button" class="stab" id="sec-stab-approved"       onclick="setStmtSubtab('section','approved')"><span class="bilingual-stack"><span class="bi-ar">معتمد</span><span class="bi-en">Approved</span></span></button>
+          <button type="button" class="stab" id="sec-stab-sent"           onclick="setStmtSubtab('section','sent')"><span class="bilingual-stack"><span class="bi-ar">مُرسَل</span><span class="bi-en">Sent</span></span></button>
+          <button type="button" class="stab" id="sec-stab-unprocessed"    onclick="setStmtSubtab('section','unprocessed')"><span class="bilingual-stack"><span class="bi-ar">معلّق</span><span class="bi-en">Unprocessed</span></span></button>
         </div>
 
         <!-- Section → Generate -->
@@ -2429,11 +2433,11 @@
             <div class="scope-row">
               <label class="scope-opt">
                 <input type="radio" name="stmt-scope" value="all" id="scope-all" checked onchange="onStmtScopeChange()">
-                جميع الأقسام / All Sections
+                <span class="bilingual-stack"><span class="bi-ar">جميع الأقسام</span><span class="bi-en">All Sections</span></span>
               </label>
               <label class="scope-opt">
                 <input type="radio" name="stmt-scope" value="specific" id="scope-specific" onchange="onStmtScopeChange()">
-                قسم محدد / Specific Section
+                <span class="bilingual-stack"><span class="bi-ar">قسم محدد</span><span class="bi-en">Specific Section</span></span>
               </label>
             </div>
             <div id="scope-contract-wrap" style="display:none;margin-top:8px;">
@@ -2451,7 +2455,7 @@
             تم إرسال بيان لهذا القسم والفترة. لا يمكن إعادة الإنشاء بعد الإرسال.
           </div>
           <button type="button" class="btn-sub b-rep" id="stmt-generate-btn" onclick="generateStatements()">
-            <span class="btn-label"><span>🗂️</span><span>إنشاء بيانات الأقسام / Generate</span></span>
+            <span class="btn-label"><span>🗂️</span><span class="bilingual-stack"><span class="bi-ar">إنشاء بيانات الأقسام</span><span class="bi-en">Generate</span></span></span>
           </button>
           <div style="margin-top:18px;">
             <div class="log-lbl">سجل الإنشاء / Generation Log</div>
@@ -2468,7 +2472,7 @@
           </div>
           <button type="button" class="btn-sub b-forest hide" id="sec-approve-all-btn"
             onclick="approveAllStatements()" style="margin-top:10px;">
-            ✅ اعتماد الجميع / Approve All
+            ✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>
           </button>
         </div>
 
@@ -5885,7 +5889,7 @@ function generateBuildingStatement() {
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() {
-      if (btn) { btn.disabled = false; btn.textContent = '🏢 إنشاء بيان المبنى / Generate Building Statement'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '🏢 <span class="bilingual-stack"><span class="bi-ar">إنشاء بيان المبنى</span><span class="bi-en">Generate Building Statement</span></span>'; }
     });
 }
 
@@ -5954,7 +5958,7 @@ function generateStatements() {
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
     .finally(function() {
-      if (btn) { btn.disabled = false; btn.textContent = '🗂️ إنشاء بيانات الأقسام / Generate'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '🗂️ <span class="bilingual-stack"><span class="bi-ar">إنشاء بيانات الأقسام</span><span class="bi-en">Generate</span></span>'; }
     });
 }
 
@@ -6078,7 +6082,7 @@ function approveAllStatements() {
       }
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
-    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
+    .finally(function() { if (btn) { btn.disabled = false; btn.innerHTML = '✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>'; } });
 }
 
 function approveAllBuildingStatements() {
@@ -6119,7 +6123,7 @@ function approveAllBuildingStatements() {
       }
     })
     .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
-    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = '✅ اعتماد الجميع / Approve All'; } });
+    .finally(function() { if (btn) { btn.disabled = false; btn.innerHTML = '✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>'; } });
 }
 
 function deleteStatement(rowIndex, world) {

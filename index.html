@@ -10016,13 +10016,14 @@ function _openUserSheetInner(name, isEdit) {
   if (isEdit && u.perms) {
     document.getElementById('usr-perm-inc').checked = !!u.perms.INC;
     document.getElementById('usr-perm-exp').checked = !!u.perms.EXP;
+    document.getElementById('usr-perm-inv').checked = !!u.perms.INV;
     document.getElementById('usr-perm-rep-bld').checked = !!u.perms.REP_BLD;
     document.getElementById('usr-perm-rep-acc').checked = !!u.perms.REP_ACC;
     document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
     document.getElementById('usr-perm-dispatch').checked = !!u.perms.DISPATCH;
     document.getElementById('usr-perm-rep-sec').checked = !!u.perms.REP_SEC;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-inv','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
@@ -10105,6 +10106,7 @@ function submitUser() {
   var perms = {
     INC:     document.getElementById('usr-perm-inc').checked,
     EXP:     document.getElementById('usr-perm-exp').checked,
+    INV:     document.getElementById('usr-perm-inv').checked,
     REP_BLD: document.getElementById('usr-perm-rep-bld').checked,
     REP_ACC: document.getElementById('usr-perm-rep-acc').checked,
     MTR_RED:  document.getElementById('usr-perm-mtr').checked,
@@ -14961,6 +14963,9 @@ function fmtMoney(val) {
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-exp"> Expenses / مصاريف
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <input type="checkbox" id="usr-perm-inv"> Pay Hub / فواتير
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-rep-bld"> Building Reports / تقارير المبنى

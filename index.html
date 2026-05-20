@@ -7606,6 +7606,7 @@ function doSubmit() {
   var type = TAB;
 
   if (type === 'Meter') return; // Meter tab has its own submit handler
+  if (type === 'Pay') return;   // Pay Hub has dedicated submit buttons (submitInvoiceForm/recordPaymentForm/saveReceiptAttachment); Enter-keypress in Pay Hub inputs must not trigger main form validation — fix 2026-05-19
 
   if (type !== 'Report') {
     var amt = parseFloat(document.getElementById('inp-amt').value);

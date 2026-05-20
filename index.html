@@ -7062,10 +7062,10 @@ function _renderInvoiceTable(wrap, rows) {
     // PH-DOC-1: Document cell — View link if attached, else Upload/Scan
     var docCell;
     if (inv.driveId) {
-      docCell = '<a href="https://drive.google.com/file/d/' +
-        escHtml(inv.driveId) + '/view" target="_blank" ' +
-        'style="color:var(--navy);text-decoration:none;font-size:16px;" ' +
-        'title="View invoice document">📄</a>';
+      docCell = '<button type="button" onclick="_viewPayHubImage(\'' +
+        escHtml(inv.driveId) + '\')" ' +
+        'style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;" ' +
+        'title="View invoice document">📄</button>';
     } else {
       // PH-DOC-1 N1 fix: two direct-gesture icon-buttons. Each onclick sets the
       // row invoiceId into the module var THEN calls .click() directly — no JS
@@ -7260,10 +7260,10 @@ function _renderHistoryTable(wrap, rows) {
     // Receipt cell
     var receiptCell;
     if (row.imageId) {
-      receiptCell = '<a href="https://drive.google.com/file/d/' +
-        escHtml(row.imageId) + '/view" target="_blank" ' +
-        'style="color:var(--navy);text-decoration:none;font-size:16px;" ' +
-        'title="View receipt">📎</a>';
+      receiptCell = '<button type="button" onclick="_viewPayHubImage(\'' +
+        escHtml(row.imageId) + '\')" ' +
+        'style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;" ' +
+        'title="View receipt">📎</button>';
     } else {
       receiptCell = '<button type="button" onclick="_attachReceipt(\'' +
         escHtml(row.trxId) + '\',\'' + escHtml(row.refId || '') + '\')" ' +
@@ -7411,6 +7411,67 @@ function _onInvoiceFilePicked(inputEl) {
   var file = inputEl.files && inputEl.files[0];
   inputEl.value = '';
   if (file) _uploadInvoiceDoc(_invoiceUploadId, file);
+}
+
+// PH-DOC-1 amendment (view-path): serve image through app behind session+INV
+// guard, render in an in-app modal. Drive files stay owner-private; this is
+// the gatekeeper. No Google login needed for PIN users. gasPost auto-injects
+// deviceId (no raw fetch — Catch 19/24 class avoided).
+function _viewPayHubImage(fileId) {
+  if (!sessionValid()) return;
+  if (!fileId) { toast('❌ No document attached', 'fail'); return; }
+  toast('⏳ Loading document...', 'ok');
+  gasPost({ action: 'getPayHubImage', fileId: fileId, token: _session.token })
+    .then(function(r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || 'Image not found');
+      var dataUrl = 'data:' + (r.mimeType || 'image/jpeg') + ';base64,' + r.base64;
+      _showImageModal(dataUrl, r.name || 'document.jpg');
+    })
+    .catch(function(err) {
+      toast('❌ ' + (err.message || 'Could not load document'), 'fail');
+    });
+}
+
+// Minimal in-app image modal: overlay + image + close + download.
+function _showImageModal(dataUrl, filename) {
+  var existing = document.getElementById('payhub-img-modal');
+  if (existing) existing.parentNode.removeChild(existing);
+  var overlay = document.createElement('div');
+  overlay.id = 'payhub-img-modal';
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+  overlay.onclick = function(e) { if (e.target === overlay) _closeImageModal(); };
+
+  var img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;' +
+    'box-shadow:0 4px 24px rgba(0,0,0,0.5);background:#fff;';
+
+  var bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;gap:10px;margin-top:14px;';
+
+  var dl = document.createElement('a');
+  dl.href = dataUrl; dl.download = filename;
+  dl.textContent = '⬇ Download / تنزيل';
+  dl.style.cssText = 'background:#fff;color:var(--navy);text-decoration:none;' +
+    'padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;';
+
+  var close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = '✕ Close / إغلاق';
+  close.onclick = _closeImageModal;
+  close.style.cssText = 'background:var(--burg);color:#fff;border:none;' +
+    'padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;';
+
+  bar.appendChild(dl); bar.appendChild(close);
+  overlay.appendChild(img); overlay.appendChild(bar);
+  document.body.appendChild(overlay);
+}
+
+function _closeImageModal() {
+  var m = document.getElementById('payhub-img-modal');
+  if (m) m.parentNode.removeChild(m);
 }
 
 function _attachReceipt(trxId, invoiceId) {

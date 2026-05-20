@@ -2728,11 +2728,17 @@
             </div>
           </div>
 
-          <div style="margin-bottom:14px;">
+          <div style="margin-bottom:14px;display:none;"><!-- PH-DOC-1: paste field hidden (Surface 1 upgrade); retroactive attach is table-row driven; kept in DOM as fallback -->
             <div class="stg-field-lbl">Drive ID <span style="font-weight:400;color:var(--muted);">(optional — scanned invoice)</span></div>
             <input class="inp" type="text" id="pay-inv-driveid"
               placeholder="Google Drive file ID" style="direction:ltr;font-size:13px;">
           </div>
+
+          <!-- PH-DOC-1: hidden invoice-doc file inputs (triggered by All Invoices row 📤/📷 buttons, which set _invoiceUploadId then .click() directly) -->
+          <input type="file" id="inv-doc-upload" accept="image/*"
+            style="display:none" onchange="_onInvoiceFilePicked(this)">
+          <input type="file" id="inv-doc-scan" accept="image/*" capture="environment"
+            style="display:none" onchange="_onInvoiceFilePicked(this)">
 
           <!-- Inline error -->
           <div id="pay-inv-err" style="display:none;background:rgba(155,35,53,0.08);
@@ -2804,7 +2810,7 @@
             </div>
           </div>
 
-          <div style="margin-bottom:14px;">
+          <div style="margin-bottom:14px;display:none;"><!-- PH-DOC-1 β: Surface 2 (at-creation receipt) deferred to PH-DOC-1b; field hidden, kept in DOM as fallback. Defaults to '' → processInvoicePayment imageId:'' valid. -->
             <div class="stg-field-lbl">Image ID <span style="font-weight:400;color:var(--muted);">(optional — scanned receipt Drive ID)</span></div>
             <input class="inp" type="text" id="pay-pmt-imageid"
               placeholder="Google Drive file ID" style="direction:ltr;font-size:13px;">
@@ -2865,7 +2871,7 @@
               readonly>
           </div>
 
-          <div style="margin-bottom:14px;">
+          <div style="margin-bottom:14px;display:none;"><!-- PH-DOC-1: paste field hidden (Surface 3 upgrade); kept in DOM as fallback -->
             <div class="stg-field-lbl">Drive File ID / معرف الملف *</div>
             <input class="inp" type="text" id="pay-his-driveid"
               placeholder="Google Drive file ID" style="direction:ltr;font-size:13px;">
@@ -2877,8 +2883,24 @@
             font-size:12px;color:var(--burg);margin-bottom:10px;direction:ltr;
             line-height:1.5;"></div>
 
+          <!-- PH-DOC-1: Upload/Scan Receipt buttons (replace paste workflow) -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button type="button" class="btn-sub b-exp" style="margin-top:0;flex:1;"
+              onclick="document.getElementById('rec-doc-upload').click()">
+              <span class="btn-label"><span>📤</span><span>Upload Receipt / رفع إيصال</span></span>
+            </button>
+            <button type="button" class="btn-sub b-exp" style="margin-top:0;flex:1;"
+              onclick="document.getElementById('rec-doc-scan').click()">
+              <span class="btn-label"><span>📷</span><span>Scan Receipt / مسح إيصال</span></span>
+            </button>
+          </div>
+          <input type="file" id="rec-doc-upload" accept="image/*"
+            style="display:none" onchange="_onReceiptFilePicked(this)">
+          <input type="file" id="rec-doc-scan" accept="image/*" capture="environment"
+            style="display:none" onchange="_onReceiptFilePicked(this)">
+
           <button type="button" class="btn-sub b-exp" id="pay-his-attach-btn"
-            onclick="saveReceiptAttachment()" style="margin-top:0;">
+            onclick="saveReceiptAttachment()" style="margin-top:0;display:none;"><!-- PH-DOC-1: legacy paste-save hidden fallback -->
             <div class="btn-wave">
               <span></span><span></span><span></span><span></span><span></span>
             </div>
@@ -7007,6 +7029,7 @@ function _renderInvoiceTable(wrap, rows) {
           '<th style="padding:8px 6px;text-align:right;">Balance</th>' +
           '<th style="padding:8px 6px;text-align:center;">Status</th>' +
           '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Days Overdue</th>' +
+          '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Document</th>' +
         '</tr>' +
       '</thead>' +
       '<tbody>';
@@ -7036,6 +7059,34 @@ function _renderInvoiceTable(wrap, rows) {
           ? 'color:var(--burg);'
           : 'color:var(--navy);';
 
+    // PH-DOC-1: Document cell — View link if attached, else Upload/Scan
+    var docCell;
+    if (inv.driveId) {
+      docCell = '<a href="https://drive.google.com/file/d/' +
+        escHtml(inv.driveId) + '/view" target="_blank" ' +
+        'style="color:var(--navy);text-decoration:none;font-size:16px;" ' +
+        'title="View invoice document">📄</a>';
+    } else {
+      // PH-DOC-1 N1 fix: two direct-gesture icon-buttons. Each onclick sets the
+      // row invoiceId into the module var THEN calls .click() directly — no JS
+      // dialog between tap and .click() (mobile user-gesture-chain integrity;
+      // confirm() would silently break camera/picker on iOS Safari + Android).
+      docCell = '<span style="white-space:nowrap;">' +
+        '<button type="button" title="Upload Invoice / رفع فاتورة" ' +
+          'onclick="_invoiceUploadId=\'' + escHtml(inv.invoiceId || '') + '\';' +
+          'document.getElementById(\'inv-doc-upload\').click()" ' +
+          'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
+          'padding:3px 7px;font-size:13px;color:var(--muted);cursor:pointer;margin-right:3px;">' +
+          '📤</button>' +
+        '<button type="button" title="Scan Invoice / مسح فاتورة" ' +
+          'onclick="_invoiceUploadId=\'' + escHtml(inv.invoiceId || '') + '\';' +
+          'document.getElementById(\'inv-doc-scan\').click()" ' +
+          'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
+          'padding:3px 7px;font-size:13px;color:var(--muted);cursor:pointer;">' +
+          '📷</button>' +
+        '</span>';
+    }
+
     html +=
       '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
         '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
@@ -7056,6 +7107,7 @@ function _renderInvoiceTable(wrap, rows) {
           'font-weight:700;' + statusColor + '">' +
           escHtml(inv.status || '') + '</td>' +
         '<td style="padding:8px 6px;text-align:center;">' + overdueCell + '</td>' +
+        '<td style="padding:8px 6px;text-align:center;">' + docCell + '</td>' +
       '</tr>';
   });
 
@@ -7213,8 +7265,8 @@ function _renderHistoryTable(wrap, rows) {
         'style="color:var(--navy);text-decoration:none;font-size:16px;" ' +
         'title="View receipt">📎</a>';
     } else {
-      receiptCell = '<button onclick="_attachReceipt(\'' +
-        escHtml(row.trxId) + '\')" ' +
+      receiptCell = '<button type="button" onclick="_attachReceipt(\'' +
+        escHtml(row.trxId) + '\',\'' + escHtml(row.refId || '') + '\')" ' +
         'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
         'padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;">' +
         'Attach</button>';
@@ -7244,18 +7296,139 @@ function _renderHistoryTable(wrap, rows) {
   wrap.innerHTML = html;
 }
 
-function _attachReceipt(trxId) {
-  // Pre-fill the attach mini-form with the selected TRX ID
-  // and scroll to it so the admin can see it
-  var trxInput = document.getElementById('pay-his-trxid');
+// ═════════════════════════════════════════════════════════════════════════════
+// PH-DOC-1 — Pay Hub Document Capture (client pipeline + orchestrators)
+// ═════════════════════════════════════════════════════════════════════════════
+// _compressImageToGrayscaleJpeg(file, cb): draw → resize long edge to
+// LONG_EDGE → grayscale (luminance) → JPEG QUALITY → base64 (data: prefix
+// stripped). Named consts for smoke-test tuning (S-DOC-1).
+function _compressImageToGrayscaleJpeg(file, cb) {
+  var LONG_EDGE = 1200;   // px — max(w,h) target
+  var QUALITY   = 0.75;   // JPEG quality 0..1
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      var scale = Math.min(1, LONG_EDGE / Math.max(w, h));
+      var sw = Math.round(w * scale), sh = Math.round(h * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = sw; canvas.height = sh;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, sw, sh);
+      // Grayscale via luminance
+      try {
+        var imgData = ctx.getImageData(0, 0, sw, sh);
+        var d = imgData.data;
+        for (var i = 0; i < d.length; i += 4) {
+          var g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          d[i] = d[i + 1] = d[i + 2] = g;
+        }
+        ctx.putImageData(imgData, 0, 0);
+      } catch (e) {
+        // getImageData can throw on tainted canvas; proceed with color fallback
+      }
+      var dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+      var base64  = dataUrl.split(',')[1];
+      cb(base64, 'image/jpeg');
+    };
+    img.onerror = function() { toast('❌ Could not read image', 'fail'); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function() { toast('❌ Could not read file', 'fail'); };
+  reader.readAsDataURL(file);
+}
+
+// Two-call orchestrator — invoice doc: upload → attachInvoiceDocument (col K)
+function _uploadInvoiceDoc(invoiceId, file) {
+  if (!sessionValid()) return;
+  if (!invoiceId || !file) return;
+  toast('⏳ Uploading invoice document...', 'ok');
+  _compressImageToGrayscaleJpeg(file, function(b64, mime) {
+    gasPost({ action: 'uploadPayHubImage', kind: 'invoice',
+              invoiceId: invoiceId, base64: b64, mimeType: mime,
+              token: _session.token })
+      .then(function(r) {
+        if (!r || !r.ok) throw new Error((r && r.error) || 'Upload failed');
+        return gasPost({ action: 'attachInvoiceDocument',
+                         invoiceId: invoiceId, driveId: r.fileId,
+                         token: _session.token });
+      })
+      .then(function(res) {
+        toast('✅ ' + ((res && res.message) || 'Invoice document attached'), 'ok');
+        loadInvoiceTable();
+      })
+      .catch(function(err) {
+        toast('❌ ' + (err.message || 'Invoice upload failed'), 'fail');
+      });
+  });
+}
+
+// Two-call orchestrator — receipt: upload → updateEntryImage (col M, EXISTING)
+function _uploadReceipt(trxId, invoiceId, file) {
+  if (!sessionValid()) return;
+  if (!trxId || !invoiceId || !file) {
+    toast('❌ Missing receipt context', 'fail');
+    return;
+  }
+  toast('⏳ Uploading receipt...', 'ok');
+  _compressImageToGrayscaleJpeg(file, function(b64, mime) {
+    gasPost({ action: 'uploadPayHubImage', kind: 'receipt',
+              invoiceId: invoiceId, trxId: trxId, base64: b64, mimeType: mime,
+              token: _session.token })
+      .then(function(r) {
+        if (!r || !r.ok) throw new Error((r && r.error) || 'Upload failed');
+        return gasPost({ action: 'updateEntryImage',
+                         trxId: trxId, imageId: r.fileId,
+                         token: _session.token });
+      })
+      .then(function(res) {
+        toast('✅ ' + ((res && res.message) || 'Receipt attached'), 'ok');
+        loadHistoryTable();
+      })
+      .catch(function(err) {
+        toast('❌ ' + (err.message || 'Receipt upload failed'), 'fail');
+      });
+  });
+}
+
+// Receipt upload context — captured when admin clicks Attach on a history row
+var _receiptUploadTrxId = '';
+var _receiptUploadInvId = '';
+
+// Invoice doc upload context — captured when admin clicks Attach on an invoice row
+var _invoiceUploadId = '';
+
+// Triggered by hidden receipt file inputs (Upload/Scan)
+function _onReceiptFilePicked(inputEl) {
+  var file = inputEl.files && inputEl.files[0];
+  inputEl.value = ''; // reset so same file can be re-picked
+  if (file) _uploadReceipt(_receiptUploadTrxId, _receiptUploadInvId, file);
+}
+
+// Triggered by hidden invoice-doc file inputs (Upload/Scan)
+function _onInvoiceFilePicked(inputEl) {
+  var file = inputEl.files && inputEl.files[0];
+  inputEl.value = '';
+  if (file) _uploadInvoiceDoc(_invoiceUploadId, file);
+}
+
+function _attachReceipt(trxId, invoiceId) {
+  // PH-DOC-1: capture context for the upload orchestrator. The paste field is
+  // hidden (Surface 3 upgrade); Upload/Scan buttons in the attach form drive
+  // the capture. Legacy paste mini-form retained in DOM as hidden fallback.
+  _receiptUploadTrxId = trxId || '';
+  _receiptUploadInvId = invoiceId || '';
+
+  // Pre-fill hidden paste mini-form (fallback path still works if un-hidden)
+  var trxInput   = document.getElementById('pay-his-trxid');
   var driveInput = document.getElementById('pay-his-driveid');
-  var errEl = document.getElementById('pay-his-err');
+  var errEl      = document.getElementById('pay-his-err');
+  if (trxInput)   { trxInput.value  = trxId; }
+  if (driveInput) { driveInput.value = ''; }
+  if (errEl)      { errEl.style.display = 'none'; }
 
-  if (trxInput)  { trxInput.value  = trxId; }
-  if (driveInput){ driveInput.value = ''; driveInput.focus(); }
-  if (errEl)     { errEl.style.display = 'none'; }
-
-  // Scroll attach form into view
+  // Scroll attach form (now Upload/Scan buttons) into view
   var attachWrap = document.getElementById('pay-his-attach-wrap');
   if (attachWrap) { attachWrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }

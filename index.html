@@ -4437,9 +4437,14 @@ function launchApp(auth) {
       toast('⚠️ Could not load app data. Check connection.', 'fail');
     });
 
-  // Start dashboard refresh
-  refreshDash();
-  _rtimer = setInterval(refreshDash, 30000);
+  // PERF-1 R1a(i): initial dashboard render now comes from the login bundle
+  // (initApp → refreshDash(d.dashboard)) — no separate getDashboardStats call
+  // at login. The 30s timer below handles ongoing refresh (gated on
+  // _inflightCount per R1b).
+  _rtimer = setInterval(function() {
+    if (_inflightCount > 0) return;  // R1b: skip tick while an action is in-flight (avoids cascade overlap; getDashboardStats is pure-read so a skipped tick drops no write)
+    refreshDash();
+  }, 30000);
 
   // ── TIER 2: Immediate background loads ───────────────────────────────────
   // Fired in parallel with getAppData the moment launchApp() runs.
@@ -4450,8 +4455,10 @@ function launchApp(auth) {
   //   (getAppData resolves → Income tab renders → admin clicks Meter →
   //   loadMtrReadings resolves → confirm dialog opens) gives these ~4–7s
   //   to complete before they are needed.
-  //   loadNotificationBanners fires immediately — no reason to delay 1500ms,
-  //   admin should see bell state as soon as the app is visible.
+  //   PERF-1 R1a(i): notification banners now come from the login bundle
+  //   (initApp → loadNotificationBanners(d.notifications)) — no separate
+  //   getActiveNotifications call at login. The 5-min poll below handles
+  //   ongoing refresh (gated on _inflightCount per R1b).
   //
   if (_session && _session.token) {
     gasPost({ action: 'getSettingsUtilityUnitPrices', token: _session.token })
@@ -4460,7 +4467,6 @@ function launchApp(auth) {
     gasGet('getSettingsFees', _session.token)
       .then(function(data) { if (data) _feesCache = data || []; })
       .catch(function() {});
-    loadNotificationBanners();
   }
 
 
@@ -4483,6 +4489,7 @@ function launchApp(auth) {
 
   // ── Cross-device sync + visibility polling (unchanged) ───────────────────
   setInterval(function() {
+    if (_inflightCount > 0) return;  // R1b: skip tick while an action is in-flight (getActiveNotifications is pure-read)
     if (_session && _session.token) loadNotificationBanners();
   }, 5 * 60 * 1000);
 
@@ -4728,6 +4735,14 @@ function initApp(d) {
   } else {
     setTab('NoAccess'); // Patch I: no perms object — show placeholder
   }
+
+  // PERF-1 R1a(i): consume dashboard + notifications from the login bundle
+  // (folded into getAppData) instead of firing getDashboardStats +
+  // getActiveNotifications as separate login round-trips. Login critical
+  // path: 3 invocations → 1. Fall back to a fetch only if the bundle omitted
+  // them (older backend / partial failure — keeps login resilient).
+  if (d.dashboard) refreshDash(d.dashboard); else refreshDash();
+  if (d.notifications != null) loadNotificationBanners(d.notifications); else loadNotificationBanners();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -6970,6 +6985,9 @@ function _loadInvoiceData() {
   // Single getInvoices() call. Passes result array to:
   //   1. loadInvoiceTable()      — renders Pillar 1 table
   //   2. _populatePaymentDropdown() — populates Pillar 2 invoice selector
+  // PERF-1 R1c: getInvoices + getPaymentHistory now fire in PARALLEL (were
+  // serial — history previously waited inside getInvoices' .then). Halves the
+  // tab-open wall-clock. loadHistoryTable accepts a pre-loaded arg (L7193).
   if (!sessionValid()) return;
 
   var wrap = document.getElementById('pay-inv-table-wrap');
@@ -6981,7 +6999,6 @@ function _loadInvoiceData() {
     .then(function(invoices) {
       loadInvoiceTable(invoices);
       _populatePaymentDropdown(invoices);
-      loadHistoryTable();
     })
     .catch(function(e) {
       if (wrap) {
@@ -6989,6 +7006,11 @@ function _loadInvoiceData() {
           escHtml(e.message) + '</div>';
       }
     });
+
+  // Parallel: payment history loads independently (does not wait for invoices)
+  gasPost({ action: 'getPaymentHistory', token: _session.token })
+    .then(function(history) { loadHistoryTable(history); })
+    .catch(function() { loadHistoryTable(); });
 }
 
 function loadInvoiceTable(invoices) {
@@ -7608,7 +7630,7 @@ function submitInvoiceForm() {
       }
       toast('✅ Invoice submitted: ' + (r.data && r.data.invoiceId ? r.data.invoiceId : ''), 'ok');
       _payInvClearForm();
-      loadInvoiceTable();
+      _loadInvoiceData();  // Catch 26: refresh table + dropdown (new invoice must be selectable in Record Payment)
     })
     .catch(function(e) {
       btn.classList.remove('processing');
@@ -7659,7 +7681,7 @@ function _showInvDuplicateDialog(res, originalPayload) {
         btn.disabled = false;
         toast('✅ Invoice submitted: ' + (res2.invoiceId || ''), 'ok');
         _payInvClearForm();
-        loadInvoiceTable();
+        _loadInvoiceData();  // Catch 26: refresh table + dropdown (duplicate-confirm submit path)
       })
       .catch(function(e) {
         btn.classList.remove('processing');
@@ -7736,15 +7758,36 @@ function pickReport(type) {
 // DASHBOARD
 // ══════════════════════════════════════════════════════════════════════════════
 
-function refreshDash() {
+function refreshDash(preloaded) {
   if (!sessionValid()) return;
   var rb   = document.getElementById('rBtn');
   var dtRb = document.getElementById('dt-rBtn');
+
+  // PERF-1 R1a(i): if the login bundle pre-loaded dashboard stats, render them
+  // directly (no separate getDashboardStats round-trip). Sibling to
+  // loadHistoryTable/loadNotificationBanners pre-loaded-arg pattern.
+  if (preloaded) {
+    _applyDash(preloaded);
+    return;
+  }
+
   rb.classList.add('spin');
   if (dtRb) dtRb.classList.add('spin');
 
   gasPost({ action: 'getDashboardStats', token: _session && _session.token })
     .then(function(r) {
+      _applyDash(r);
+      rb.classList.remove('spin');
+      if (dtRb) dtRb.classList.remove('spin');
+    })
+    .catch(function() {
+      rb.classList.remove('spin');
+      if (dtRb) dtRb.classList.remove('spin');
+    });
+}
+
+// Render dashboard from a getDashboardStats result (shared by fetch + bundle paths)
+function _applyDash(r) {
       // Cash balance
       var val = (r && r.cashBalance && r.cashBalance.balance != null)
           ? r.cashBalance.balance.toFixed(2) : '0.00';
@@ -7817,14 +7860,6 @@ function refreshDash() {
         liabUpd.textContent = liabTs;
         if (dtLiabUpd) dtLiabUpd.textContent = liabTs;
       }
-
-      rb.classList.remove('spin');
-      if (dtRb) dtRb.classList.remove('spin');
-    })
-    .catch(function() {
-      rb.classList.remove('spin');
-      if (dtRb) dtRb.classList.remove('spin');
-    });
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBMIT (no more PIN field — uses session token)
@@ -8702,10 +8737,18 @@ var NOTIF_ROUTING = {
  * loadNotificationBanners()
  * Fetches active notifications — called after login
  */
-function loadNotificationBanners() {
+function loadNotificationBanners(preloaded) {
   if (!_session || !_session.token) return; // Gap 1: self-defending token guard
   var isAdmin = _session && (_session.role === 'Admin' || _session.role === 'Management');
   if (!isAdmin) return;
+
+  // PERF-1 R1a(i): if the login bundle pre-loaded notifications, use them
+  // (no separate getActiveNotifications round-trip). Sibling to loadHistoryTable.
+  if (preloaded) {
+    _activeNotifications = preloaded || [];
+    updateBellState();
+    return;
+  }
 
   gasPost({ action: 'getActiveNotifications', token: _session.token })
     .then(function(notifications) {

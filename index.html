@@ -2665,11 +2665,11 @@
 
       <!-- Pay Hub 2-sub-tab nav — architect Pass C 2026-05-19 -->
       <div class="payhub-subnav">
-        <button class="payhub-subtab active" id="payhub-subtab-invoices" onclick="setPayHubSubtab('invoices')">
+        <button type="button" class="payhub-subtab active" id="payhub-subtab-invoices" onclick="setPayHubSubtab('invoices')">
           <span class="payhub-subtab-ar">فواتير</span>
           <span class="payhub-subtab-en">Invoices</span>
         </button>
-        <button class="payhub-subtab" id="payhub-subtab-pay" onclick="setPayHubSubtab('pay')">
+        <button type="button" class="payhub-subtab" id="payhub-subtab-pay" onclick="setPayHubSubtab('pay')">
           <span class="payhub-subtab-ar">دفع فواتير</span>
           <span class="payhub-subtab-en">Invoice Pay</span>
         </button>
@@ -7351,7 +7351,8 @@ function submitInvoiceForm() {
       contractId:  contractId || '',
       section:     section    || '',
       driveId:     driveId    || '',
-      token:       _session.token
+      token:       _session.token,
+      deviceId:    (_session && _session.deviceId) || getOrCreateDeviceId()  // Catch 24 fix 2026-05-19: raw fetch must inject deviceId (Phase 14b token-binding; gasPost auto-injects but raw fetch must add manually — sibling to Catch 19 gasGet hotfix)
     })
   })
     .then(function(r) { return r.json(); })

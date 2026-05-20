@@ -1456,6 +1456,15 @@
     .bilingual-stack { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; gap: 1px; vertical-align: middle; }
     .bilingual-stack .bi-ar { font-weight: 700; }
     .bilingual-stack .bi-en { font-size: 0.78em; opacity: 0.85; direction: ltr; font-weight: 600; }
+    /* Pay Hub 2-sub-tab restructure — NEW dedicated classes per architect Pass C D5 2026-05-19 */
+    /* Sibling-symmetric to bottom-nav stacked-bilingual convention; independent class defs (no Reports sub-tab coupling) */
+    .payhub-subnav { display:flex; gap:8px; margin-bottom:16px; border-bottom:2px solid var(--bdr); }
+    .payhub-subtab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:10px 8px; background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; transition:all 0.15s; margin-bottom:-2px; }
+    .payhub-subtab:hover { background:rgba(0,0,0,0.02); }
+    .payhub-subtab.active { border-bottom-color:var(--burg); }
+    .payhub-subtab-ar { font-size:14px; font-weight:700; line-height:1.15; color:var(--muted); }
+    .payhub-subtab-en { font-size:10px; font-weight:500; opacity:0.7; line-height:1.15; direction:ltr; color:var(--muted); }
+    .payhub-subtab.active .payhub-subtab-ar, .payhub-subtab.active .payhub-subtab-en { color:var(--burg); opacity:1; }
     .inp { width: 100%; height: 54px; border: 1.5px solid var(--bdr); border-radius: 12px; background: var(--bg); font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--navy); padding: 0 14px; outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, box-shadow 0.2s; text-align: right; }
     .inp:focus { border-color: var(--navy); background: var(--surf); box-shadow: 0 0 0 3px rgba(27,42,74,0.07); }
     .inp.err { border-color: var(--burg); animation: shake 0.3s ease; }
@@ -2654,6 +2663,21 @@
     <!-- Pay Hub Tab — Phase 11 Step 13 -->
     <div class="hide" id="f-pay">
 
+      <!-- Pay Hub 2-sub-tab nav — architect Pass C 2026-05-19 -->
+      <div class="payhub-subnav">
+        <button class="payhub-subtab active" id="payhub-subtab-invoices" onclick="setPayHubSubtab('invoices')">
+          <span class="payhub-subtab-ar">فواتير</span>
+          <span class="payhub-subtab-en">Invoices</span>
+        </button>
+        <button class="payhub-subtab" id="payhub-subtab-pay" onclick="setPayHubSubtab('pay')">
+          <span class="payhub-subtab-ar">دفع فواتير</span>
+          <span class="payhub-subtab-en">Invoice Pay</span>
+        </button>
+      </div>
+
+      <!-- Sub-tab pane 1: Invoices -->
+      <div id="payhub-pane-invoices">
+
       <!-- ── PILLAR 1 — INVOICE ──────────────────────────────────────────── -->
       <div class="card" id="pay-pillar-invoice">
 
@@ -2743,6 +2767,11 @@
         </div>
 
       </div><!-- /pay-pillar-invoice -->
+
+      </div><!-- /payhub-pane-invoices -->
+
+      <!-- Sub-tab pane 2: Invoice Pay (Record Payment + Payment History) -->
+      <div id="payhub-pane-pay" class="hide">
 
       <!-- ── PILLAR 2 — PAYMENT ──────────────────────────────────────────── -->
       <div class="card" id="pay-pillar-payment">
@@ -2861,6 +2890,8 @@
         </div><!-- /pay-his-attach-wrap -->
 
       </div><!-- /pay-pillar-history -->
+
+      </div><!-- /payhub-pane-pay -->
 
     </div><!-- /f-pay -->
 
@@ -4841,6 +4872,7 @@ function setTab(type) {
     if (_btnCard) _btnCard.style.display = 'none';
     _el('scroll').scrollTop = 0;
     loadPayHub();
+    setPayHubSubtab('invoices');  // D4 reset-to-default per architect Pass C 2026-05-19
     return;
 
   } else if (type === 'NoAccess') {
@@ -6874,6 +6906,21 @@ function setComSubnav(pane) {
     }
     if (div) div.style.display = active ? '' : 'none';
   });
+}
+
+function setPayHubSubtab(which) {
+  var paneInv = document.getElementById('payhub-pane-invoices');
+  var panePay = document.getElementById('payhub-pane-pay');
+  var tabInv  = document.getElementById('payhub-subtab-invoices');
+  var tabPay  = document.getElementById('payhub-subtab-pay');
+  if (!paneInv || !panePay || !tabInv || !tabPay) return;
+  if (which === 'pay') {
+    paneInv.classList.add('hide');    panePay.classList.remove('hide');
+    tabInv.classList.remove('active'); tabPay.classList.add('active');
+  } else {
+    paneInv.classList.remove('hide'); panePay.classList.add('hide');
+    tabInv.classList.add('active');   tabPay.classList.remove('active');
+  }
 }
 
 function loadPayHub() {

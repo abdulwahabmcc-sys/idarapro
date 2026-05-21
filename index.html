@@ -4444,7 +4444,7 @@ function launchApp(auth) {
   _rtimer = setInterval(function() {
     if (_inflightCount > 0) return;  // R1b: skip tick while an action is in-flight. Note: a skipped tick DEFERS (not drops) a balance recompute (getDashboardStats→getBuildingHealth writes when BALANCE_DIRTY) + a token slide — both reconciled by the next tick / any real call; idle-session drift is intended.
     refreshDash();
-  }, 90000);  // R1b-amend Finding 2b: 30s→90s. Each tick may trigger refreshAllBalances+flush when dirty; 90s does that real work 3× less often, ample for a discrete-action cash balance.
+  }, 180000);  // R1d: 90s→180s. Timer is now the multi-admin safety-net only (catches OTHER admins' changes for a camped-on-tab user); event-driven refresh (refreshDash after own actions) + refocus + manual button cover the primary freshness paths. _inflightCount-gated (R1b).
 
   // ── TIER 2: Immediate background loads ───────────────────────────────────
   // Fired in parallel with getAppData the moment launchApp() runs.
@@ -7200,6 +7200,7 @@ function recordPaymentForm() {
       _payPmtClearForm();
       // Q2 decision: refresh table + dropdown with single getInvoices() call
       _loadInvoiceData();
+      refreshDash();  // R1d: event-driven dashboard refresh — cash + golden numbers update now, not on the 180s timer (action set BALANCE_DIRTY + cleared LIABILITY_TOTAL, so this recomputes fresh)
     })
     .catch(function(e) {
       btn.classList.remove('processing');
@@ -7632,6 +7633,7 @@ function submitInvoiceForm() {
       toast('✅ Invoice submitted: ' + (r.data && r.data.invoiceId ? r.data.invoiceId : ''), 'ok');
       _payInvClearForm();
       _loadInvoiceData();  // Catch 26: refresh table + dropdown (new invoice must be selectable in Record Payment)
+      refreshDash();  // R1d: event-driven dashboard refresh (liability/golden numbers)
     })
     .catch(function(e) {
       btn.classList.remove('processing');
@@ -7683,6 +7685,7 @@ function _showInvDuplicateDialog(res, originalPayload) {
         toast('✅ Invoice submitted: ' + (res2.invoiceId || ''), 'ok');
         _payInvClearForm();
         _loadInvoiceData();  // Catch 26: refresh table + dropdown (duplicate-confirm submit path)
+        refreshDash();  // R1d: event-driven dashboard refresh (liability/golden numbers)
       })
       .catch(function(e) {
         btn.classList.remove('processing');

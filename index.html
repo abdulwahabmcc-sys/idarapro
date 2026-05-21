@@ -4442,9 +4442,9 @@ function launchApp(auth) {
   // at login. The 30s timer below handles ongoing refresh (gated on
   // _inflightCount per R1b).
   _rtimer = setInterval(function() {
-    if (_inflightCount > 0) return;  // R1b: skip tick while an action is in-flight (avoids cascade overlap; getDashboardStats is pure-read so a skipped tick drops no write)
+    if (_inflightCount > 0) return;  // R1b: skip tick while an action is in-flight. Note: a skipped tick DEFERS (not drops) a balance recompute (getDashboardStats→getBuildingHealth writes when BALANCE_DIRTY) + a token slide — both reconciled by the next tick / any real call; idle-session drift is intended.
     refreshDash();
-  }, 30000);
+  }, 90000);  // R1b-amend Finding 2b: 30s→90s. Each tick may trigger refreshAllBalances+flush when dirty; 90s does that real work 3× less often, ample for a discrete-action cash balance.
 
   // ── TIER 2: Immediate background loads ───────────────────────────────────
   // Fired in parallel with getAppData the moment launchApp() runs.
@@ -4495,6 +4495,7 @@ function launchApp(auth) {
 
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden && _session && _session.token) {
+      if (_inflightCount > 0) return;  // R1b-amend Finding 1: skip if an action is in-flight
       loadNotificationBanners();
     }
   });
@@ -8027,10 +8028,17 @@ function watchNet() {
 // The call itself also refreshes the token expiry (D4) as a side benefit.
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible' && _session && _session.token && !_sessionExpired) {
-    gasPost({ action: 'getAppData', token: _session.token }).catch(function() {
-      // Any failure — including Unauthorized — is already handled by gasPost's
-      // ambient zombie detection. Swallow here to prevent unhandled rejection.
-    });
+    // PERF-1 R1b-amend (Finding 2a): refocus does a TARGETED warm-refresh
+    // (dashboard + notifications only) instead of the full getAppData bundle.
+    // The full bundle (9 datasets + 3 sub-calls + owners read) is LOGIN-ONLY
+    // now (initApp) — refocus only needs the 2 volatile datasets, dropping
+    // refocus from ~9-15s to ~6-9s. (Still does the dashboard read which may
+    // recompute-when-dirty — not trivial, correct on return.)
+    // Finding 1 gate: skip if an action is in-flight (collision hygiene;
+    // refocus-refresh defers to the user's own call / next idle refocus).
+    if (_inflightCount > 0) return;
+    refreshDash();
+    loadNotificationBanners();
   }
 }, { passive: true });
 

@@ -1888,6 +1888,12 @@
        grouping pseudo-element OR markup wrapping. Since markup is already 3 spans, we use a
        2-column layout — icon in col 1, both Arabic+English stack in col 2 via display:grid. */
     .dt-tab { display:grid !important; grid-template-columns:auto 1fr; column-gap:8px; align-items:center; }
+    /* Catch 25 fix (a): permission-gating bypass. applyPermissionUI adds .hide to desktop tabs,
+       but .dt-tab{display:flex/grid !important} (above) defeated .hide{display:none !important}
+       by equal specificity + later source order — leaving admin-only tabs clickable for non-Admin
+       (e.g. Management) on desktop while mobile gated correctly. This .dt-tab.hide rule is
+       two-class specificity, so it wins over single-class .dt-tab regardless of source order. */
+    .dt-tab.hide { display:none !important; }
     .dt-tab-ico { grid-column:1; grid-row:1 / span 2; align-self:center; }
     .dt-tab-ar { grid-column:2; grid-row:1; }
     .dt-tab-en { grid-column:2; grid-row:2; }

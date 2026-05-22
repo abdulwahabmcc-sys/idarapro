@@ -2936,7 +2936,7 @@
             <option value="" disabled selected>اختر / Select category...</option>
           </select>
           <input class="inp inp-amt" type="number" step="0.01" min="0" id="pay-dexp-amt" placeholder="0.00" inputmode="decimal" style="margin-bottom:10px;">
-          <input class="inp" type="text" id="pay-dexp-vendor" placeholder="المورد / Vendor (optional)" style="margin-bottom:10px;">
+          <input class="inp" type="text" id="pay-dexp-vendor" placeholder="المورد / Vendor" style="margin-bottom:10px;">
           <input class="inp" type="text" id="pay-dexp-note" placeholder="ملاحظة / Note (optional)" style="margin-bottom:12px;">
           <button type="button" class="btn-sub b-exp" id="pay-dexp-submit"
             onclick="submitDirectExpense()" style="margin-top:0;">
@@ -7035,6 +7035,7 @@ function submitDirectExpense() {
   var note = document.getElementById('pay-dexp-note').value.trim();
   var vendor = document.getElementById('pay-dexp-vendor').value.trim();
   if (!cat) { toast('❌ Select a category', 'fail'); return; }
+  if (!vendor) { toast('❌ Vendor is required', 'fail'); markErr(document.getElementById('pay-dexp-vendor')); return; }
   if (!amt || amt <= 0) { toast('❌ Enter a valid amount', 'fail'); markErr(amtEl); return; }
   if (btn) btn.disabled = true;
   gasPost({

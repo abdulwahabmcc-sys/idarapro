@@ -1752,6 +1752,8 @@
       #mob-summary-bar  { display: none !important; }
     }
     .disabled { opacity: 0.35; pointer-events: none; }
+    /* Attachment-UX: camera button shown on mobile only (no device camera on desktop) */
+    @media (min-width:769px){ .mob-only{ display:none !important; } }
 
     /* ══════════════════════════════════════════════
        DESKTOP LAYOUT  ≥ 769px
@@ -2872,7 +2874,7 @@
         <div style="height:1px;background:var(--bdr);margin:4px 0 16px;"></div>
 
         <!-- Attach Receipt Mini-Form — Option B -->
-        <div id="pay-his-attach-wrap">
+        <div id="pay-his-attach-wrap" style="display:none;"><!-- Attachment-UX: bottom big-button section hidden; inline 📷/📤 in the Receipt cell replace it. Inputs kept (back the reused upload flow). -->
           <div class="stg-field-lbl" style="margin-bottom:8px;">
             Attach Receipt / إرفاق إيصال
           </div>
@@ -7223,6 +7225,43 @@ function loadInvoiceTable(invoices) {
   }
 }
 
+// Shared unified attachment cell — used by BOTH the Invoices Document column
+// and the Invoice Pay Receipt column so they render identically.
+//   imageId truthy  -> 📎 paper-clip -> opens the in-app viewer (_viewPayHubImage)
+//   imageId falsy   -> "📎 Attach" -> REVEALS two direct-tap buttons (📷 mob-only, 📤)
+// PH-DOC-1 gesture-chain: tapping Attach only TOGGLES DOM visibility (no dialog).
+// The user's SECOND tap on 📷/📤 is a fresh gesture that sets the target id then
+// .click()s the hidden file input DIRECTLY — no chooser/confirm between tap and
+// .click() (that silently breaks camera/picker on iOS Safari + Android).
+// setId is a pre-built JS snippet (e.g. "_invoiceUploadId='INV-1';") embedded in
+// the 📷/📤 onclick; uploadId/scanId are the existing hidden <input> ids.
+function _buildAttachCell(imageId, setId, uploadId, scanId) {
+  var iconBtn = 'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
+    'padding:3px 7px;font-size:13px;color:var(--muted);cursor:pointer;"';
+  if (imageId) {
+    return '<button type="button" onclick="_viewPayHubImage(\'' + escHtml(imageId) + '\')" ' +
+      'style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;" ' +
+      'title="View attachment">📎</button>';
+  }
+  return '<span style="white-space:nowrap;">' +
+    '<button type="button" ' +
+      'onclick="this.classList.add(\'hide\');this.nextElementSibling.classList.remove(\'hide\');" ' +
+      'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
+      'padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;">' +
+      '📎 Attach</button>' +
+    '<span class="attach-menu hide" style="white-space:nowrap;">' +
+      '<button type="button" title="Camera / كاميرا" class="mob-only" ' +
+        'onclick="' + setId + 'document.getElementById(\'' + scanId + '\').click();" ' +
+        iconBtn.replace('cursor:pointer;', 'cursor:pointer;margin-right:3px;') + '>' +
+        '📷</button>' +
+      '<button type="button" title="Upload / رفع" ' +
+        'onclick="' + setId + 'document.getElementById(\'' + uploadId + '\').click();" ' +
+        iconBtn + '>' +
+        '📤</button>' +
+    '</span>' +
+  '</span>';
+}
+
 function _renderInvoiceTable(wrap, rows) {
   if (!rows || !rows.length) {
     wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;font-style:italic;">لا توجد فواتير / No invoices yet</div>';
@@ -7272,33 +7311,9 @@ function _renderInvoiceTable(wrap, rows) {
           ? 'color:var(--burg);'
           : 'color:var(--navy);';
 
-    // PH-DOC-1: Document cell — View link if attached, else Upload/Scan
-    var docCell;
-    if (inv.driveId) {
-      docCell = '<button type="button" onclick="_viewPayHubImage(\'' +
-        escHtml(inv.driveId) + '\')" ' +
-        'style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;" ' +
-        'title="View invoice document">📄</button>';
-    } else {
-      // PH-DOC-1 N1 fix: two direct-gesture icon-buttons. Each onclick sets the
-      // row invoiceId into the module var THEN calls .click() directly — no JS
-      // dialog between tap and .click() (mobile user-gesture-chain integrity;
-      // confirm() would silently break camera/picker on iOS Safari + Android).
-      docCell = '<span style="white-space:nowrap;">' +
-        '<button type="button" title="Upload Invoice / رفع فاتورة" ' +
-          'onclick="_invoiceUploadId=\'' + escHtml(inv.invoiceId || '') + '\';' +
-          'document.getElementById(\'inv-doc-upload\').click()" ' +
-          'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
-          'padding:3px 7px;font-size:13px;color:var(--muted);cursor:pointer;margin-right:3px;">' +
-          '📤</button>' +
-        '<button type="button" title="Scan Invoice / مسح فاتورة" ' +
-          'onclick="_invoiceUploadId=\'' + escHtml(inv.invoiceId || '') + '\';' +
-          'document.getElementById(\'inv-doc-scan\').click()" ' +
-          'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
-          'padding:3px 7px;font-size:13px;color:var(--muted);cursor:pointer;">' +
-          '📷</button>' +
-        '</span>';
-    }
+    // Unified attachment cell (shared with Invoice Pay receipt column).
+    var _invSetId = "_invoiceUploadId='" + escHtml(inv.invoiceId || '') + "';";
+    var docCell = _buildAttachCell(inv.driveId, _invSetId, 'inv-doc-upload', 'inv-doc-scan');
 
     html +=
       '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
@@ -7471,20 +7486,9 @@ function _renderHistoryTable(wrap, rows) {
           ? 'color:var(--burg);'
           : 'color:var(--muted);';
 
-    // Receipt cell
-    var receiptCell;
-    if (row.imageId) {
-      receiptCell = '<button type="button" onclick="_viewPayHubImage(\'' +
-        escHtml(row.imageId) + '\')" ' +
-        'style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;" ' +
-        'title="View receipt">📎</button>';
-    } else {
-      receiptCell = '<button type="button" onclick="_attachReceipt(\'' +
-        escHtml(row.trxId) + '\',\'' + escHtml(row.refId || '') + '\')" ' +
-        'style="background:none;border:1px solid var(--bdr);border-radius:6px;' +
-        'padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;">' +
-        'Attach</button>';
-    }
+    // Unified attachment cell (shared with Invoices document column).
+    var _recSetId = "_receiptUploadTrxId='" + escHtml(row.trxId || '') + "';_receiptUploadInvId='" + escHtml(row.refId || '') + "';";
+    var receiptCell = _buildAttachCell(row.imageId, _recSetId, 'rec-doc-upload', 'rec-doc-scan');
 
     html +=
       '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
@@ -7557,7 +7561,7 @@ function _compressImageToGrayscaleJpeg(file, cb) {
 function _uploadInvoiceDoc(invoiceId, file) {
   if (!sessionValid()) return;
   if (!invoiceId || !file) return;
-  toast('⏳ Uploading invoice document...', 'ok');
+  toast('⏳ Uploading invoice document...', 'ok', true);
   _compressImageToGrayscaleJpeg(file, function(b64, mime) {
     gasPost({ action: 'uploadPayHubImage', kind: 'invoice',
               invoiceId: invoiceId, base64: b64, mimeType: mime,
@@ -7585,7 +7589,7 @@ function _uploadReceipt(trxId, invoiceId, file) {
     toast('❌ Missing receipt context', 'fail');
     return;
   }
-  toast('⏳ Uploading receipt...', 'ok');
+  toast('⏳ Uploading receipt...', 'ok', true);
   _compressImageToGrayscaleJpeg(file, function(b64, mime) {
     gasPost({ action: 'uploadPayHubImage', kind: 'receipt',
               invoiceId: invoiceId, trxId: trxId, base64: b64, mimeType: mime,
@@ -7639,7 +7643,7 @@ function _viewPayHubImage(fileId) {
     .then(function(r) {
       if (!r || !r.ok) throw new Error((r && r.error) || 'Image not found');
       var dataUrl = 'data:' + (r.mimeType || 'image/jpeg') + ';base64,' + r.base64;
-      _showImageModal(dataUrl, r.name || 'document.jpg');
+      _showImageModal(dataUrl, r.name || 'document.jpg', fileId);
     })
     .catch(function(err) {
       toast('❌ ' + (err.message || 'Could not load document'), 'fail');
@@ -7647,7 +7651,7 @@ function _viewPayHubImage(fileId) {
 }
 
 // Minimal in-app image modal: overlay + image + close + download.
-function _showImageModal(dataUrl, filename) {
+function _showImageModal(dataUrl, filename, fileId) {
   var existing = document.getElementById('payhub-img-modal');
   if (existing) existing.parentNode.removeChild(existing);
   var overlay = document.createElement('div');
@@ -7678,6 +7682,18 @@ function _showImageModal(dataUrl, filename) {
   close.style.cssText = 'background:var(--burg);color:#fff;border:none;' +
     'padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;';
 
+  // Admin-only Delete (Item 3). Admin gate here is defense-in-depth; the
+  // backend deleteAttachment enforces the real boundary (resolveAuth + role).
+  if (fileId && _session && _session.role === 'Admin') {
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.textContent = '🗑 Delete / حذف';
+    del.style.cssText = 'background:#fff;color:var(--burg);border:1px solid var(--burg);' +
+      'padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;';
+    del.onclick = function() { _deleteAttachment(fileId); };
+    bar.appendChild(del);
+  }
+
   bar.appendChild(dl); bar.appendChild(close);
   overlay.appendChild(img); overlay.appendChild(bar);
   document.body.appendChild(overlay);
@@ -7686,6 +7702,25 @@ function _showImageModal(dataUrl, filename) {
 function _closeImageModal() {
   var m = document.getElementById('payhub-img-modal');
   if (m) m.parentNode.removeChild(m);
+}
+
+// Admin-only attachment delete. A confirm() here is fine (no file-input gesture
+// chain — that PH-DOC-1 rule applies only to camera/picker .click()). On success
+// the modal closes and both Pay Hub tables reload so the cell returns to ATTACH.
+function _deleteAttachment(fileId) {
+  if (!fileId) return;
+  if (!confirm('Delete this attachment? / حذف هذا المرفق؟\nThe transaction record stays; only the image is removed.')) return;
+  toast('⏳ Deleting attachment...', 'ok', true);
+  gasPost({ action: 'deleteAttachment', payload: { imageId: fileId }, token: _session.token })
+    .then(function(r) {
+      var res = typeof r === 'string' ? JSON.parse(r) : r;
+      if (!res || !res.ok) { toast('❌ ' + ((res && res.error) || 'Delete failed'), 'fail'); return; }
+      toast('✅ ' + (res.message || 'Attachment removed'), 'ok');
+      _closeImageModal();
+      if (typeof loadInvoiceTable === 'function') loadInvoiceTable();
+      if (typeof loadHistoryTable === 'function') loadHistoryTable();
+    })
+    .catch(function(e) { toast('❌ ' + (e.message || 'Delete failed'), 'fail'); });
 }
 
 function _attachReceipt(trxId, invoiceId) {
@@ -8178,12 +8213,16 @@ function onFail(e) {
 // HELPERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-function toast(msg, type) {
+function toast(msg, type, persist) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className   = type || 'info';
   t.classList.add('show');
   if (_ttimer) clearTimeout(_ttimer);
+  // persist=true: message stays until the NEXT toast() call replaces it (no
+  // auto-hide). Used for "⏳ Uploading…" so it remains until the success/failure
+  // toast fires. Default (falsy) = identical to prior 2-arg behavior.
+  if (persist) return;
   _ttimer = setTimeout(function() {
     t.classList.remove('show');
   }, type === 'fail' ? 5000 : 3000);

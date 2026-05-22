@@ -7054,6 +7054,7 @@ function submitDirectExpense() {
     if (btn) btn.disabled = false;
     toast('✅ ' + (r && r.message ? r.message : 'Expense recorded'), 'ok');
     document.getElementById('pay-dexp-amt').value  = '';
+    document.getElementById('pay-dexp-vendor').value = '';
     document.getElementById('pay-dexp-note').value = '';
     document.getElementById('pay-dexp-cat').selectedIndex = 0;
     refreshDash();  // R1d: cash changed — freshen dashboard now

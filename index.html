@@ -2949,6 +2949,17 @@
             </span>
           </button>
         </div>
+
+        <!-- Direct Pay Log (parallel to standalone Expense Log; same EXP data, EXP-gated) -->
+        <div class="card" id="payhub-dexp-log" style="margin-top:12px;">
+          <div class="log-lbl" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;gap:1px;margin-bottom:8px;">
+            <span style="font-size:11px;">سجل الدفع المباشر</span>
+            <span style="font-size:9px;opacity:0.85;">Direct Pay Log</span>
+          </div>
+          <div class="log-scroll" id="payhub-dexp-log-list">
+            <div style="text-align:center;color:var(--muted);padding:14px;font-size:11px;">جاري التحميل... / Loading...</div>
+          </div>
+        </div>
       </div><!-- /payhub-pane-directexp -->
 
     </div><!-- /f-pay -->
@@ -3499,6 +3510,54 @@ function renderRevenueLog(entries) {
     '</div>';
   }).join('');
 
+  listEl.innerHTML = html;
+}
+
+function loadDirectPayLog() {
+  if (!sessionValid()) return;
+  var listEl = document.getElementById('payhub-dexp-log-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:11px;">جاري التحميل... / Loading...</div>';
+  gasPost({
+    action: 'listRecentEntries',
+    payload: { type: 'EXP', limit: 20 },
+    token: _session.token
+  })
+  .then(function(r) {
+    var parsed = typeof r === 'string' ? JSON.parse(r) : r;
+    if (!parsed || !parsed.ok) {
+      listEl.innerHTML = '<div class="log-row-empty">' + (parsed && parsed.error ? escHtml(parsed.error) : 'خطأ / Error') + '</div>';
+      return;
+    }
+    renderDirectPayLog(parsed.entries || []);
+  })
+  .catch(function(e) {
+    listEl.innerHTML = '<div class="log-row-empty">' + escHtml(e.message || String(e)) + '</div>';
+  });
+}
+
+function renderDirectPayLog(entries) {
+  var listEl = document.getElementById('payhub-dexp-log-list');
+  if (!listEl) return;
+  if (!entries || entries.length === 0) {
+    listEl.innerHTML = '<div class="log-row-empty">لا توجد معاملات حديثة / No recent transactions</div>';
+    return;
+  }
+  var html = entries.map(function(e) {
+    var amountFmt = (e.amount || 0).toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:0 });
+    return '<div class="log-row log-row-exp">' +
+      '<div class="log-row-left">' +
+        '<div class="log-row-category">' + escHtml(e.category || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-mid">' +
+        '<div class="log-row-description">' + escHtml(e.description || '') + '</div>' +
+        '<div class="log-row-date">' + escHtml(e.date || '') + '</div>' +
+      '</div>' +
+      '<div class="log-row-right">' +
+        '<div class="log-row-amount log-row-amount-exp">-' + amountFmt + ' $</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
   listEl.innerHTML = html;
 }
 
@@ -4440,6 +4499,15 @@ function doLogout() {
     document.getElementById('d' + i).classList.remove('filled','error','success');
 
   showLoginScreen();
+
+  // Catch 32: reload to discard ALL DOM + JS state so the next login starts
+  // fully fresh — prevents the prior user's tab-visibility / window._cats / TAB
+  // from bleeding into the next session (applyPermissionUI applies incrementally,
+  // not reset-to-baseline). Bulletproof vs hand-resetting every site. Session is
+  // in-memory (_session) so reload clears it (no auto-relogin); _deviceId
+  // (localStorage) survives, correctly preserving device trust. Consistent with
+  // the zombie-session handler which already reloads on expiry.
+  location.reload();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -7018,6 +7086,7 @@ function setPayHubSubtab(which) {
     if (t.key === which) { pane.classList.remove('hide'); tab.classList.add('active'); }
     else                 { pane.classList.add('hide');    tab.classList.remove('active'); }
   });
+  if (which === 'directexp') loadDirectPayLog();  // fresh fetch on Direct Expense sub-tab activation
 }
 // F4: explicit precedence (Invoices -> Invoice Pay -> Direct Expense) — activate the first
 // VISIBLE (permission-allowed) sub-tab. Walk the defined order, not DOM order. Also used as
@@ -7063,6 +7132,7 @@ function submitDirectExpense() {
     document.getElementById('pay-dexp-note').value = '';
     document.getElementById('pay-dexp-cat').selectedIndex = 0;
     refreshDash();  // R1d: cash changed — freshen dashboard now
+    loadDirectPayLog();  // refresh the Direct Pay Log so the just-recorded expense appears
   })
   .catch(function(e) {
     if (btn) btn.disabled = false;

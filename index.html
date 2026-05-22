@@ -4722,6 +4722,7 @@ function applyPermissionUI(auth) {
     if (perms.EXP) setTab('Expense');
     else if (hasAnyReport) setTab('Report');
     else if (perms.MTR_RED) setTab('Meter');
+    else if (perms.INV || perms.INV_PAY) setTab('Pay'); // Catch 30: pure Pay-Hub user lands on Pay (Pay-last), not NoAccess
     else setTab('NoAccess'); // Patch I: all-FALSE — show placeholder
   }
 
@@ -4785,6 +4786,7 @@ function initApp(d) {
     else if (p.EXP) setTab('Expense');
     else if (p.REP_BLD || p.REP_SEC) setTab('Report');
     else if (p.MTR_RED) setTab('Meter');
+    else if (p.INV || p.INV_PAY) setTab('Pay'); // Catch 30: pure Pay-Hub user lands on Pay (Pay-last), not NoAccess
     else setTab('NoAccess'); // Patch I: all-FALSE state — show placeholder
   } else {
     setTab('NoAccess'); // Patch I: no perms object — show placeholder
@@ -4963,7 +4965,7 @@ function setTab(type) {
     if (_btnCard) _btnCard.style.display = 'none';
     _el('scroll').scrollTop = 0;
     loadPayHub();
-    setPayHubSubtab('invoices');  // D4 reset-to-default per architect Pass C 2026-05-19
+    activateFirstVisiblePayHubSubtab();  // Catch 29: open on first PERMITTED sub-tab, not hardcoded Invoices (was setPayHubSubtab('invoices'))
     return;
 
   } else if (type === 'NoAccess') {

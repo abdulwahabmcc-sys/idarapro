@@ -1465,6 +1465,9 @@
     .payhub-subtab-ar { font-size:14px; font-weight:700; line-height:1.15; color:var(--muted); }
     .payhub-subtab-en { font-size:10px; font-weight:500; opacity:0.7; line-height:1.15; direction:ltr; color:var(--muted); }
     .payhub-subtab.active .payhub-subtab-ar, .payhub-subtab.active .payhub-subtab-en { color:var(--burg); opacity:1; }
+    /* F5 (Catch-25 class guard): permission-hide must win at computed display. Two-class
+       specificity beats one-class .payhub-subtab display rules regardless of source order. */
+    .payhub-subtab.hide { display:none !important; }
     .inp { width: 100%; height: 54px; border: 1.5px solid var(--bdr); border-radius: 12px; background: var(--bg); font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--navy); padding: 0 14px; outline: none; -webkit-appearance: none; appearance: none; transition: border-color 0.2s, box-shadow 0.2s; text-align: right; }
     .inp:focus { border-color: var(--navy); background: var(--surf); box-shadow: 0 0 0 3px rgba(27,42,74,0.07); }
     .inp.err { border-color: var(--burg); animation: shake 0.3s ease; }
@@ -2679,6 +2682,10 @@
           <span class="payhub-subtab-ar">دفع فواتير</span>
           <span class="payhub-subtab-en">Invoice Pay</span>
         </button>
+        <button type="button" class="payhub-subtab" id="payhub-subtab-directexp" onclick="setPayHubSubtab('directexp')">
+          <span class="payhub-subtab-ar">مصاريف مباشرة</span>
+          <span class="payhub-subtab-en">Direct Expense</span>
+        </button>
       </div>
 
       <!-- Sub-tab pane 1: Invoices -->
@@ -2920,6 +2927,19 @@
       </div><!-- /pay-pillar-history -->
 
       </div><!-- /payhub-pane-pay -->
+
+      <!-- Sub-tab pane 3: Direct Expense (F3 — reuses recordEntry/type=EXP) -->
+      <div id="payhub-pane-directexp" class="hide">
+        <div class="card" id="pay-pillar-directexp">
+          <div style="font-weight:700;margin-bottom:12px;">مصاريف مباشرة / Direct Expense</div>
+          <select class="inp" id="pay-dexp-cat" style="margin-bottom:10px;">
+            <option value="" disabled selected>اختر / Select category...</option>
+          </select>
+          <input class="inp inp-amt" type="number" step="0.01" min="0" id="pay-dexp-amt" placeholder="0.00" inputmode="decimal" style="margin-bottom:10px;">
+          <input class="inp" type="text" id="pay-dexp-note" placeholder="ملاحظة / Note (optional)" style="margin-bottom:12px;">
+          <button type="button" class="btn-primary" id="pay-dexp-submit" onclick="submitDirectExpense()">تسجيل مصروف / Record Expense</button>
+        </div>
+      </div><!-- /payhub-pane-directexp -->
 
     </div><!-- /f-pay -->
 
@@ -4637,14 +4657,31 @@ function applyPermissionUI(auth) {
   // Admin-only mob-summary-bar (parent hides them for non-Admin anyway).
   var mobLiabPanel   = document.getElementById('mob-liab-panel');
   var mobSummaryDiv  = document.getElementById('mob-summary-divider');
+  // F4: Pay Hub parent tab widens to INV || INV_PAY || EXP (any sub-tab capability).
+  // mobLiabPanel/mobSummaryDiv stay INV-only — liability affordances, not widened.
+  var canPayHub = !!(perms.INV || perms.INV_PAY || perms.EXP);
+  if (!canPayHub) {
+    if (tPay)  tPay.classList.add('hide');
+    if (dtPay) dtPay.classList.add('hide');
+  } else {
+    if (tPay)  tPay.classList.remove('hide');
+    if (dtPay) dtPay.classList.remove('hide');
+  }
+  // F4: per-sub-tab gating (non-Admin). Each sub-tab + pane on its own flag; then
+  // activate the first VISIBLE sub-tab by precedence (not DOM order). Admin returns
+  // early above and sees all three (markup default: invoices active).
+  [['payhub-subtab-invoices','payhub-pane-invoices', !!perms.INV],
+   ['payhub-subtab-pay','payhub-pane-pay',           !!perms.INV_PAY],
+   ['payhub-subtab-directexp','payhub-pane-directexp', !!perms.EXP]].forEach(function(g) {
+    var tab = document.getElementById(g[0]); var pane = document.getElementById(g[1]);
+    if (tab)  { if (g[2]) tab.classList.remove('hide');  else tab.classList.add('hide'); }
+    if (pane) { if (g[2]) pane.classList.remove('hide'); else pane.classList.add('hide'); }
+  });
+  if (canPayHub) activateFirstVisiblePayHubSubtab();
   if (!perms.INV) {
-    if (tPay)        tPay.classList.add('hide');
-    if (dtPay)       dtPay.classList.add('hide');
     if (mobLiabPanel)  mobLiabPanel.classList.add('hide');
     if (mobSummaryDiv) mobSummaryDiv.classList.add('hide');
   } else {
-    if (tPay)        tPay.classList.remove('hide');
-    if (dtPay)       dtPay.classList.remove('hide');
     if (mobLiabPanel)  mobLiabPanel.classList.remove('hide');
     if (mobSummaryDiv) mobSummaryDiv.classList.remove('hide');
   }
@@ -6952,19 +6989,65 @@ function setComSubnav(pane) {
   });
 }
 
+// F1: 3-sub-tab Pay Hub. Each entry = {key, pane, tab}. Generalized hide/show + activate.
+var _PAYHUB_SUBTABS = [
+  { key:'invoices',  pane:'payhub-pane-invoices',  tab:'payhub-subtab-invoices'  },
+  { key:'pay',       pane:'payhub-pane-pay',       tab:'payhub-subtab-pay'       },
+  { key:'directexp', pane:'payhub-pane-directexp', tab:'payhub-subtab-directexp' }
+];
 function setPayHubSubtab(which) {
-  var paneInv = document.getElementById('payhub-pane-invoices');
-  var panePay = document.getElementById('payhub-pane-pay');
-  var tabInv  = document.getElementById('payhub-subtab-invoices');
-  var tabPay  = document.getElementById('payhub-subtab-pay');
-  if (!paneInv || !panePay || !tabInv || !tabPay) return;
-  if (which === 'pay') {
-    paneInv.classList.add('hide');    panePay.classList.remove('hide');
-    tabInv.classList.remove('active'); tabPay.classList.add('active');
-  } else {
-    paneInv.classList.remove('hide'); panePay.classList.add('hide');
-    tabInv.classList.add('active');   tabPay.classList.remove('active');
+  _PAYHUB_SUBTABS.forEach(function(t) {
+    var pane = document.getElementById(t.pane);
+    var tab  = document.getElementById(t.tab);
+    if (!pane || !tab) return;
+    if (t.key === which) { pane.classList.remove('hide'); tab.classList.add('active'); }
+    else                 { pane.classList.add('hide');    tab.classList.remove('active'); }
+  });
+}
+// F4: explicit precedence (Invoices -> Invoice Pay -> Direct Expense) — activate the first
+// VISIBLE (permission-allowed) sub-tab. Walk the defined order, not DOM order. Also used as
+// the active-pane-hidden re-selection guard (call after applyPermissionUI re-runs).
+function activateFirstVisiblePayHubSubtab() {
+  for (var i = 0; i < _PAYHUB_SUBTABS.length; i++) {
+    var tab = document.getElementById(_PAYHUB_SUBTABS[i].tab);
+    if (tab && !tab.classList.contains('hide')) { setPayHubSubtab(_PAYHUB_SUBTABS[i].key); return; }
   }
+}
+
+// F3: Direct Expense submit — builds the IDENTICAL recordEntry/type=EXP payload the standalone
+// Expense form sends (category, amount, date, description=category, empty section/contractId).
+// Backend checkPermission(auth,'EXP') gates it. On success: refreshDash() (R1d event-driven).
+function submitDirectExpense() {
+  var btn = document.getElementById('pay-dexp-submit');
+  var cat = document.getElementById('pay-dexp-cat').value;
+  var amtEl = document.getElementById('pay-dexp-amt');
+  var amt = parseFloat(amtEl.value);
+  if (!cat) { toast('❌ Select a category', 'fail'); return; }
+  if (!amt || amt <= 0) { toast('❌ Enter a valid amount', 'fail'); markErr(amtEl); return; }
+  if (btn) btn.disabled = true;
+  gasPost({
+    action:     'recordEntry',
+    type:       'EXP',
+    category:   cat,
+    amount:     amtEl.value,
+    date:       new Date().toISOString().substring(0, 10),
+    section:    '',
+    contractId: '',
+    description: cat,
+    token:      _session.token
+  })
+  .then(function(r) {
+    if (btn) btn.disabled = false;
+    toast('✅ ' + (r && r.message ? r.message : 'Expense recorded'), 'ok');
+    document.getElementById('pay-dexp-amt').value  = '';
+    document.getElementById('pay-dexp-note').value = '';
+    document.getElementById('pay-dexp-cat').selectedIndex = 0;
+    refreshDash();  // R1d: cash changed — freshen dashboard now
+  })
+  .catch(function(e) {
+    if (btn) btn.disabled = false;
+    toast('❌ ' + (e && e.message ? e.message : 'Failed to record expense'), 'fail');
+  });
 }
 
 function loadPayHub() {
@@ -6980,6 +7063,17 @@ function loadPayHub() {
       opt.value       = c;
       opt.textContent = c;
       catSel.appendChild(opt);
+    });
+  }
+  // F3: populate Direct Expense category dropdown from the same expense-category cache.
+  var dexpSel = document.getElementById('pay-dexp-cat');
+  if (dexpSel) {
+    dexpSel.innerHTML = '<option value="" disabled selected>اختر / Select category...</option>';
+    var dexpCats = (window._cats && window._cats.expense) ? window._cats.expense : [];
+    dexpCats.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      dexpSel.appendChild(opt);
     });
   }
 
@@ -10360,13 +10454,14 @@ function _openUserSheetInner(name, isEdit) {
     document.getElementById('usr-perm-inc').checked = !!u.perms.INC;
     document.getElementById('usr-perm-exp').checked = !!u.perms.EXP;
     document.getElementById('usr-perm-inv').checked = !!u.perms.INV;
+    document.getElementById('usr-perm-inv-pay').checked = !!u.perms.INV_PAY;
     document.getElementById('usr-perm-rep-bld').checked = !!u.perms.REP_BLD;
     document.getElementById('usr-perm-rep-acc').checked = !!u.perms.REP_ACC;
     document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
     document.getElementById('usr-perm-dispatch').checked = !!u.perms.DISPATCH;
     document.getElementById('usr-perm-rep-sec').checked = !!u.perms.REP_SEC;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-inv','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-inv','usr-perm-inv-pay','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
@@ -10450,6 +10545,7 @@ function submitUser() {
     INC:     document.getElementById('usr-perm-inc').checked,
     EXP:     document.getElementById('usr-perm-exp').checked,
     INV:     document.getElementById('usr-perm-inv').checked,
+    INV_PAY: document.getElementById('usr-perm-inv-pay').checked,
     REP_BLD: document.getElementById('usr-perm-rep-bld').checked,
     REP_ACC: document.getElementById('usr-perm-rep-acc').checked,
     MTR_RED:  document.getElementById('usr-perm-mtr').checked,
@@ -15308,7 +15404,9 @@ function fmtMoney(val) {
           <input type="checkbox" id="usr-perm-exp"> Expenses / مصاريف
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-          <input type="checkbox" id="usr-perm-inv"> Pay Hub / فواتير
+          <input type="checkbox" id="usr-perm-inv"> Pay Hub / فواتير</label>
+          <label style="display:block;margin:4px 0;">
+            <input type="checkbox" id="usr-perm-inv-pay"> Invoice Pay / دفع فواتير
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-rep-bld"> Building Reports / تقارير المبنى

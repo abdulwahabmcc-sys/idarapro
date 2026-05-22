@@ -7031,6 +7031,7 @@ function submitDirectExpense() {
   var cat = document.getElementById('pay-dexp-cat').value;
   var amtEl = document.getElementById('pay-dexp-amt');
   var amt = parseFloat(amtEl.value);
+  var note = document.getElementById('pay-dexp-note').value.trim();
   if (!cat) { toast('❌ Select a category', 'fail'); return; }
   if (!amt || amt <= 0) { toast('❌ Enter a valid amount', 'fail'); markErr(amtEl); return; }
   if (btn) btn.disabled = true;
@@ -7042,7 +7043,7 @@ function submitDirectExpense() {
     date:       new Date().toISOString().substring(0, 10),
     section:    '',
     contractId: '',
-    description: cat,
+    description: note,   // Note → Col G (empty falls back to category in the COA ledger)
     token:      _session.token
   })
   .then(function(r) {

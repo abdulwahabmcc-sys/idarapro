@@ -7233,7 +7233,7 @@ function _renderInvoiceTable(wrap, rows) {
       '<thead>' +
         '<tr style="background:var(--bg);font-weight:700;font-size:10px;' +
           'text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);">' +
-          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Invoice ID</th>' +
+          '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Document</th>' +
           '<th style="padding:8px 6px;text-align:right;">Vendor</th>' +
           '<th style="padding:8px 6px;text-align:left;">Category</th>' +
           '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Due Date</th>' +
@@ -7242,7 +7242,7 @@ function _renderInvoiceTable(wrap, rows) {
           '<th style="padding:8px 6px;text-align:right;">Balance</th>' +
           '<th style="padding:8px 6px;text-align:center;">Status</th>' +
           '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Days Overdue</th>' +
-          '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Document</th>' +
+          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Invoice ID</th>' +
         '</tr>' +
       '</thead>' +
       '<tbody>';
@@ -7302,8 +7302,7 @@ function _renderInvoiceTable(wrap, rows) {
 
     html +=
       '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
-        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
-          'white-space:nowrap;">' + escHtml(inv.invoiceId || '') + '</td>' +
+        '<td style="padding:8px 6px;text-align:center;">' + docCell + '</td>' +
         '<td style="padding:8px 6px;text-align:right;font-weight:600;direction:rtl;">' +
           escHtml(inv.vendor || '') + '</td>' +
         '<td style="padding:8px 6px;color:var(--muted);">' +
@@ -7320,7 +7319,8 @@ function _renderInvoiceTable(wrap, rows) {
           'font-weight:700;' + statusColor + '">' +
           escHtml(inv.status || '') + '</td>' +
         '<td style="padding:8px 6px;text-align:center;">' + overdueCell + '</td>' +
-        '<td style="padding:8px 6px;text-align:center;">' + docCell + '</td>' +
+        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+          'white-space:nowrap;">' + escHtml(inv.invoiceId || '') + '</td>' +
       '</tr>';
   });
 
@@ -7435,14 +7435,14 @@ function _renderHistoryTable(wrap, rows) {
       '<thead>' +
         '<tr style="background:var(--bg);font-weight:700;font-size:10px;' +
           'text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);">' +
-          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">TRX ID</th>' +
+          '<th style="padding:8px 6px;text-align:center;">Receipt</th>' +
           '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Date</th>' +
           '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">Invoice ID</th>' +
           '<th style="padding:8px 6px;text-align:right;">Vendor</th>' +
           '<th style="padding:8px 6px;text-align:right;">Amount</th>' +
           '<th style="padding:8px 6px;text-align:center;">Type</th>' +
           '<th style="padding:8px 6px;text-align:center;white-space:nowrap;">Invoice Status</th>' +
-          '<th style="padding:8px 6px;text-align:center;">Receipt</th>' +
+          '<th style="padding:8px 6px;text-align:left;white-space:nowrap;">TRX ID</th>' +
         '</tr>' +
       '</thead>' +
       '<tbody>';
@@ -7488,8 +7488,7 @@ function _renderHistoryTable(wrap, rows) {
 
     html +=
       '<tr style="' + rowBg + borderLeft + 'border-bottom:1px solid var(--bdr);">' +
-        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
-          'white-space:nowrap;">' + escHtml(row.trxId || '') + '</td>' +
+        '<td style="padding:8px 6px;text-align:center;">' + receiptCell + '</td>' +
         '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
           'white-space:nowrap;">' + escHtml(row.date || '') + '</td>' +
         '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
@@ -7502,7 +7501,8 @@ function _renderHistoryTable(wrap, rows) {
         '<td style="padding:8px 6px;text-align:center;font-size:10px;font-weight:700;' +
           invStatusColor + '">' +
           escHtml(row.invoiceStatus || '—') + '</td>' +
-        '<td style="padding:8px 6px;text-align:center;">' + receiptCell + '</td>' +
+        '<td style="padding:8px 6px;font-family:var(--mono);font-size:11px;' +
+          'white-space:nowrap;">' + escHtml(row.trxId || '') + '</td>' +
       '</tr>';
   });
 

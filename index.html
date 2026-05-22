@@ -2937,7 +2937,16 @@
           </select>
           <input class="inp inp-amt" type="number" step="0.01" min="0" id="pay-dexp-amt" placeholder="0.00" inputmode="decimal" style="margin-bottom:10px;">
           <input class="inp" type="text" id="pay-dexp-note" placeholder="ملاحظة / Note (optional)" style="margin-bottom:12px;">
-          <button type="button" class="btn-primary" id="pay-dexp-submit" onclick="submitDirectExpense()">تسجيل مصروف / Record Expense</button>
+          <button type="button" class="btn-sub b-exp" id="pay-dexp-submit"
+            onclick="submitDirectExpense()" style="margin-top:0;">
+            <div class="btn-wave">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="btn-label">
+              <span>💸</span>
+              <span>Record Expense / تسجيل مصروف</span>
+            </span>
+          </button>
         </div>
       </div><!-- /payhub-pane-directexp -->
 

@@ -4471,6 +4471,11 @@ function launchApp(auth) {
     .then(function(d) { initApp(d); })
     .catch(function() {
       toast('⚠️ Could not load app data. Check connection.', 'fail');
+      // Catch 31 Ruling 2 (REQUIRED): initApp never ran, so no landing
+      // occurred. The removed applyPermissionUI synchronous cascade used to
+      // land the user even on failure. Restore that — land on NoAccess so
+      // the user is on a defined screen, not nowhere.
+      setTab('NoAccess');
     });
 
   // PERF-1 R1a(i): initial dashboard render now comes from the login bundle
@@ -4715,16 +4720,14 @@ function applyPermissionUI(auth) {
   if (tSet) tSet.classList.add('hide');
   if (dtSet) dtSet.classList.add('hide');
 
-  // Default to first visible tab if Income is hidden
-  // Patch I-perms-parity (Path B): include REP_SEC in cascade and route
-  // all-FALSE state to NoAccess placeholder. Mirrors initApp cascade.
-  if (!perms.INC) {
-    if (perms.EXP) setTab('Expense');
-    else if (hasAnyReport) setTab('Report');
-    else if (perms.MTR_RED) setTab('Meter');
-    else if (perms.INV || perms.INV_PAY) setTab('Pay'); // Catch 30: pure Pay-Hub user lands on Pay (Pay-last), not NoAccess
-    else setTab('NoAccess'); // Patch I: all-FALSE — show placeholder
-  }
+  // Catch 31: landing cascade REMOVED from applyPermissionUI. It fired a
+  // SYNCHRONOUS setTab() before getAppData returned → premature dataless
+  // load, then initApp's post-data cascade fired setTab again → double-load.
+  // initApp (L4785, post-getAppData) is now the SOLE landing authority — one
+  // landing, one data-ready load. applyPermissionUI keeps ONLY its tab
+  // show/hide-by-permission job (above). The getAppData .catch carries a
+  // fallback landing for the failure path (was previously covered by this
+  // synchronous cascade).
 
   // Hide report type options the user can't access
   if (!perms.REP_BLD) document.querySelector('#sel-rep [value="YTD"]')          && (document.querySelector('#sel-rep [value="YTD"]').style.display          = 'none');

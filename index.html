@@ -3411,15 +3411,8 @@ function gasPost(body) {
         // in again.' Does NOT match '❌ Admin access required' or
         // '❌ Permission denied.' — those are valid-session permission
         // errors, not zombie states.
-        // Also matches the honest session-expiry message the report
-        // producers emit ('Your session has ended …') so an expired-token
-        // report call routes to the graceful overlay + re-login instead of
-        // surfacing a raw toast. 'session has ended' does not collide with
-        // any permission error.
         var errMsg = String(r.error || '').toLowerCase();
-        if (errMsg.indexOf('unauthorized') !== -1 ||
-            errMsg.indexOf('session has ended') !== -1 ||
-            errMsg.indexOf('انتهت الجلسة') !== -1) {
+        if (errMsg.indexOf('unauthorized') !== -1) {
           handleSessionExpired();
         }
         _decrementOnce();

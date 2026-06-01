@@ -3927,7 +3927,7 @@ function acquireEditLockAndOpenForm(recordType, recordId, displayName, openFn) {
   }).catch(function(e) {
     // Network / backend error — show toast, don't try to open form
     var msg = (e && e.message) || 'Could not check edit lock';
-    toast('❌ ' + msg, 'fail');
+    toast(_iconOnce('❌', msg), 'fail');
   });
 }
 
@@ -5107,7 +5107,7 @@ function downloadRepPdf() {
       var parsed = typeof r === 'string' ? JSON.parse(r) : r;
       if (!parsed.ok) {
         if (parsed.blocked) { showReportBlock(parsed.error); }
-        else { toast('❌ ' + parsed.error, 'fail'); }
+        else { toast(_iconOnce('❌', parsed.error), 'fail'); }
         return;
       }
       var a = document.createElement('a');
@@ -5952,7 +5952,7 @@ function openStmtPreview(fileId) {
     }
     openRepViewer(parsed.html, 'معاينة البيان / Statement Preview', '', '', '');
   }).catch(function(e) {
-    toast('❌ ' + (e.message || e), 'fail');
+    toast(_iconOnce('❌', (e.message || e)), 'fail');
   });
 }
 
@@ -6060,11 +6060,11 @@ function _applyDefaultDispatch(world) {
           if (res && res.assigned) { success++; }
           else {
             failed++;
-            console.warn('assignDispatcher failed for rowIndex ' + rowIndex, res);
+            Logger.log('assignDispatcher failed for rowIndex ' + rowIndex + ' — res: ' + JSON.stringify(res));
           }
         }).catch(function(err) {
           failed++;
-          console.error('assignDispatcher error for rowIndex ' + rowIndex, err);
+          Logger.log('assignDispatcher error for rowIndex ' + rowIndex + ' — err: ' + (err && err.message ? err.message : String(err)));
         });
       });
     })(dropdowns[j]);
@@ -7161,7 +7161,7 @@ function submitDirectExpense() {
   })
   .catch(function(e) {
     if (btn) btn.disabled = false;
-    toast('❌ ' + (e && e.message ? e.message : 'Failed to record expense'), 'fail');
+    toast(_iconOnce('❌', (e && e.message ? e.message : 'Failed to record expense')), 'fail');
   });
 }
 
@@ -7433,7 +7433,7 @@ function recordPaymentForm() {
     .catch(function(e) {
       btn.classList.remove('processing');
       btn.disabled = false;
-      _payPmtErr('❌ ' + (e.message || 'Payment failed'));
+      _payPmtErr(_iconOnce('❌', (e.message || 'Payment failed')));
     });
 }
 
@@ -7600,7 +7600,7 @@ function _uploadInvoiceDoc(invoiceId, file) {
         loadInvoiceTable();
       })
       .catch(function(err) {
-        toast('❌ ' + (err.message || 'Invoice upload failed'), 'fail');
+        toast(_iconOnce('❌', (err.message || 'Invoice upload failed')), 'fail');
       });
   });
 }
@@ -7628,7 +7628,7 @@ function _uploadReceipt(trxId, invoiceId, file) {
         loadHistoryTable();
       })
       .catch(function(err) {
-        toast('❌ ' + (err.message || 'Receipt upload failed'), 'fail');
+        toast(_iconOnce('❌', (err.message || 'Receipt upload failed')), 'fail');
       });
   });
 }
@@ -7669,7 +7669,7 @@ function _viewPayHubImage(fileId) {
       _showImageModal(dataUrl, r.name || 'document.jpg', fileId);
     })
     .catch(function(err) {
-      toast('❌ ' + (err.message || 'Could not load document'), 'fail');
+      toast(_iconOnce('❌', (err.message || 'Could not load document')), 'fail');
     });
 }
 
@@ -7737,13 +7737,13 @@ function _deleteAttachment(fileId) {
   gasPost({ action: 'deleteAttachment', payload: { imageId: fileId }, token: _session.token })
     .then(function(r) {
       var res = typeof r === 'string' ? JSON.parse(r) : r;
-      if (!res || !res.ok) { toast('❌ ' + ((res && res.error) || 'Delete failed'), 'fail'); return; }
+      if (!res || !res.ok) { toast(_iconOnce('❌', ((res && res.error) || 'Delete failed')), 'fail'); return; }
       toast('✅ ' + (res.message || 'Attachment removed'), 'ok');
       _closeImageModal();
       if (typeof loadInvoiceTable === 'function') loadInvoiceTable();
       if (typeof loadHistoryTable === 'function') loadHistoryTable();
     })
-    .catch(function(e) { toast('❌ ' + (e.message || 'Delete failed'), 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', (e.message || 'Delete failed')), 'fail'); });
 }
 
 function _attachReceipt(trxId, invoiceId) {
@@ -7800,7 +7800,7 @@ function saveReceiptAttachment() {
     .catch(function(e) {
       btn.classList.remove('processing');
       btn.disabled = false;
-      _payHisErr('❌ ' + (e.message || 'Attachment failed'));
+      _payHisErr(_iconOnce('❌', (e.message || 'Attachment failed')));
     });
 }
 
@@ -7875,7 +7875,7 @@ function submitInvoiceForm() {
         return;
       }
       if (!r.ok) {
-        _payInvErr('❌ ' + ((r.data && r.data.error) || r.error || 'Submission failed'));
+        _payInvErr(_iconOnce('❌', ((r.data && r.data.error) || r.error || 'Submission failed')));
         return;
       }
       toast('✅ Invoice submitted: ' + (r.data && r.data.invoiceId ? r.data.invoiceId : ''), 'ok');
@@ -7886,7 +7886,7 @@ function submitInvoiceForm() {
     .catch(function(e) {
       btn.classList.remove('processing');
       btn.disabled = false;
-      _payInvErr('❌ ' + (e.message || 'Submission failed'));
+      _payInvErr(_iconOnce('❌', (e.message || 'Submission failed')));
     });
 }
 
@@ -7938,7 +7938,7 @@ function _showInvDuplicateDialog(res, originalPayload) {
       .catch(function(e) {
         btn.classList.remove('processing');
         btn.disabled = false;
-        _payInvErr('❌ ' + (e.message || 'Submission failed'));
+        _payInvErr(_iconOnce('❌', (e.message || 'Submission failed')));
       });
   }
 }
@@ -8233,7 +8233,7 @@ function onOk(msg) {
 }
 function onFail(e) {
   setBtnProcessing(false);
-  toast('❌ ' + (e.message || String(e)), 'fail');
+  toast(_iconOnce('❌', (e.message || String(e))), 'fail');
 }
 
 // Strand 2 surface 4: middle-of-screen report-block message (role-aware text
@@ -10498,7 +10498,7 @@ function submitBalance() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showBalErr('❌ ' + (e.message || 'Save failed'));
+      showBalErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = document.getElementById('bal-is-edit').value === 'true' ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Balance';
     });
@@ -10867,7 +10867,7 @@ function submitUser() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showUserErr('❌ ' + (e.message || 'Save failed'));
+      showUserErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة المستخدم / Add User';
     });
@@ -11011,7 +11011,7 @@ function submitYearCash() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showYearCashErr('❌ ' + (e.message || 'Save failed'));
+      showYearCashErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ / Save Changes' : 'إضافة / Add Year';
     });
@@ -11089,7 +11089,7 @@ function saveSection(name) {
         if (btn) { btn.disabled = false; btn.textContent = 'حفظ / Save'; }
       })
       .catch(function(e) { 
-        toast('❌ ' + (e.message || String(e)), 'fail'); 
+        toast(_iconOnce('❌', (e.message || String(e))), 'fail'); 
         if (btn) { btn.disabled = false; btn.textContent = 'حفظ / Save'; }
       });
   }
@@ -11227,7 +11227,7 @@ function submitContact() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showContactErr('❌ ' + (e.message || 'Save failed'));
+      showContactErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Contact';
     });
@@ -11423,7 +11423,7 @@ function submitCategory() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showCategoryErr('❌ ' + (e.message || 'Save failed'));
+      showCategoryErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Category';
     });
@@ -11812,7 +11812,7 @@ function submitContractEdit(contractId) {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      toast('❌ ' + (e.message || 'Update failed'), 'fail');
+      toast(_iconOnce('❌', (e.message || 'Update failed')), 'fail');
       btn.disabled = false; btn.textContent = 'حفظ التعديل / Save Changes';
     });
 }
@@ -11877,7 +11877,7 @@ function submitContract() {
       loadOccupancy(); // refresh the list
     })
     .catch(function(e) {
-      toast('❌ ' + (e.message || 'Failed to save'), 'fail');
+      toast(_iconOnce('❌', (e.message || 'Failed to save')), 'fail');
       document.getElementById('cs-submit').disabled = false;
       document.getElementById('cs-submit').textContent = 'حفظ العقد / Save Contract';
     });
@@ -12082,7 +12082,7 @@ function submitUnit() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showUnitErr('❌ ' + (e.message || 'Save failed'));
+      showUnitErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة الوحدة / Add Unit';
     });
@@ -12139,7 +12139,7 @@ function executeDeleteUnit() {
     })
     .catch(function(e) {
       closeDeleteModal();
-      showUnitErr('❌ ' + (e.message || 'Delete failed'));
+      showUnitErr(_iconOnce('❌', (e.message || 'Delete failed')));
       if (mainBtn) {
         mainBtn.disabled = false;
         mainBtn.textContent = '🗑️ حذف الوحدة / Delete Unit';
@@ -12162,7 +12162,7 @@ function applyFees() {
       loadFees();
     })
     .catch(function(e) {
-      toast('❌ ' + (e.message || 'Failed to apply fees'), 'fail');
+      toast(_iconOnce('❌', (e.message || 'Failed to apply fees')), 'fail');
     });
 }
 
@@ -12989,7 +12989,7 @@ function doSaveFee(payload) {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showFeeErr('❌ ' + (e.message || 'Save failed'));
+      showFeeErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled    = false;
       btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
     });
@@ -13164,7 +13164,7 @@ function submitOverride() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showOverrideErr('❌ ' + (e.message || 'Save failed'));
+      showOverrideErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Override';
     });
@@ -13477,7 +13477,7 @@ function submitUtility() {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showUtilityErr('❌ ' + (e.message || 'Save failed'));
+      showUtilityErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled = false;
       btn.textContent = isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Utility';
     });
@@ -14045,7 +14045,7 @@ function doSaveUtilityUnitPrice(payload) {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;
       }
-      showUupErr('❌ ' + (e.message || 'Save failed'));
+      showUupErr(_iconOnce('❌', (e.message || 'Save failed')));
       btn.disabled    = false;
       btn.textContent = payload.isEdit ? 'حفظ التعديل / Save Changes' : 'إضافة / Add Price';
     });

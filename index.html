@@ -5118,7 +5118,7 @@ function downloadRepPdf() {
       document.body.removeChild(a);
       toast('✅ PDF downloaded / تم تحميل التقرير', 'ok');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); })
     .finally(function() {
       if (btn) { btn.disabled = false; btn.textContent = origText; }
     });
@@ -5938,7 +5938,7 @@ function openStmtPreview(fileId) {
     return;
   }
 
-  toast('⏳ جارٍ تحميل المعاينة...', 'info');
+  toast('⏳ جارٍ تحميل المعاينة...', 'info', 'backstop');
 
   gasPost({
     action:  'getStatementFileContent',
@@ -6089,7 +6089,7 @@ function _applyDefaultDispatch(world) {
 function triggerBuildingApprove(parentRowIndex) {
   if (!sessionValid()) return;
   if (!confirm('اعتماد هذا التقرير وإنشاء صفوف الأقسام؟ / Approve and create child rows?')) return;
-  toast('⏳ جاري الاعتماد...', 'info');
+  toast('⏳ جاري الاعتماد...', 'info', 'backstop');
   gasPost({
     action:  'approveAndCreateChildRows',
     payload: { rowIndex: parentRowIndex },
@@ -6123,12 +6123,12 @@ function triggerBuildingApprove(parentRowIndex) {
       loadBuildingStatements('Approved');
       setStmtSubtab('building', 'approved');
     }
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function triggerBuildingBroadcast(parentRowIndex) {
   if (!sessionValid()) return;
-  toast('⏳ جاري البث...', 'info');
+  toast('⏳ جاري البث...', 'info', 'backstop');
   gasPost({
     action:  'sendBuildingBroadcast',
     payload: { rowIndex: parentRowIndex },
@@ -6172,7 +6172,7 @@ function triggerBuildingBroadcast(parentRowIndex) {
       loadBuildingStatements('Approved');
       loadBuildingStatements('Sent');
     }
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function assignChildChannelUI(childRowIndex, channel) {
@@ -6207,13 +6207,13 @@ function assignChildChannelUI(childRowIndex, channel) {
         }
       }
     }
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function markChildSentUI(childRowIndex) {
   if (!sessionValid()) return;
   if (!confirm('تأكيد التسليم اليدوي؟ / Confirm manual delivery?')) return;
-  toast('⏳ جاري التأكيد...', 'info');
+  toast('⏳ جاري التأكيد...', 'info', 'backstop');
   gasPost({
     action:  'markChildSent',
     payload: { rowIndex: childRowIndex },
@@ -6223,13 +6223,13 @@ function markChildSentUI(childRowIndex) {
     toast('✅ تم التأكيد.', 'ok');
     loadBuildingStatements('Approved');
     if (parsed.parentMoved) loadBuildingStatements('Sent');
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function triggerMarkComplete(parentRowIndex) {
   if (!sessionValid()) return;
   if (!confirm('إغلاق جميع الأقسام المعلّقة؟ / Close out all remaining pending sections?')) return;
-  toast('⏳ جاري الإغلاق...', 'info');
+  toast('⏳ جاري الإغلاق...', 'info', 'backstop');
   gasPost({
     action:  'markComplete',
     payload: { rowIndex: parentRowIndex },
@@ -6239,13 +6239,13 @@ function triggerMarkComplete(parentRowIndex) {
     toast('✅ ' + (parsed.message || 'Completed.'), 'ok');
     loadBuildingStatements('Approved');
     loadBuildingStatements('Sent');
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function triggerBuildingUndo(parentRowIndex) {
   if (!sessionValid()) return;
   if (!confirm('التراجع عن الاعتماد؟ سيتم حذف جميع صفوف الأقسام. / Undo approval? All child rows will be deleted.')) return;
-  toast('⏳ جاري التراجع...', 'info');
+  toast('⏳ جاري التراجع...', 'info', 'backstop');
   gasPost({
     action:  'revokeBuildingStatement',
     payload: { rowIndex: parentRowIndex },
@@ -6255,13 +6255,13 @@ function triggerBuildingUndo(parentRowIndex) {
     toast('↩️ ' + (parsed.message || 'Revoked.'), 'ok');
     loadBuildingStatements('Draft');
     loadBuildingStatements('Approved');
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function triggerBuildingDelete(parentRowIndex) {
   if (!sessionValid()) return;
   if (!confirm('حذف هذه المسودة نهائياً؟ / Delete this draft permanently?')) return;
-  toast('⏳ جاري الحذف...', 'info');
+  toast('⏳ جاري الحذف...', 'info', 'backstop');
   gasPost({
     action:  'deleteBuildingStatement',
     payload: { rowIndex: parentRowIndex },
@@ -6269,7 +6269,7 @@ function triggerBuildingDelete(parentRowIndex) {
   }).then(function(res) {
     toast('🗑️ Draft deleted.', 'ok');
     loadBuildingStatements('Draft');
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 
@@ -6690,7 +6690,18 @@ function generateBuildingStatement() {
         setStmtSubtab('building', 'draft');
       }
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .catch(function(e) {
+      // LEG4-2a-1: occupancy gate-block routes to the persist modal (same
+      // surface as the report journey), NOT a 5s toast. Discriminate by the
+      // OCC_GATE| sentinel (survives router String(err) + gasPost rethrow as a
+      // mid-string token); strip it before display. Non-gate errors → fail
+      // toast as before. Icon-one-layer: the stripped msg already starts with
+      // ⛔, so we do NOT prepend another (2a-4).
+      var m = (e && e.message) || String(e);
+      var gi = m.indexOf('OCC_GATE|');
+      if (gi !== -1) { showReportBlock(m.substring(gi + 9)); }
+      else { toast(_iconOnce('\u26d4', m), 'fail'); }
+    })
     .finally(function() {
       if (btn) { btn.disabled = false; btn.innerHTML = '🏢 <span class="bilingual-stack"><span class="bi-ar">إنشاء بيان المبنى</span><span class="bi-en">Generate Building Statement</span></span>'; }
     });
@@ -6759,7 +6770,15 @@ function generateStatements() {
           }
         });
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .catch(function(e) {
+      // LEG4-2a-1 (Section path): same gate-block→modal discrimination as the
+      // Building path. OCC_GATE| sentinel → strip → persist modal; else fail
+      // toast. Icon-one-layer via _iconOnce (2a-4).
+      var m = (e && e.message) || String(e);
+      var gi = m.indexOf('OCC_GATE|');
+      if (gi !== -1) { showReportBlock(m.substring(gi + 9)); }
+      else { toast(_iconOnce('\u26d4', m), 'fail'); }
+    })
     .finally(function() {
       if (btn) { btn.disabled = false; btn.innerHTML = '🗂️ <span class="bilingual-stack"><span class="bi-ar">إنشاء بيانات الأقسام</span><span class="bi-en">Generate</span></span>'; }
     });
@@ -6786,7 +6805,7 @@ function approveSingleStatement(rowIndex, world) {
     })
     .catch(function(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Approve'; }
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
@@ -6799,19 +6818,19 @@ function revokeSingleStatement(rowIndex, world) {
       var cache = world === 'building' ? _bldStmtCache : _stmtCache;
       var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
       if (s) s.status = 'Draft';
-      toast('↩️ Reverted to Draft / تم الإلغاء', 'info');
+      toast('↩️ Reverted to Draft / تم الإلغاء', 'ok');
       if (world === 'building') renderStmtList('building', 'Approved');
       else renderStmtList('section',  'Approved');
     })
     .catch(function(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
 function sendSingleStatement(rowIndex) {
   if (!sessionValid()) return;
-  toast('⏳ جاري الإرسال...', 'info');
+  toast('⏳ جاري الإرسال...', 'info', 'backstop');
   gasPost({
     action:  'sendSingleStatement',
     payload: { rowIndex: rowIndex, scope: 'Section' },
@@ -6822,13 +6841,13 @@ function sendSingleStatement(rowIndex) {
     renderStmtList('section', 'approved');
     renderStmtList('section', 'sent');
   }).catch(function(e) {
-    toast('❌ ' + e.message, 'fail');
+    toast(_iconOnce('❌', e.message), 'fail');
   });
 }
 
 function triggerSendAllSection() {
   if (!sessionValid()) return;
-  toast('⏳ جاري الإرسال...', 'info');
+  toast('⏳ جاري الإرسال...', 'info', 'backstop');
   gasPost({
     action:  'sendAllSectionStatements',
     payload: { scope: 'Section' },
@@ -6842,7 +6861,7 @@ function triggerSendAllSection() {
     renderStmtList('section', 'approved');
     renderStmtList('section', 'sent');
   }).catch(function(e) {
-    toast('❌ ' + e.message, 'fail');
+    toast(_iconOnce('❌', e.message), 'fail');
   });
 }
 
@@ -6884,7 +6903,7 @@ function approveAllStatements() {
         renderStmtList('section',  'Draft');
       }
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.innerHTML = '✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>'; } });
 }
 
@@ -6925,7 +6944,7 @@ function approveAllBuildingStatements() {
         renderStmtList('building', 'Draft');
       }
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); })
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); })
     .finally(function() { if (btn) { btn.disabled = false; btn.innerHTML = '✅ <span class="bilingual-stack"><span class="bi-ar">اعتماد الجميع</span><span class="bi-en">Approve All</span></span>'; } });
 }
 
@@ -6934,11 +6953,11 @@ function deleteStatement(rowIndex, world) {
   if (!confirm('هل أنت متأكد من الحذف؟ / Confirm delete?')) return;
   gasPost({ action: 'deleteStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
-      toast('🗑️ Deleted / تم الحذف', 'info');
+      toast('🗑️ Deleted / تم الحذف', 'ok');
       if (world === 'building') renderStmtList('building', 'Draft');
       else renderStmtList('section',  'Draft');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function exportAllPdfs(world) {
@@ -6949,7 +6968,7 @@ function exportAllPdfs(world) {
       toast('✅ ' + (parsed.message || 'PDFs exported'), 'ok');
       renderStmtList(world, 'Approved');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function assignDispatcher(rowIndex, channel, world) {
@@ -6986,13 +7005,13 @@ function assignDispatcher(rowIndex, channel, world) {
         }
       }
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 
 function syncStmtContactChannel(rowIndex, world) {
   if (!sessionValid()) return;
-  toast('⏳ جاري المزامنة...', 'info');
+  toast('⏳ جاري المزامنة...', 'info', 'backstop');
   gasPost({
     action:  'syncContactChannel',
     payload: { rowIndex: rowIndex },
@@ -7002,7 +7021,7 @@ function syncStmtContactChannel(rowIndex, world) {
     toast('✅ تمت المزامنة — ' + parsed.contactChannel, 'ok');
     renderStmtList(world, 'approved');
   }).catch(function(e) {
-    toast('❌ ' + e.message, 'fail');
+    toast(_iconOnce('❌', e.message), 'fail');
   });
 }
 
@@ -7023,7 +7042,7 @@ function downloadStmtPdf(fileId) {
       document.body.removeChild(a);
       toast('✅ PDF downloaded / تم التحميل', 'ok');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 // ── Phase 16-html-first Tier 2 — On-demand PDF download ────────────────────
@@ -7042,7 +7061,7 @@ function downloadStmtPdf(fileId) {
 // previously failed / HTML source not available all returned bilingual).
 function downloadStmtPdfOnDemand(stmtId, world) {
   if (!sessionValid() || !stmtId) return;
-  toast('⏳ جارٍ إنشاء الـPDF... / Generating PDF...', 'info');
+  toast('⏳ جارٍ إنشاء الـPDF... / Generating PDF...', 'info', 'backstop');
   gasPost({
     action:  'getStatementPdfOnDemand',
     payload: { stmtId: stmtId, world: world },
@@ -7057,7 +7076,7 @@ function downloadStmtPdfOnDemand(stmtId, world) {
     a.click();
     document.body.removeChild(a);
     toast('✅ PDF downloaded / تم التحميل', 'ok');
-  }).catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+  }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 // ── Communications tab ──────────────────────────────────────────────────────
@@ -7642,7 +7661,7 @@ function _onInvoiceFilePicked(inputEl) {
 function _viewPayHubImage(fileId) {
   if (!sessionValid()) return;
   if (!fileId) { toast('❌ No document attached', 'fail'); return; }
-  toast('⏳ Loading document...', 'ok');
+  toast('⏳ Loading document...', 'ok', 'backstop');
   gasPost({ action: 'getPayHubImage', fileId: fileId, token: _session.token })
     .then(function(r) {
       if (!r || !r.ok) throw new Error((r && r.error) || 'Image not found');
@@ -7963,7 +7982,7 @@ function sendCommunication(mode) {
   if (!message) { toast('❌ Message is required', 'fail'); return; }
   if (mode === 'ONE_SECTION' && !contract) { toast('❌ Select a section', 'fail'); return; }
 
-  toast('📨 جاري الإرسال... / Sending...', 'info');
+  toast('📨 جاري الإرسال... / Sending...', 'info', 'backstop');
 
   gasPost({
     action:     'sendCommunication',
@@ -7978,7 +7997,7 @@ function sendCommunication(mode) {
       toast('✅ ' + (parsed.message || parsed || 'Sent'), 'ok');
       document.getElementById(mode === 'ONE_SECTION' ? 'com-one-message' : 'com-message').value = '';
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function pickReport(type) {
@@ -8146,7 +8165,7 @@ function doSubmit() {
     gasPost({ action: 'checkDirtyFlag', token: _session.token })
       .then(function(flagResult) {
         if (flagResult && flagResult.dirty) {
-          toast('⏳ تحديث الرسوم... / Updating fees, please wait...', 'info');
+          toast('⏳ تحديث الرسوم... / Updating fees, please wait...', 'info', 'backstop');
           return gasPost({ action: 'runApplyFees', token: _session.token });
         }
         return Promise.resolve({ ok: true });
@@ -8245,19 +8264,62 @@ function showReportBlock(msg) {
 // HELPERS
 // ══════════════════════════════════════════════════════════════════════════════
 
+// LEG4-2a-4 icon-one-layer helper. Prepend `icon` ONLY if `msg` does not
+// already begin with a status icon (optionally after leading whitespace).
+// Prevents the doubled-icon defect (Finding 7 / spec rows 4, 33) at the
+// catch-all fail paths where e.message may already carry a leading icon.
+function _iconOnce(icon, msg) {
+  var s = String(msg == null ? '' : msg);
+  // Matches any of the status glyphs at the start: ⛔ 🟢 ▶ 👥 ⚠️ ⏳ ✅ ❌
+  if (/^\s*(\u26d4|\ud83d\udfe2|\u25b6|\ud83d\udc65|\u26a0\ufe0f|\u23f3|\u2705|\u274c)/.test(s)) {
+    return s;
+  }
+  return icon + ' ' + s;
+}
+
+
+// tranche introduces; AR owner-confirmed in the locked spec). Pipe-bilingual.
+var _NO_RESPONSE_MSG = '\u26d4 No response \u2014 please refresh. | \u26d4 \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 \u0627\u0633\u062a\u062c\u0627\u0628\u0629 \u2014 \u064a\u0631\u062c\u0649 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629.';
+var _CHAINED_BACKSTOP_MS = 30000;
+var _btimer = null;  // chained-progress backstop timer (separate from _ttimer)
+
+// LEG4-2a lifetime engine. Durations by message sub-type (formula):
+//   SHORT-SUCCESS  -> 'ok'        -> 4000ms
+//   INFORMATIONAL  -> 'info'      -> 10000ms  (fixed; no nav-dismiss plumbing)
+//   LONG-or-ERROR  -> 'fail'      -> 5000ms   (terminal errors; gate-block is a
+//                                              MODAL, not a toast — see catches)
+//   CHAINED        -> persist     -> see below
+// `persist` arg:
+//   falsy           -> auto-dismiss by the tier above (back-compatible default)
+//   true            -> stay until the NEXT toast() replaces it (legacy persist:
+//                      upload/delete B-09/10/11; guaranteed-terminal callers)
+//   'backstop'      -> CHAINED single-shot progress: stay until replaced OR, at
+//                      ~30s with NO outcome, swap to the branded no-response
+//                      error (closes the stranded-pending silent-skip class).
 function toast(msg, type, persist) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className   = type || 'info';
   t.classList.add('show');
-  if (_ttimer) clearTimeout(_ttimer);
-  // persist=true: message stays until the NEXT toast() call replaces it (no
-  // auto-hide). Used for "⏳ Uploading…" so it remains until the success/failure
-  // toast fires. Default (falsy) = identical to prior 2-arg behavior.
-  if (persist) return;
+  if (_ttimer) { clearTimeout(_ttimer); _ttimer = null; }
+  // Any new toast() supersedes a pending chained backstop (the outcome — or any
+  // later message — arrived before the 30s deadline), so clear it. The backstop
+  // re-arms below only when this very call is itself a 'backstop' progress toast.
+  if (_btimer) { clearTimeout(_btimer); _btimer = null; }
+
+  if (persist === 'backstop') {
+    // CHAINED progress: no dwell timer; arm the no-response backstop instead.
+    _btimer = setTimeout(function() {
+      _btimer = null;
+      toast(_NO_RESPONSE_MSG, 'fail');  // inherits the 'fail' standalone rule
+    }, _CHAINED_BACKSTOP_MS);
+    return;
+  }
+  if (persist) return;  // legacy forever-persist (until next toast)
+
   _ttimer = setTimeout(function() {
     t.classList.remove('show');
-  }, type === 'fail' ? 5000 : 3000);
+  }, type === 'fail' ? 5000 : (type === 'ok' ? 4000 : 10000));
 }
 
 function markErr(el) {
@@ -8387,7 +8449,7 @@ function openFiscal() {
       document.getElementById('cy-units').textContent = d.contractBalances.length;
       document.getElementById('modal').classList.add('open');
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function execClose() {
@@ -8401,7 +8463,7 @@ function execClose() {
       closeModal();
       setTimeout(function() { location.reload(); }, 2000);
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function closeModal() {
@@ -9959,7 +10021,7 @@ function confirmMtrReading() {
       } else {
         renderMtrList(_mtrCache.filter(function(x) { return x.readBy === _session.name; }), false);
       }
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
@@ -9984,7 +10046,7 @@ function reprocessUnpricedReadings() {
       loadMtrReadings();
     })
     .catch(function(e) {
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
       if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-process Unpriced'; }
     });
 }
@@ -10018,7 +10080,7 @@ function submitMtrOverride() {
       closeMtrOverrideDialog();
       loadMtrReadings();
     })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 var _utilityDeactivatePending = null;
@@ -11036,7 +11098,7 @@ function saveSection(name) {
 function stgSave(action, payload, successMsg) {
   gasPost({ action: action, payload: payload, token: _session.token })
     .then(function() { toast(successMsg, 'ok'); })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 // ── Contacts actions ──────────────────────────────────────────────────────────
@@ -11208,7 +11270,7 @@ function toggleContact(id, activate) {
       // Revert on failure
       if (contact) contact.status = activate ? 'Inactive' : 'Active';
       loadContacts();
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
@@ -11391,7 +11453,7 @@ function toggleCategory(type, code, activate) {
       // Revert on failure
       if (cat) cat.status = activate ? 'Inactive' : 'Active';
       renderCategoriesFromCache(type); // re-render instantly from cache
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
@@ -11402,7 +11464,7 @@ function resetPin(name) {
   if (!newPin || !/^\d{4}$/.test(newPin)) { toast('❌ PIN must be exactly 4 digits', 'fail'); return; }
   gasPost({ action: 'resetUserPin', payload: { name: name, newPin: newPin }, token: _session.token })
     .then(function() { toast('✅ PIN updated for ' + name, 'ok'); })
-    .catch(function(e) { toast('❌ ' + e.message, 'fail'); });
+    .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
 function toggleUserStatus(name, activate) {
@@ -11448,7 +11510,7 @@ function toggleUserStatus(name, activate) {
       // Revert on failure
       if (u) u.active = !activate;
       loadUsers();
-      toast('❌ ' + e.message, 'fail');
+      toast(_iconOnce('❌', e.message), 'fail');
     });
 }
 
@@ -12092,7 +12154,7 @@ function addFee() {
 
 function applyFees() {
   if (!sessionValid()) return;
-  toast('⏳ جاري تطبيق الرسوم... / Applying fees...', 'info');
+  toast('⏳ جاري تطبيق الرسوم... / Applying fees...', 'info', 'backstop');
   gasPost({ action: 'applyFees', token: _session.token })
     .then(function(r) {
       toast('✅ ' + (r.message || 'Fees applied successfully'), 'ok');
@@ -13205,7 +13267,7 @@ function toggleUtility(nameEn, activate, skipCheck) {
             '</div>' +
           '</div>';
         }).join('');
-        toast('❌ ' + e.message, 'fail');
+        toast(_iconOnce('❌', e.message), 'fail');
       });
   }
 

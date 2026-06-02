@@ -7682,6 +7682,7 @@ function _viewPayHubImage(fileId) {
       if (!r || !r.ok) throw new Error((r && r.error) || 'Image not found');
       var dataUrl = 'data:' + (r.mimeType || 'image/jpeg') + ';base64,' + r.base64;
       _showImageModal(dataUrl, r.name || 'document.jpg', fileId);
+      toast('✅ Loaded | ✅ تم التحميل', 'ok');
     })
     .catch(function(err) {
       toast(_iconOnce('❌', (err.message || 'Could not load document')), 'fail');

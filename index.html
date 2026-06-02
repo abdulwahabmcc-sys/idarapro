@@ -4093,54 +4093,57 @@ function submitPin() {
       // userName, and deviceId (no explicit temp storage — these variables
       // are in outer submitPin() scope and remain accessible here).
       if (r && r.singleSessionPrompt) {
-        var confirmed = confirm(
-          'Another session is active on a different device.\n\n' +
-          'Continue here? The other session will be ended.'
-        );
-        if (!confirmed) {
-          // User declined — return to login screen, no session created.
-          setLoginStatus('');
-          return;
-        }
-
-        // User confirmed — re-submit with confirmOverride:true.
-        // Closure captures pin, userName, deviceId from submitPin() scope.
-        disablePad(true);
-        showVerifying(true);
-        gasPost({
-          action:          'validatePin',
-          pin:             pin,
-          name:            userName,
-          deviceId:        deviceId,
-          confirmOverride: true
-        })
-          .then(function(r2) {
-            showVerifying(false);
-            disablePad(false);
-            if (!r2 || !r2.user) {
-              // Defensive — confirmOverride should never return singleSessionPrompt
-              // again or fail silently, but handle gracefully.
-              onWrongPin();
-              return;
-            }
-            onLoginSuccess(r2.user, r2.token);
+        // LEG4-2b-iii: native confirm() → showConfirm modal (row 21 / B-13).
+        // Closure captures pin/userName/deviceId from outer submitPin() scope;
+        // the .then callback re-submits with confirmOverride:true on OK, or
+        // returns to login on Cancel. The Item-4 _activeConfirmResolver mechanism
+        // (showConfirm helper) makes a mid-limbo second submitPin safe — the
+        // first showConfirm is superseded cleanly and its callback exits on !ok.
+        showConfirm('👥 Your account is active on another device. Continue here? The other session will be ended. | 👥 حسابك نشط على جهازٍ آخر. هل تتابع هنا؟ سيتم إنهاء الجلسة الأخرى.').then(function(ok) {
+          if (!ok) {
+            // User declined — return to login screen, no session created.
+            setLoginStatus('');
+            return;
+          }
+          // User confirmed — re-submit with confirmOverride:true.
+          // Closure captures pin, userName, deviceId from submitPin() scope.
+          disablePad(true);
+          showVerifying(true);
+          gasPost({
+            action:          'validatePin',
+            pin:             pin,
+            name:            userName,
+            deviceId:        deviceId,
+            confirmOverride: true
           })
-          .catch(function(e) {
-            showVerifying(false);
-            disablePad(false);
-            // Re-submission failed — treat as auth or network error.
-            var msg = (e && e.message) ? String(e.message) : '';
-            if (msg.indexOf('Account locked') !== -1) {
-              setLoginStatus('🔒 Account locked. Try again in 30 minutes or contact your administrator.');
-              setTimeout(function() { setLoginStatus(''); }, 6000);
-            } else if (msg.indexOf('Invalid name or PIN') !== -1) {
-              setLoginStatus('⚠️ Invalid name or PIN. Try again.');
-              setTimeout(function() { setLoginStatus(''); }, 3000);
-            } else {
-              setLoginStatus('📡 Network issue — check your connection.');
-              setTimeout(function() { setLoginStatus(''); }, 3000);
-            }
-          });
+            .then(function(r2) {
+              showVerifying(false);
+              disablePad(false);
+              if (!r2 || !r2.user) {
+                // Defensive — confirmOverride should never return singleSessionPrompt
+                // again or fail silently, but handle gracefully.
+                onWrongPin();
+                return;
+              }
+              onLoginSuccess(r2.user, r2.token);
+            })
+            .catch(function(e) {
+              showVerifying(false);
+              disablePad(false);
+              // Re-submission failed — treat as auth or network error.
+              var msg = (e && e.message) ? String(e.message) : '';
+              if (msg.indexOf('Account locked') !== -1) {
+                setLoginStatus('🔒 Account locked. Try again in 30 minutes or contact your administrator.');
+                setTimeout(function() { setLoginStatus(''); }, 6000);
+              } else if (msg.indexOf('Invalid name or PIN') !== -1) {
+                setLoginStatus('⚠️ Invalid name or PIN. Try again.');
+                setTimeout(function() { setLoginStatus(''); }, 3000);
+              } else {
+                setLoginStatus('📡 Network issue — check your connection.');
+                setTimeout(function() { setLoginStatus(''); }, 3000);
+              }
+            });
+        });
         return;
       }
 
@@ -6088,7 +6091,8 @@ function _applyDefaultDispatch(world) {
 
 function triggerBuildingApprove(parentRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('اعتماد هذا التقرير وإنشاء صفوف الأقسام؟ / Approve and create child rows?')) return;
+  showConfirm('▶ Approve and create section statements? | ▶ اعتماد وإنشاء بيانات الأقسام؟').then(function(ok) {
+    if (!ok) return;
   toast('⏳ جاري الاعتماد...', 'info', 'backstop');
   gasPost({
     action:  'approveAndCreateChildRows',
@@ -6124,6 +6128,7 @@ function triggerBuildingApprove(parentRowIndex) {
       setStmtSubtab('building', 'approved');
     }
   }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 function triggerBuildingBroadcast(parentRowIndex) {
@@ -6212,7 +6217,8 @@ function assignChildChannelUI(childRowIndex, channel) {
 
 function markChildSentUI(childRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('تأكيد التسليم اليدوي؟ / Confirm manual delivery?')) return;
+  showConfirm('▶ Confirm manual delivery? | ▶ تأكيد التسليم اليدوي؟').then(function(ok) {
+    if (!ok) return;
   toast('⏳ جاري التأكيد...', 'info', 'backstop');
   gasPost({
     action:  'markChildSent',
@@ -6224,11 +6230,13 @@ function markChildSentUI(childRowIndex) {
     loadBuildingStatements('Approved');
     if (parsed.parentMoved) loadBuildingStatements('Sent');
   }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 function triggerMarkComplete(parentRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('إغلاق جميع الأقسام المعلّقة؟ / Close out all remaining pending sections?')) return;
+  showConfirm('▶ Close out all remaining pending sections? | ▶ إغلاق جميع الأقسام المعلّقة؟').then(function(ok) {
+    if (!ok) return;
   toast('⏳ جاري الإغلاق...', 'info', 'backstop');
   gasPost({
     action:  'markComplete',
@@ -6240,11 +6248,13 @@ function triggerMarkComplete(parentRowIndex) {
     loadBuildingStatements('Approved');
     loadBuildingStatements('Sent');
   }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 function triggerBuildingUndo(parentRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('التراجع عن الاعتماد؟ سيتم حذف جميع صفوف الأقسام. / Undo approval? All child rows will be deleted.')) return;
+  showConfirm('▶ Undo approval? All section statements will be deleted. | ▶ التراجع عن الاعتماد؟ سيتم حذف جميع بيانات الأقسام.', true).then(function(ok) {
+    if (!ok) return;
   toast('⏳ جاري التراجع...', 'info', 'backstop');
   gasPost({
     action:  'revokeBuildingStatement',
@@ -6256,11 +6266,13 @@ function triggerBuildingUndo(parentRowIndex) {
     loadBuildingStatements('Draft');
     loadBuildingStatements('Approved');
   }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 function triggerBuildingDelete(parentRowIndex) {
   if (!sessionValid()) return;
-  if (!confirm('حذف هذه المسودة نهائياً؟ / Delete this draft permanently?')) return;
+  showConfirm('▶ Delete this draft permanently? | ▶ حذف هذه المسودة نهائياً؟', true).then(function(ok) {
+    if (!ok) return;
   toast('⏳ جاري الحذف...', 'info', 'backstop');
   gasPost({
     action:  'deleteBuildingStatement',
@@ -6270,6 +6282,7 @@ function triggerBuildingDelete(parentRowIndex) {
     toast('🗑️ Draft deleted.', 'ok');
     loadBuildingStatements('Draft');
   }).catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 
@@ -6950,7 +6963,8 @@ function approveAllBuildingStatements() {
 
 function deleteStatement(rowIndex, world) {
   if (!sessionValid()) return;
-  if (!confirm('هل أنت متأكد من الحذف؟ / Confirm delete?')) return;
+  showConfirm('▶ Confirm delete? | ▶ تأكيد الحذف؟', true).then(function(ok) {
+    if (!ok) return;
   gasPost({ action: 'deleteStatement', rowIndex: rowIndex, token: _session.token })
     .then(function() {
       toast('🗑️ Deleted / تم الحذف', 'ok');
@@ -6958,6 +6972,7 @@ function deleteStatement(rowIndex, world) {
       else renderStmtList('section',  'Draft');
     })
     .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
+  });
 }
 
 function exportAllPdfs(world) {
@@ -7732,7 +7747,8 @@ function _closeImageModal() {
 // the modal closes and both Pay Hub tables reload so the cell returns to ATTACH.
 function _deleteAttachment(fileId) {
   if (!fileId) return;
-  if (!confirm('Delete this attachment? / حذف هذا المرفق؟\nThe transaction record stays; only the image is removed.')) return;
+  showConfirm('▶ Delete this attachment? The record stays; only the image is removed. | ▶ حذف هذا المرفق؟ يبقى السجل، وتُزال الصورة فقط.').then(function(ok) {
+    if (!ok) return;
   toast('⏳ Deleting attachment...', 'ok', true);
   gasPost({ action: 'deleteAttachment', payload: { imageId: fileId }, token: _session.token })
     .then(function(r) {
@@ -7744,6 +7760,7 @@ function _deleteAttachment(fileId) {
       if (typeof loadHistoryTable === 'function') loadHistoryTable();
     })
     .catch(function(e) { toast(_iconOnce('❌', (e.message || 'Delete failed')), 'fail'); });
+  });
 }
 
 function _attachReceipt(trxId, invoiceId) {
@@ -7909,9 +7926,13 @@ function _payInvClearForm() {
 function _showInvDuplicateDialog(res, originalPayload) {
   var existing = res.existingInvoiceId || '—';
   var msg      = res.message || 'A similar invoice may already exist.';
-  if (confirm('⚠️ Duplicate detected: ' + msg +
-      '\n\nExisting invoice: ' + existing +
-      '\n\nSubmit anyway?')) {
+  // LEG4-2b-iii: native confirm() → showConfirm modal (row 29 / B-21). Positive-
+  // branch shape mechanically inverted: `if (ok) {…}` → `if (!ok) return; …`.
+  // Spec uses '. ' between clauses (no embedded \n\n); bilingual halves joined
+  // by ' | ' and split at render time by showConfirm (Item-2 principle).
+  showConfirm('⚠️ Duplicate detected: ' + msg + '. Existing invoice: ' + existing + '. Submit anyway? | ' +
+              '⚠️ رُصد تكرار: ' + msg + '. الفاتورة الموجودة: ' + existing + '. هل تريد الإرسال على أي حال؟').then(function(ok) {
+    if (!ok) return;
     var btn = document.getElementById('pay-inv-submit-btn');
     btn.classList.add('processing');
     btn.disabled = true;
@@ -7940,7 +7961,7 @@ function _showInvDuplicateDialog(res, originalPayload) {
         btn.disabled = false;
         _payInvErr(_iconOnce('❌', (e.message || 'Submission failed')));
       });
-  }
+  });
 }
 
 function loadComData() {
@@ -8258,6 +8279,88 @@ function showReportBlock(msg) {
   function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
   document.getElementById('report-block-close').onclick = close;
   ov.addEventListener('click', function(e) { if (e.target === ov) close(); });
+}
+
+// ── LEG4-2b-iii — showConfirm: yes/no modal helper ────────────────────────────
+// Promise-based; mirrors showReportBlock visual pattern; adds a second button
+// (Cancel) + destructive-variant styling + parallel-invocation supersession.
+//   showConfirm(msg)          → Promise<boolean>  standard variant
+//   showConfirm(msg, true)    → Promise<boolean>  destructive variant (red OK)
+// Resolves true on OK, false on Cancel or backdrop click.
+//
+// Bilingual rendering principle (Item 2): msg is the locked-spec source string
+// in 'EN | AR' form (verbatim). At display time we split on ' | ' and render
+// the halves as two paragraphs (EN top, AR bottom with dir=rtl) — no visible
+// pipe in the rendered modal. The SOURCE string is unchanged.
+//
+// Parallel-invocation safety (Item 4 / CO-4-class): a second showConfirm call
+// before the first is dismissed must NOT orphan the first's Promise. The
+// module-level _activeConfirmResolver is resolved false (programmatic cancel)
+// when a new showConfirm opens; the new call becomes the active resolver.
+// The close() guard prevents a stale handler from resolving the new modal.
+var _activeConfirmResolver = null;
+
+function showConfirm(msg, isDestructive) {
+  return new Promise(function(resolve) {
+    // Supersede any prior unresolved modal cleanly (Item 4 fix).
+    if (_activeConfirmResolver) {
+      var prior = _activeConfirmResolver;
+      _activeConfirmResolver = null;
+      prior(false);
+    }
+    _activeConfirmResolver = resolve;
+
+    var existing = document.getElementById('confirm-overlay');
+    if (existing) existing.parentNode.removeChild(existing);
+    var ov = document.createElement('div');
+    ov.id = 'confirm-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;' +
+      'justify-content:center;background:rgba(0,0,0,0.45);padding:24px;';
+
+    // Bilingual rendering: split source on ' | ' (Item 2 principle).
+    var s = String(msg == null ? '' : msg);
+    var pipeIdx = s.indexOf(' | ');
+    var enHalf = pipeIdx === -1 ? s   : s.substring(0, pipeIdx);
+    var arHalf = pipeIdx === -1 ? ''  : s.substring(pipeIdx + 3);
+
+    // OK button color: destructive → burgundy; standard → navy (mirrors
+    // showReportBlock OK). Cancel is neutral light on both variants (Item 1).
+    var okBg = isDestructive ? 'var(--burg,#9b2335)' : 'var(--navy,#1c3d5a)';
+
+    ov.innerHTML =
+      '<div style="max-width:420px;background:#fff;border-radius:14px;padding:22px 20px;' +
+        'text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25);">' +
+        '<div style="font-size:14px;line-height:1.6;color:#333;">' + escHtml(enHalf) + '</div>' +
+        (arHalf
+          ? '<div dir="rtl" style="font-size:14px;line-height:1.6;color:#333;margin-top:8px;">' + escHtml(arHalf) + '</div>'
+          : '') +
+        '<div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">' +
+          '<button id="confirm-cancel" style="padding:9px 22px;border:1px solid #ccc;' +
+            'border-radius:8px;background:#f5f5f5;color:#333;font-size:13px;cursor:pointer;' +
+            'display:flex;flex-direction:column;align-items:center;line-height:1.15;">' +
+            '<span>إلغاء</span><span style="font-size:11px;opacity:.75;">Cancel</span>' +
+          '</button>' +
+          '<button id="confirm-ok" style="padding:9px 22px;border:none;' +
+            'border-radius:8px;background:' + okBg + ';color:#fff;font-size:13px;cursor:pointer;' +
+            'display:flex;flex-direction:column;align-items:center;line-height:1.15;">' +
+            '<span>تأكيد</span><span style="font-size:11px;opacity:.85;">Confirm</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    function close(ok) {
+      // Stale-handler guard: only resolve if this call is still the active one
+      // (supersession may have already settled this Promise).
+      if (_activeConfirmResolver !== resolve) return;
+      _activeConfirmResolver = null;
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+      resolve(ok);
+    }
+    document.getElementById('confirm-ok').onclick     = function() { close(true);  };
+    document.getElementById('confirm-cancel').onclick = function() { close(false); };
+    ov.addEventListener('click', function(e) { if (e.target === ov) close(false); });
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -10662,7 +10765,9 @@ function _renderEmailAudit(d) {
 // Phase 12 Step 3: admin-initiated unlock
 function unlockUserAction(name) {
   if (!sessionValid()) return;
-  if (!confirm('Unlock ' + name + '? Their session will be cleared and they will need to log in again.')) return;
+  showConfirm('⚠️ This will clear ' + name + "'s session and force them to re-login. | " +
+               '⚠️ سيتم إنهاء جلسة ' + name + ' وطلب إعادة تسجيل الدخول.').then(function(ok) {
+    if (!ok) return;
   gasPost({
     action:    'unlockUser',
     payload:   { targetName: name },
@@ -10677,6 +10782,7 @@ function unlockUserAction(name) {
     .catch(function(e) {
       toast('⚠️ Unlock failed: ' + (e && e.message ? e.message : 'Unknown error'), 'fail');
     });
+  });
 }
 
 function openUserSheet(name) {

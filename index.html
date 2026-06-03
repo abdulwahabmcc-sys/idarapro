@@ -6051,6 +6051,12 @@ function openStmtPreview(fileId) {
       return;
     }
     openRepViewer(parsed.html, 'معاينة البيان / Statement Preview', '', '', '');
+    // LEG 5+ stranded-pending fix: terminal-on-success-branch (CO-5 extension).
+    // Without this terminal, the L6041 'backstop' toast swaps to no-response
+    // at 30s even though openRepViewer rendered successfully. Same defect
+    // class as Patch 4z view-attachment (L7818 precedent for _showImageModal).
+    // Spec-string '✅ Loaded | ✅ تم التحميل' verbatim from Patch 4z.
+    toast('✅ Loaded | ✅ تم التحميل', 'ok');
   }).catch(function(e) {
     toast(_iconOnce('❌', (e.message || e)), 'fail');
   });

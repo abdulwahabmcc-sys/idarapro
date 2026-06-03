@@ -4068,6 +4068,14 @@ function submitPin() {
 
   var pin = _pinBuffer;
   _pinBuffer = '';
+  // Patch 5a: clear the DOM input value too — the keyboard input listener
+  // at L8510 reads from this.value, not _pinBuffer; without this clear, iOS
+  // Safari fires unsolicited 'input' events on the stable '1234' value,
+  // re-hydrating _pinBuffer and re-firing submitPin (rehydration cascade).
+  // Native confirm() previously masked this via sync event-loop block;
+  // async showConfirm exposes it. Blur is defense-in-depth.
+  var pinInputEl = document.getElementById('pin-input');
+  if (pinInputEl) { pinInputEl.value = ''; pinInputEl.blur(); }
   updateDots();
 
   // ── Device ID — generated on first visit, persisted in localStorage ──────

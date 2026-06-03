@@ -5355,7 +5355,17 @@ function _renderStmtCard(s, world) {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="downloadStmtPdf(\'' + escHtml(s.pdfFileId) + '\')">تحميل PDF</button>';
     }
     if (world === 'section') {
-      leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="sendSingleStatement(' + s.rowIndex + ')">إرسال / Send</button>';
+      // LEG 5 G-1 fix: Manual-channel rows route to markDispatched via the
+      // new Mark Sent button; Email/WhatsApp/empty rows keep the Send button.
+      // Backend markDispatched (Statements.gs) handles the PDF-precondition
+      // guard. Empty-channel falls to Send branch per Q1 ratification —
+      // preserves pre-fix UX (Send button rendered unconditionally; backend
+      // rejection on empty channel). Buttons mutually exclusive at render.
+      if (s.dispatchChannel === 'Manual') {
+        leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="markSectionDispatched(' + s.rowIndex + ')">تأكيد التسليم / Mark Sent</button>';
+      } else {
+        leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="sendSingleStatement(' + s.rowIndex + ')">إرسال / Send</button>';
+      }
     }
     if (world === 'building') {
       leftContent += '<button type="button" class="navy-btn" style="margin-top:4px;" onclick="triggerBuildingBroadcast(' + s.rowIndex + ')">بث / Broadcast</button>';
@@ -6832,21 +6842,30 @@ function approveSingleStatement(rowIndex, world) {
 
 function revokeSingleStatement(rowIndex, world) {
   if (!sessionValid()) return;
-  var btn = document.querySelector('[onclick="revokeSingleStatement(' + rowIndex + ',\'' + world + '\')"]');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-  gasPost({ action: 'revokeStatement', rowIndex: rowIndex, token: _session.token })
-    .then(function() {
-      var cache = world === 'building' ? _bldStmtCache : _stmtCache;
-      var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
-      if (s) s.status = 'Draft';
-      toast('↩️ Reverted to Draft / تم الإلغاء', 'ok');
-      if (world === 'building') renderStmtList('building', 'Approved');
-      else renderStmtList('section',  'Approved');
-    })
-    .catch(function(e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
-      toast(_iconOnce('❌', e.message), 'fail');
-    });
+  // LEG 5 G-2 fix: destructive showConfirm preamble. Backend trashes the PDF
+  // and clears K/L/N/O/R; misclick is irreversible. Wrap-all-worlds per Q4
+  // ratification: Section-direct gets protected from accidental Drive trash;
+  // Building card-Undo also gets the confirm before backend's scope-guard
+  // rejection (defensive UX symmetry). Confirm string per locked-spec
+  // [NEXT_AVAILABLE_ROW assigned by spec-lead].
+  showConfirm('▶ Revert this statement to Draft? PDF will be moved to trash. | ▶ التراجع عن هذا البيان إلى المسودة؟ سيُنقَل ملف PDF إلى المهملات.', true).then(function(ok) {
+    if (!ok) return;
+    var btn = document.querySelector('[onclick="revokeSingleStatement(' + rowIndex + ',\'' + world + '\')"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+    gasPost({ action: 'revokeStatement', rowIndex: rowIndex, token: _session.token })
+      .then(function() {
+        var cache = world === 'building' ? _bldStmtCache : _stmtCache;
+        var s = cache.find(function(x) { return x.rowIndex === rowIndex; });
+        if (s) s.status = 'Draft';
+        toast('↩️ Reverted to Draft / تم الإلغاء', 'ok');
+        if (world === 'building') renderStmtList('building', 'Approved');
+        else renderStmtList('section',  'Approved');
+      })
+      .catch(function(e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'تراجع / Undo'; }
+        toast(_iconOnce('❌', e.message), 'fail');
+      });
+  });
 }
 
 function sendSingleStatement(rowIndex) {
@@ -6863,6 +6882,32 @@ function sendSingleStatement(rowIndex) {
     renderStmtList('section', 'sent');
   }).catch(function(e) {
     toast(_iconOnce('❌', e.message), 'fail');
+  });
+}
+
+// LEG 5 G-1 fix: Section-direct Manual-channel routing to markDispatched.
+// Triggered from the Mark Sent button rendered at L5358-L5366 when
+// status=Approved AND channel=Manual. Backend markDispatched at
+// Statements.gs:1336 handles PDF-precondition guard (throws if col K empty)
+// and trashes the HTML file (col J) on successful Sent transition.
+// Confirm string mirrors locked-spec row 23 manual-delivery confirm wording.
+function markSectionDispatched(rowIndex) {
+  if (!sessionValid()) return;
+  showConfirm('▶ Confirm manual delivery? PDF must be exported first. | ▶ تأكيد التسليم اليدوي؟ يجب تصدير ملف PDF أولاً.', true).then(function(ok) {
+    if (!ok) return;
+    toast('⏳ جاري التأكيد...', 'info', 'backstop');
+    gasPost({
+      action:  'markDispatched',
+      payload: { rowIndex: rowIndex, scope: 'Section' },
+      token:   _session.token
+    }).then(function(res) {
+      var parsed = typeof res === 'string' ? JSON.parse(res) : res;
+      toast(_iconOnce('✅', parsed.message || 'تم التأكيد / Marked Sent'), 'ok');
+      renderStmtList('section', 'approved');
+      renderStmtList('section', 'sent');
+    }).catch(function(e) {
+      toast(_iconOnce('❌', e.message), 'fail');
+    });
   });
 }
 

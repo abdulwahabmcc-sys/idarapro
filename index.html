@@ -8323,7 +8323,16 @@ function showConfirm(msg, isDestructive) {
     if (existing) existing.parentNode.removeChild(existing);
     var ov = document.createElement('div');
     ov.id = 'confirm-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;' +
+    // Patch 5b: z-index 2147483647 (max 32-bit signed int — canonical
+    // "must always be on top" value used by browser-extension overlays).
+    // Pre-fix z:9999 was defeated by #login-screen z:10000 (the bidirectional
+    // S16 root cause: takeover modal rendered behind login screen, invisible).
+    // 2b-iii migration from native confirm() (browser chrome, outside the
+    // stacking context — always-on-top by definition) to a CSS-overlay
+    // modal needed this. Sibling defect at L8277 (showReportBlock overlay
+    // also z:9999) is structurally safe at present — all 4 call sites are
+    // post-login — but recorded for closeout queue as a parallel item.
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;' +
       'justify-content:center;background:rgba(0,0,0,0.45);padding:24px;';
 
     // Bilingual rendering: split source on ' | ' (Item 2 principle).

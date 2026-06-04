@@ -8910,6 +8910,74 @@ function loadBuildingProfile() {
 // ── ②  Units ─────────────────────────────────────────────────────────────────
 var _unitsCache = [];
 
+function renderCharterSumWidget() {
+  // Strand-3 T3 Layer 1 widget: live sum of unit obligation fractions over
+  // the building. Reads from _unitsCache (frontend state populated at L8917
+  // from the getSettingsUnits server call). Fraction-form display only — no
+  // pct/ratio equivalent display anywhere per Path-B ratification. NO server
+  // roundtrip — pure client-side computation from in-memory cache.
+  //
+  // Q-B5b ratified: skip-render-on-empty. If _unitsCache is empty (initial
+  // page load before loadUnits resolves), early-return without modifying
+  // widget DOM. On first loadUnits success, widget populates.
+  var units = _unitsCache || [];
+  if (units.length === 0) return;
+  var widget = document.getElementById('charter-sum-widget');
+  if (!widget) return;
+  var sumF = 0;
+  var sumDecimal = 0;
+  var canonicalDenom = null;
+  var sameDenom = true;
+  for (var i = 0; i < units.length; i++) {
+    var n = parseInt(units[i].obligationNum, 10) || 0;
+    var d = parseInt(units[i].obligationDenom, 10) || 0;
+    sumF += n;
+    if (d > 0) sumDecimal += (n / d);
+    if (canonicalDenom === null) {
+      canonicalDenom = d;
+    } else if (canonicalDenom !== d) {
+      sameDenom = false;
+    }
+  }
+  var delta = sumDecimal - 1.0;
+  var clean = Math.abs(delta) <= 0.0001;
+  var sumDisplay;
+  if (sameDenom && canonicalDenom > 0) {
+    sumDisplay = sumF + '/' + canonicalDenom;
+  } else {
+    sumDisplay = sumDecimal.toFixed(4);
+  }
+  if (clean) {
+    widget.className = 'charter-sum-widget clean';
+    widget.innerHTML =
+      '<span class="charter-sum-label">' +
+        '\u03a3 Total Building Obligations: ' + sumDisplay + ' \u2705' +
+      '</span>' +
+      '<span class="charter-sum-label-ar">' +
+        '\u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0643\u0644\u064a \u0644\u0644\u062d\u0635\u0635: ' + sumDisplay +
+      '</span>';
+  } else {
+    widget.className = 'charter-sum-widget dirty';
+    var deltaDisplay;
+    if (sameDenom && canonicalDenom > 0) {
+      var deltaNum = sumF - canonicalDenom;
+      deltaDisplay = (deltaNum > 0 ? '+' : '') + deltaNum + '/' + canonicalDenom;
+    } else {
+      deltaDisplay = (delta > 0 ? '+' : '') + delta.toFixed(4);
+    }
+    widget.innerHTML =
+      '<span class="charter-sum-label">' +
+        '\u26a0 \u03a3 Total Building Obligations: ' + sumDisplay +
+        ' \u2014 delta ' + deltaDisplay +
+        ' \u2014 review unit obligations' +
+      '</span>' +
+      '<span class="charter-sum-label-ar">' +
+        '\u26a0 \u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0643\u0644\u064a \u0644\u0644\u062d\u0635\u0635: ' + sumDisplay +
+        ' \u2014 \u0631\u0627\u062c\u0639 \u062d\u0635\u0635 \u0627\u0644\u0648\u062d\u062f\u0627\u062a' +
+      '</span>';
+  }
+}
+
 function loadUnits() {
   var el = stgListEl('stg-units-list'); stgLoading(el);
   stgFromCache('units', 'getSettingsUnits', el)
@@ -8917,6 +8985,7 @@ function loadUnits() {
       _unitsCache = rows || [];
       if (!rows || !rows.length) { stgEmpty(el, 'لا توجد وحدات / No units found'); return; }
       renderUnitCards(el, rows);
+      renderCharterSumWidget();
     }).catch(function() { stgError(el); });
 }
 
@@ -8934,7 +9003,7 @@ function renderUnitCards(el, rows) {
         '<div class="unit-card-details">' +
           (u.floor ? '<span class="unit-chip">🏢 ' + escHtml(u.floor) + '</span>' : '') +
           (u.sqm   ? '<span class="unit-chip">📐 ' + escHtml(u.sqm) + ' m²</span>' : '') +
-          (u.amps  ? '<span class="unit-chip">⚡ ' + escHtml(u.amps) + 'A</span>' : '') +
+          ((u.obligationNum != null && u.obligationDenom) ? '<span class="unit-chip">📊 ' + escHtml(u.obligationNum) + '/' + escHtml(u.obligationDenom) + '</span>' : '') +
         '</div>' +
       '</div>';
   });
@@ -12218,7 +12287,11 @@ function openUnitSheet(unit) {
   document.getElementById('us-section').value = isEdit ? (unit.section || '') : '';
   document.getElementById('us-type').value    = isEdit ? (unit.type    || '') : '';
   document.getElementById('us-sqm').value     = isEdit ? (unit.sqm     || '') : '';
-  document.getElementById('us-amps').value    = isEdit ? (unit.amps    || '') : '';
+  document.getElementById('us-obligation-num').value =
+    (isEdit && unit && unit.obligationNum != null) ? unit.obligationNum : '';
+  document.getElementById('us-obligation-denom').value =
+    (isEdit && unit && unit.obligationDenom != null) ? unit.obligationDenom : '';
+  updateObligationPreview();
 
   // Floor dropdown — match value
   var floorSel = document.getElementById('us-floor');
@@ -12274,6 +12347,22 @@ function showUnitErr(msg) {
   sheet.scrollTop = sheet.scrollHeight;
 }
 
+function updateObligationPreview() {
+  // Strand-3 T3: live fraction-form preview for the Unit Obligation field.
+  // Renders "{num}/{denom}" below the inputs as the admin edits. Fraction
+  // form only — NO percentage equivalent anywhere per Path-B ratification.
+  // Empty either input → preview empty (no partial-fraction display).
+  var n = document.getElementById('us-obligation-num');
+  var d = document.getElementById('us-obligation-denom');
+  var p = document.getElementById('us-obligation-preview');
+  if (!n || !d || !p) return;
+  if (n.value === '' || d.value === '') {
+    p.textContent = '';
+  } else {
+    p.textContent = n.value + '/' + d.value;
+  }
+}
+
 function submitUnit() {
   if (!sessionValid()) return;
 
@@ -12282,7 +12371,10 @@ function submitUnit() {
   var floor   = document.getElementById('us-floor').value;
   var sqm     = document.getElementById('us-sqm').value.trim();
   var type    = document.getElementById('us-type').value;
-  var amps    = document.getElementById('us-amps').value.trim();
+  var obligationNum   = parseInt(document.getElementById('us-obligation-num').value, 10);
+  var obligationDenom = parseInt(document.getElementById('us-obligation-denom').value, 10);
+  if (isNaN(obligationNum))   obligationNum   = 0;
+  if (isNaN(obligationDenom)) obligationDenom = 0;
 
   // Clear previous inline error
   var errEl = document.getElementById('us-inline-err');
@@ -12304,7 +12396,9 @@ function submitUnit() {
   }
 
   var isEdit = !!(_unitsCache.find(function(u) { return u.unitId === unitId; }));
-  var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type, amps: amps, isEdit: isEdit };
+  var payload = { unitId: unitId, section: section, floor: floor, sqm: sqm, type: type,
+                  unitObligationShare: obligationNum, totalBuildingShare: obligationDenom,
+                  isEdit: isEdit };
 
   // Phase 12 Step 7: enrich payload with lock identifiers on edit mode only
   if (isEdit) {
@@ -14575,11 +14669,12 @@ function fmtMoney(val) {
         <div class="stg-sec-ico">🏠</div>
         <div class="stg-sec-info">
           <div class="stg-sec-title">الوحدات / Units</div>
-          <div class="stg-sec-sub">Unit ID · Floor · Type · SqM · Amps</div>
+          <div class="stg-sec-sub">Unit ID · Floor · Type · SqM · Obligation / حصة</div>
         </div>
         <div class="stg-sec-arr">›</div>
       </div>
       <div class="stg-sec-body">
+        <div class="charter-sum-widget" id="charter-sum-widget"></div>
         <div id="stg-units-list" class="stg-list-wrap"></div>
         <button class="stg-add-btn" onclick="addUnit()">＋ إضافة وحدة / Add Unit</button>
       </div>
@@ -14971,8 +15066,17 @@ function fmtMoney(val) {
     </div>
 
     <div class="cs-field">
-      <div class="cs-lbl">Capacity / الطاقة (Amps)</div>
-      <input class="inp" type="number" id="us-amps" placeholder="0" min="0">
+      <div class="cs-lbl">Unit Obligation / حصة الوحدة</div>
+      <div class="obligation-fraction-input">
+        <input class="inp" type="number" id="us-obligation-num" min="0" step="1"
+               aria-label="Unit Obligation Share / حصة الوحدة"
+               oninput="updateObligationPreview()" onchange="updateObligationPreview()">
+        <span class="fraction-separator">/</span>
+        <input class="inp" type="number" id="us-obligation-denom" min="1" step="1"
+               aria-label="Total Building Share / إجمالي الحصص"
+               oninput="updateObligationPreview()" onchange="updateObligationPreview()">
+      </div>
+      <div class="obligation-preview" id="us-obligation-preview"></div>
     </div>
 
     <div class="cs-btns">
@@ -16110,6 +16214,51 @@ function fmtMoney(val) {
     .stmt-action-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px dashed var(--bdr); }
     .stmt-action-row button { flex:1 1 0; min-width:64px; padding:5px 6px; font-size:10px; }
     .stmt-action-row .bilingual-stack { gap:0; }
+
+    /* Strand-3 T3: Layer 1 charter-sum widget + fraction-input field styles. */
+    .charter-sum-widget {
+      padding: 8px 12px;
+      margin: 8px 0 16px 0;
+      border-radius: 6px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .charter-sum-widget.clean {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+    .charter-sum-widget.dirty {
+      background: #fff3e0;
+      color: #e65100;
+      border: 1px solid #ffb74d;
+    }
+    .charter-sum-label,
+    .charter-sum-label-ar {
+      display: block;
+    }
+    .obligation-fraction-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .obligation-fraction-input input {
+      width: 80px;
+      text-align: center;
+    }
+    .fraction-separator {
+      font-size: 20px;
+      font-weight: bold;
+      color: #555;
+    }
+    .obligation-preview {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
     .stmt-action-row .bilingual-stack .bi-ar { font-size:11px; }
     .stmt-action-row .bilingual-stack .bi-en { font-size:8px; }
     /* Status pill inside collapsed row */

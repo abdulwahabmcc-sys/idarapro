@@ -13352,8 +13352,22 @@ function doSaveFee(payload) {
       }
     })
     .catch(function(e) {
-      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
       var _errMsg = e && e.message ? e.message : String(e);
+      // Strand-3 T2 Layer 3 frontend gate: CHARTER_GATE| sentinel strip-and-route.
+      // Backend saveFee throws 'CHARTER_GATE|<bilingual detail>' when admin attempts
+      // to save a Per-Obligation rule against a dirty charter. Strip the 13-char
+      // sentinel prefix ('CHARTER_GATE|'.length === 13 — NOT 9, that's OCC_GATE|)
+      // and route to showReportBlock persistent modal (CO-1 carve-out). Form retains
+      // entered values; admin acknowledges modal then resolves charter integrity
+      // before retrying save. Default behavior preserved for any non-CHARTER_GATE
+      // error (edit-interrupted check + showFeeErr toast).
+      if (_errMsg.indexOf('CHARTER_GATE|') === 0) {
+        showReportBlock(_errMsg.substring(13));
+        btn.disabled    = false;
+        btn.textContent = feeId ? 'حفظ التعديل / Save Changes' : 'حفظ الرسم / Save Fee Rule';
+        return;
+      }
+      // Phase 12 Step 7: detect save-interrupted error (lock lost mid-edit)
       if (_errMsg.indexOf('editing session was interrupted') !== -1) {
         showEditInterruptedModal(_editLockDisplayName || _editLockRecordId || 'the record / السجل');
         return;

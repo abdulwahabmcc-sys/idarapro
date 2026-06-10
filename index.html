@@ -12610,28 +12610,53 @@ function onFeeTypeChange() {
   var prorationWrap = document.getElementById('fs-proration-wrap');
   var meterRefWrap  = document.getElementById('fs-meter-ref-wrap');
   var freqSel       = document.getElementById('fs-frequency');
+  var prorationSel  = document.getElementById('fs-proration');
   var isMeter       = METER_BASED_FEE_TYPES.indexOf(feeType) !== -1;
 
-  // Proration — only for Fixed fees
+  // T2-E Style A conditional 1 — Proration visibility + lock
+  //   Fixed:          show, unlocked (admin choice)
+  //   Per-Obligation: show, LOCKED (value derived from frequency by 1E.5)
+  //   else (Per-SqM + meter): hide, value='None'
   if (feeType === 'Fixed') {
     prorationWrap.style.display = '';
+    prorationSel.disabled       = false;
+    prorationSel.style.opacity  = '1';
+  } else if (feeType === 'Per-Obligation') {
+    prorationWrap.style.display = '';
+    prorationSel.disabled       = true;
+    prorationSel.style.opacity  = '0.6';
   } else {
     prorationWrap.style.display = 'none';
-    document.getElementById('fs-proration').value = 'None';
+    prorationSel.disabled       = false;
+    prorationSel.style.opacity  = '1';
+    prorationSel.value          = 'None';
   }
 
-  // Meter Reference — only for meter-based fees, auto-fill from charge name
-  meterRefWrap.style.display = isMeter ? '' : 'none';
+  // T2-E Style A conditional 2 — Meter Reference visibility
+  //   Per-Obligation: hide (no meter for charter-share rules)
+  //   else: ternary on isMeter
+  if (feeType === 'Per-Obligation') {
+    meterRefWrap.style.display = 'none';
+  } else {
+    meterRefWrap.style.display = isMeter ? '' : 'none';
+  }
   // onChargeNameChange handles meter ref — no call needed here
 
-  
   // Clear fee type error
   var feeTypeErr = document.getElementById('fs-fee-type-err');
   if (feeTypeErr) { feeTypeErr.style.display = 'none'; feeTypeErr.textContent = ''; }
-  // Base Rate vs Current Price
+
+  // T2-E Style A conditional 3 — Base Rate vs Current Price
+  //   Per-Obligation: show rate, hide current-price (admin sets baseRate
+  //                   manually; engine multiplies by per-unit fraction)
+  //   isMeter:        hide rate, show current-price (read-only fetched price)
+  //   else (Fixed + Per-SqM): show rate, hide current-price
   var rateWrap         = document.getElementById('fs-rate-wrap');
   var currentPriceWrap = document.getElementById('fs-current-price-wrap');
-  if (isMeter) {
+  if (feeType === 'Per-Obligation') {
+    rateWrap.style.display         = '';
+    currentPriceWrap.style.display = 'none';
+  } else if (isMeter) {
     rateWrap.style.display         = 'none';
     currentPriceWrap.style.display = '';
     document.getElementById('fs-rate').value = 0;
@@ -12642,25 +12667,68 @@ function onFeeTypeChange() {
     currentPriceWrap.style.display = 'none';
   }
 
-  // Frequency — auto-set Per Reading for meter-based, restore Monthly for others
-  if (isMeter) {
-    // Meter-based fees: Monthly and Quarterly only
+  // T2-E Style A conditional 4 — Frequency dropdown shape
+  //   Per-Obligation: show wrapper + 2-option Path Gamma (Monthly/One-Time)
+  //   isMeter:        hide wrapper entirely (Sub-A); force Monthly internally
+  //   else (Fixed + Per-SqM): show wrapper + 2-option Path Gamma
+  // Backend saveFee Block 2 force-sets Monthly for meter rules; Block 3
+  // normalizes legacy non-canonical values to canonical {Monthly, One-Time}.
+  if (feeType === 'Per-Obligation') {
+    document.getElementById('fs-frequency-wrap').style.display = '';
     freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
-      '<option value="Monthly">Monthly</option>' +
-      '<option value="Quarterly">Quarterly</option>';
+      '<option value="Monthly">Recurring monthly / متكرر شهرياً</option>' +
+      '<option value="One-Time">One-time / مرة واحدة</option>';
     freqSel.disabled      = false;
     freqSel.style.opacity = '1';
-    if (!freqSel.value) freqSel.value = 'Monthly';
+    if (freqSel.value === 'Per Reading' || freqSel.value === 'Quarterly' ||
+        freqSel.value === 'Annual') {
+      freqSel.value = 'Monthly';
+    }
+  } else if (isMeter) {
+    // T2-E Site 1 (Sub-A) — meter rules: hide frequency wrapper entirely.
+    document.getElementById('fs-frequency-wrap').style.display = 'none';
+    freqSel.value = 'Monthly';  // canonical for meter rules
   } else {
-    // Non-meter fees: all options except Per Reading
+    // T2-E Site 2 — Path Gamma label-only collapse to {Monthly, One-Time}.
+    document.getElementById('fs-frequency-wrap').style.display = '';
     freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
-      '<option value="Monthly">Monthly</option>' +
-      '<option value="Quarterly">Quarterly</option>' +
-      '<option value="Annual">Annual</option>' +
-      '<option value="One-Time">One-Time</option>';
+      '<option value="Monthly">Recurring monthly / متكرر شهرياً</option>' +
+      '<option value="One-Time">One-time / مرة واحدة</option>';
     freqSel.disabled      = false;
     freqSel.style.opacity = '1';
-    if (freqSel.value === 'Per Reading') freqSel.value = 'Monthly';
+    if (freqSel.value === 'Per Reading' || freqSel.value === 'Quarterly' ||
+        freqSel.value === 'Annual') {
+      freqSel.value = 'Monthly';
+    }
+  }
+
+  // T2-E Item 1E.5 (appended) — Per-Obligation proration value derivation.
+  // Proration is LOCKED for Per-Obligation; value derived from frequency:
+  //   One-Time → 'None' (one-shot, no proration window)
+  //   else     → 'Full-Month' (recurring monthly accrual)
+  // onFrequencyChange() also re-derives on freq change while feeType is
+  // still Per-Obligation.
+  if (feeType === 'Per-Obligation') {
+    var freqValDeriv = document.getElementById('fs-frequency').value;
+    prorationSel.value = (freqValDeriv === 'One-Time') ? 'None' : 'Full-Month';
+  }
+
+  // T2-E Item 1E.6 (appended) — Distribution + Target visibility.
+  // Per-Obligation engine reads obligationNum/obligationDenom from Building
+  // Cols F/G (charter), not from rule.target. distribution / target-type /
+  // target-val all hidden + cleared. fs-meter-ref also cleared (already
+  // hidden by conditional 2 above). Restoration on switch-away to other
+  // feeTypes re-shows the wrappers; onFeeTargetTypeChange governs further
+  // target-val visibility under non-Per-Obligation feeTypes.
+  if (feeType === 'Per-Obligation') {
+    document.getElementById('fs-distribution-wrap').style.display = 'none';
+    document.getElementById('fs-target-type-wrap').style.display = 'none';
+    document.getElementById('fs-target-val-wrap').style.display = 'none';
+    document.getElementById('fs-meter-ref').value = '';
+  } else {
+    document.getElementById('fs-distribution-wrap').style.display = '';
+    document.getElementById('fs-target-type-wrap').style.display = '';
+    document.getElementById('fs-target-val-wrap').style.display = '';
   }
 }
 
@@ -12704,6 +12772,18 @@ function onFrequencyChange() {
     if (endEl.value && endEl.value === startEl.value) endEl.value = '';
 
     if (endLbl) endLbl.innerHTML = 'End Date / تاريخ الانتهاء <span style="font-weight:400;color:var(--muted);">(optional)</span>';
+  }
+
+  // T2-E Item 1F — Per-Obligation proration re-derivation on frequency change.
+  // While feeType is Per-Obligation, proration value is derived from frequency:
+  //   One-Time → 'None'; else → 'Full-Month'.
+  // prorationSel.disabled = true is already set by onFeeTypeChange Per-Obligation
+  // branch; this handler only re-derives the value on freq change. Analogous
+  // re-derivation in onFeeTypeChange Item 1E.5 covers feeType change.
+  var feeTypeNow = document.getElementById('fs-fee-type').value;
+  if (feeTypeNow === 'Per-Obligation') {
+    var prorationSelOFC = document.getElementById('fs-proration');
+    prorationSelOFC.value = (freq === 'One-Time') ? 'None' : 'Full-Month';
   }
 }
 
@@ -12834,15 +12914,9 @@ function onChargeNameChange() {
       'Ampere': 'Per-Ampere', 'Amp':   'Per-Ampere',  'A': 'Per-Ampere'
     };
 
-    // Set frequency to Monthly/Quarterly only for all utility types
-    freqSel.innerHTML = '<option value="" disabled>Select...</option>' +
-      '<option value="Monthly">Monthly</option>' +
-      '<option value="Quarterly">Quarterly</option>';
-    freqSel.disabled      = false;
-    freqSel.style.opacity = '1';
-    if (!freqSel.value || freqSel.value === 'Annual' || freqSel.value === 'One-Time') {
-      freqSel.value = 'Monthly';
-    }
+    // T2-E Site 3 (Sub-A) — utility-linked is meter-based: hide frequency wrapper.
+    document.getElementById('fs-frequency-wrap').style.display = 'none';
+    freqSel.value = 'Monthly';  // canonical for meter rules
 
     if (meterType === 'Bill-Based') {
       // Bill-Based — lock fee type, hide price fields, show distribution
@@ -12907,20 +12981,27 @@ function onChargeNameChange() {
     }
 
   } else {
-    // Non-utility linked — Fixed or Per-SqM only
+    // Non-utility linked — Fixed, Per-SqM, or Per-Obligation (T2-E)
     feeTypeSel.innerHTML     = '<option value="" disabled selected>Select...</option>' +
       '<option value="Fixed">Fixed</option>' +
-      '<option value="Per-SqM">Per-SqM</option>';
+      '<option value="Per-SqM">Per-SqM</option>' +
+      '<option value="Per-Obligation">Per-Obligation / حصة الالتزام</option>';
     feeTypeSel.value         = '';
     feeTypeSel.disabled      = false;
     feeTypeSel.style.opacity = '1';
 
-    // Restore all frequency options
+    // T2-E Site 4 — Path Gamma label-only frequency collapse to 2 options.
+    // Backend literals 'Monthly' and 'One-Time' preserved; labels carry
+    // bilingual UX rename. Legacy values coerced to Monthly (saveFee
+    // backend Block 3 normalizes at storage layer as load-bearing safety net).
+    document.getElementById('fs-frequency-wrap').style.display = '';
     freqSel.innerHTML = '<option value="" disabled selected>Select...</option>' +
-      '<option value="Monthly">Monthly</option>' +
-      '<option value="Quarterly">Quarterly</option>' +
-      '<option value="Annual">Annual</option>' +
-      '<option value="One-Time">One-Time</option>';
+      '<option value="Monthly">Recurring monthly / متكرر شهرياً</option>' +
+      '<option value="One-Time">One-time / مرة واحدة</option>';
+    if (freqSel.value === 'Per Reading' || freqSel.value === 'Quarterly' ||
+        freqSel.value === 'Annual') {
+      freqSel.value = 'Monthly';
+    }
     freqSel.disabled      = false;
     freqSel.style.opacity = '1';
 
@@ -13061,15 +13142,36 @@ function openFeeSheet(f) {
     if (isEdit) {
       document.getElementById('fs-proration').value = f.proration  || 'Full-Month';
       document.getElementById('fs-meter-ref').value = f.meterRef   || '';
-      // Fix frequency options for meter-based fees in edit mode
+      // T2-E Site 5 (Sub-A) — meter rules: hide frequency wrapper entirely.
       var editFeeType = String(f.feeType || '');
       var isMeterEdit = METER_BASED_FEE_TYPES.indexOf(editFeeType) !== -1;
       if (isMeterEdit) {
-        var freqSelEdit = document.getElementById('fs-frequency');
-        freqSelEdit.innerHTML = '<option value="" disabled>Select...</option>' +
-          '<option value="Monthly">Monthly</option>' +
-          '<option value="Quarterly">Quarterly</option>';
-        freqSelEdit.value = f.frequency || 'Monthly';
+        document.getElementById('fs-frequency-wrap').style.display = 'none';
+        document.getElementById('fs-frequency').value = 'Monthly';
+      }
+    }
+
+    // T2-E Item 1D — Pre-existing bug fix: saved-frequency restoration.
+    // After onFeeTypeChange() rebuilds the freq dropdown, re-set fs-frequency.value
+    // to the saved value IF it exists in the rebuilt option list. Applies to ALL
+    // feeTypes (broader fix; addresses pre-existing silent-coerce-to-Monthly bug
+    // affecting non-meter rules with non-Monthly saved frequency, e.g. One-Time).
+    // Per-Obligation One-Time edit footgun (special assessment → silent monthly
+    // recurrence) was the specific risk that motivated this fix at T2-E.
+    // If saved value not in rebuilt list (legacy Quarterly/Annual/etc), value
+    // falls back to first-non-disabled (Monthly) — saveFee Block 3 normalizes
+    // to canonical at storage layer as load-bearing safety net.
+    if (isEdit && f.frequency) {
+      var freqSel = document.getElementById('fs-frequency');
+      var optionExists = false;
+      for (var fi = 0; fi < freqSel.options.length; fi++) {
+        if (freqSel.options[fi].value === f.frequency) {
+          optionExists = true;
+          break;
+        }
+      }
+      if (optionExists) {
+        freqSel.value = f.frequency;
       }
     }
 
@@ -13261,6 +13363,19 @@ function buildFeePayload() {
   if (feeIdVal) {
     payload.recordType = 'fee';
     payload.recordId   = feeIdVal;
+  }
+
+  // T2-E Item 1G — Per-Obligation payload cleanup (frontend belt).
+  // Per-Obligation rules don't use distribution / target / meter / variableRate
+  // fields. Null/default them on the wire. saveFee backend Block 1 is the
+  // load-bearing defense against DevTools manipulation, stale cache, or
+  // alternate callers; this cleanup ensures clean payload-on-wire under
+  // normal UI flows.
+  if (payload.feeType === 'Per-Obligation') {
+    payload.distributionMethod = 'Individual';
+    payload.targetType         = 'All';
+    payload.target             = '';
+    payload.meterRef           = '';
   }
   return payload;
 }
@@ -15172,7 +15287,7 @@ function fmtMoney(val) {
       </div>
     </div>
 
-    <div class="cs-field">
+    <div class="cs-field" id="fs-distribution-wrap">
       <div class="cs-lbl">Distribution Method / طريقة التوزيع</div>
       <select class="inp" id="fs-distribution">
         <option value="Individual">Individual / فردي</option>
@@ -15187,7 +15302,7 @@ function fmtMoney(val) {
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
+      <div class="cs-field" id="fs-target-type-wrap">
         <div class="cs-lbl">Target Type / نوع الهدف</div>
         <select class="inp" id="fs-target-type" onchange="onFeeTargetTypeChange()">
           <option value="All">All</option>
@@ -15211,7 +15326,7 @@ function fmtMoney(val) {
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="cs-field">
+      <div class="cs-field" id="fs-frequency-wrap">
         <div class="cs-lbl">Frequency / التكرار <span class="req">*</span></div>
         <select class="inp" id="fs-frequency" onchange="onFrequencyChange()">
           <option value="" disabled selected>Select...</option>

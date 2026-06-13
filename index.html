@@ -3058,10 +3058,10 @@
       <span class="nav-ar">إيرادات</span>
       <span class="nav-en">Revenues</span>
     </button>
-    <button class="nav-tab" id="t-exp" onclick="setTab('Expense')">
-      <span class="nav-ico">📉</span>
-      <span class="nav-ar">مصاريف</span>
-      <span class="nav-en">Expenses</span>
+    <button class="nav-tab hide" id="t-pay" onclick="setTab('Pay')">
+      <span class="nav-ico">💳</span>
+      <span class="nav-ar">مركز الدفع</span>
+      <span class="nav-en">Pay Hub</span>
     </button>
     <button class="nav-tab" id="t-rep" onclick="setTab('Report')">
       <span class="nav-ico">📄</span>
@@ -3078,10 +3078,10 @@
       <span class="nav-ar">مراسلات</span>
       <span class="nav-en">Comms</span>
     </button>
-    <button class="nav-tab hide" id="t-pay" onclick="setTab('Pay')">
-      <span class="nav-ico">💳</span>
-      <span class="nav-ar">مركز الدفع</span>
-      <span class="nav-en">Pay Hub</span>
+    <button class="nav-tab hide" id="t-exp" onclick="setTab('Expense')">
+      <span class="nav-ico">📉</span>
+      <span class="nav-ar">مصاريف</span>
+      <span class="nav-en">Expenses</span>
     </button>
   </div>
   <div class="nav-brand">
@@ -3209,10 +3209,10 @@
         <span class="dt-tab-ar">إيرادات</span>
         <span class="dt-tab-en">Revenues</span>
       </button>
-      <button class="dt-tab dt-exp" id="dt-t-exp" onclick="setTab('Expense')">
-        <span class="dt-tab-ico">📉</span>
-        <span class="dt-tab-ar">مصاريف</span>
-        <span class="dt-tab-en">Expenses</span>
+      <button class="dt-tab hide" id="dt-t-pay" onclick="setTab('Pay')">
+        <span class="dt-tab-ico">💳</span>
+        <span class="dt-tab-ar">مركز الدفع</span>
+        <span class="dt-tab-en">Pay Hub</span>
       </button>
       <button class="dt-tab dt-rep" id="dt-t-rep" onclick="setTab('Report')">
         <span class="dt-tab-ico">📄</span>
@@ -3229,10 +3229,10 @@
         <span class="dt-tab-ar">مراسلات</span>
         <span class="dt-tab-en">Comms</span>
       </button>
-      <button class="dt-tab hide" id="dt-t-pay" onclick="setTab('Pay')">
-        <span class="dt-tab-ico">💳</span>
-        <span class="dt-tab-ar">مركز الدفع</span>
-        <span class="dt-tab-en">Pay Hub</span>
+      <button class="dt-tab dt-exp hide" id="dt-t-exp" onclick="setTab('Expense')">
+        <span class="dt-tab-ico">📉</span>
+        <span class="dt-tab-ar">مصاريف</span>
+        <span class="dt-tab-en">Expenses</span>
       </button>
     </div>
   </div>
@@ -4735,13 +4735,12 @@ function applyPermissionUI(auth) {
     if (dtInc) dtInc.classList.remove('hide');
   }
   
-  if (!perms.EXP) { 
-    tExp.classList.add('hide'); 
-    if (dtExp) dtExp.classList.add('hide'); 
-  } else {
-    tExp.classList.remove('hide');
-    if (dtExp) dtExp.classList.remove('hide');
-  }
+  // MT-2: Expenses main-nav tab retired (Direct Expense lives under Pay Hub sub-tab).
+  // Admin reaches hide via markup .hide surviving L4718 early-return; non-admin reaches here.
+  // perms.EXP flag PRESERVED — backend gates + Direct Expense visibility (L4780) unchanged.
+  // Force-suppress regardless of perms.EXP. R-MT2-A deletion tranche cleans this block + markup as a set.
+  tExp.classList.add('hide');
+  if (dtExp) dtExp.classList.add('hide');
   
   if (!hasAnyReport) { 
     tRep.classList.add('hide'); 
@@ -4876,7 +4875,7 @@ function initApp(d) {
   if (_session && _session.permissions) {
     var p = _session.permissions;
     if (p.INC) setTab('Income');
-    else if (p.EXP) setTab('Expense');
+    else if (p.EXP) setTab('Pay'); // ← MT-2: EXP-only roles route to Pay Hub; canPayHub at L4767 includes p.EXP so the tab is visible; setTab('Pay') calls activateFirstVisiblePayHubSubtab() at L5061 (Catch 29) which lands on Direct Expense (the only visible sub-tab for pure-EXP role)
     else if (p.REP_BLD || p.REP_SEC) setTab('Report');
     else if (p.MTR_RED) setTab('Meter');
     else if (p.INV || p.INV_PAY) setTab('Pay'); // Catch 30: pure Pay-Hub user lands on Pay (Pay-last), not NoAccess

@@ -1342,6 +1342,12 @@
     .nav-tab.n-rep::before { background: var(--navy); }
 
     .nav-ico { font-size: 20px; line-height: 1; }
+    /* MT-4: inline SVG icons inside .nav-ico / .dt-tab-ico size to parent's font-size */
+    .nav-ico svg, .dt-tab-ico svg {
+      display: block;
+      width: 1em;
+      height: 1em;
+    }
     .nav-ar  { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1; }
     .nav-en  { font-size: 7px; font-weight: 500; color: var(--muted); opacity: 0.7; line-height: 1; }
 
@@ -3058,27 +3064,125 @@
 <nav id="nav">
   <div class="nav-tabs">
     <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
-      <span class="nav-ico">💰</span>
+      <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-grad-10-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E5C07B" />
+            <stop offset="50%" stop-color="#C39B54" />
+            <stop offset="100%" stop-color="#A17A36" />
+          </linearGradient>
+          <linearGradient id="silver-grad-10-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F2F2F2" />
+            <stop offset="50%" stop-color="#BDBDBD" />
+            <stop offset="100%" stop-color="#8D8D8D" />
+          </linearGradient>
+        </defs>
+        <rect x="45" y="30" width="55" height="32" rx="3" transform="rotate(-12 45 30)" fill="url(#gold-grad-10-m)" stroke="url(#silver-grad-10-m)" stroke-width="5"/>
+        <circle cx="74" cy="42" r="6" fill="none" stroke="url(#silver-grad-10-m)" stroke-width="3"/>
+        <ellipse cx="98" cy="68" rx="10" ry="4" fill="url(#gold-grad-10-m)" stroke="url(#silver-grad-10-m)" stroke-width="3"/>
+        <ellipse cx="98" cy="74" rx="10" ry="4" fill="url(#gold-grad-10-m)" stroke="url(#silver-grad-10-m)" stroke-width="3"/>
+        <ellipse cx="98" cy="80" rx="10" ry="4" fill="url(#gold-grad-10-m)" stroke="url(#silver-grad-10-m)" stroke-width="3"/>
+        <path d="M25 80H35V95H25V80Z" fill="url(#gold-grad-10-m)" stroke="url(#silver-grad-10-m)" stroke-width="4"/>
+        <path d="M35 84C55 84 62 82 72 82C85 82 98 88 102 85C105 82 95 72 80 72H52" stroke="url(#silver-grad-10-m)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></span>
       <span class="nav-ar">إيرادات</span>
       <span class="nav-en">Revenues</span>
     </button>
     <button class="nav-tab hide" id="t-pay" onclick="setTab('Pay')">
-      <span class="nav-ico">💳</span>
+      <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-grad-2-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E5C07B" />
+            <stop offset="50%" stop-color="#C39B54" />
+            <stop offset="100%" stop-color="#A17A36" />
+          </linearGradient>
+          <linearGradient id="silver-grad-2-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F2F2F2" />
+            <stop offset="50%" stop-color="#BDBDBD" />
+            <stop offset="100%" stop-color="#8D8D8D" />
+          </linearGradient>
+        </defs>
+        <path d="M25 65L65 35M25 75L65 45" stroke="url(#silver-grad-2-m)" stroke-width="6" stroke-linecap="round"/>
+        <rect x="35" y="45" width="65" height="40" rx="4" transform="rotate(-30 35 45)" fill="url(#gold-grad-2-m)" stroke="url(#silver-grad-2-m)" stroke-width="6"/>
+        <circle cx="62" cy="52" r="8" fill="none" stroke="url(#silver-grad-2-m)" stroke-width="4"/>
+        <path d="M40 30L95 85M95 85H70M95 85V60" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.25))"/>
+        <path d="M40 30L95 85M95 85H70M95 85V60" stroke="url(#silver-grad-2-m)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></span>
       <span class="nav-ar">مركز الدفع</span>
       <span class="nav-en">Pay Hub</span>
     </button>
     <button class="nav-tab" id="t-rep" onclick="setTab('Report')">
-      <span class="nav-ico">📄</span>
+      <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-grad-7-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E5C07B" />
+            <stop offset="50%" stop-color="#C39B54" />
+            <stop offset="100%" stop-color="#A17A36" />
+          </linearGradient>
+          <linearGradient id="silver-grad-7-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F2F2F2" />
+            <stop offset="50%" stop-color="#BDBDBD" />
+            <stop offset="100%" stop-color="#8D8D8D" />
+          </linearGradient>
+        </defs>
+        <path d="M35 34V98H85V74" stroke="url(#silver-grad-7-m)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M50 24H70M55 20H65" stroke="url(#gold-grad-7-m)" stroke-width="5" stroke-linecap="round"/>
+        <rect x="45" y="68" width="8" height="20" rx="2" fill="url(#gold-grad-7-m)"/>
+        <rect x="58" y="54" width="8" height="34" rx="2" fill="url(#gold-grad-7-m)"/>
+        <path d="M44 46L49 36L54 46M46 43H52" stroke="url(#gold-grad-7-m)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="74" y="64" width="30" height="42" rx="4" fill="#FFFFFF" stroke="url(#silver-grad-7-m)" stroke-width="5"/>
+        <rect x="80" y="70" width="18" height="6" rx="1" fill="url(#gold-grad-7-m)"/>
+        <circle cx="81" cy="84" r="2" fill="url(#silver-grad-7-m)"/><circle cx="89" cy="84" r="2" fill="url(#silver-grad-7-m)"/><circle cx="97" cy="84" r="2" fill="url(#silver-grad-7-m)"/>
+        <circle cx="81" cy="92" r="2" fill="url(#silver-grad-7-m)"/><circle cx="89" cy="92" r="2" fill="url(#silver-grad-7-m)"/><circle cx="97" cy="92" r="2" fill="url(#silver-grad-7-m)"/>
+      </svg></span>
       <span class="nav-ar">تقارير</span>
       <span class="nav-en">Reports</span>
     </button>
     <button class="nav-tab hide" id="t-mtr" onclick="setTab('Meter')">
-      <span class="nav-ico">📈</span>
+      <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-grad-4-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E5C07B" />
+            <stop offset="50%" stop-color="#C39B54" />
+            <stop offset="100%" stop-color="#A17A36" />
+          </linearGradient>
+          <linearGradient id="silver-grad-4-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F2F2F2" />
+            <stop offset="50%" stop-color="#BDBDBD" />
+            <stop offset="100%" stop-color="#8D8D8D" />
+          </linearGradient>
+        </defs>
+        <circle cx="64" cy="64" r="48" stroke="url(#silver-grad-4-m)" stroke-width="7" fill="none"/>
+        <circle cx="64" cy="64" r="40" fill="url(#gold-grad-4-m)" opacity="0.15"/>
+        <path d="M64 64L85 43" stroke="url(#silver-grad-4-m)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="64" cy="64" r="5" fill="url(#silver-grad-4-m)"/>
+        <path d="M64 24L58 36H66L60 48" stroke="url(#silver-grad-4-m)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="40" y="76" width="48" height="16" rx="3" fill="#FFFFFF" stroke="url(#silver-grad-4-m)" stroke-width="3"/>
+        <text x="64" y="89" font-family="monospace" font-size="11" font-weight="bold" fill="url(#gold-grad-4-m)" text-anchor="middle" letter-spacing="1">03472</text>
+      </svg></span>
       <span class="nav-ar">عدادات</span>
       <span class="nav-en">Meters</span>
     </button>
     <button class="nav-tab hide" id="t-com" onclick="setTab('Communications')">
-      <span class="nav-ico">📡</span>
+      <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-grad-5-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E5C07B" />
+            <stop offset="50%" stop-color="#C39B54" />
+            <stop offset="100%" stop-color="#A17A36" />
+          </linearGradient>
+          <linearGradient id="silver-grad-5-m" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F2F2F2" />
+            <stop offset="50%" stop-color="#BDBDBD" />
+            <stop offset="100%" stop-color="#8D8D8D" />
+          </linearGradient>
+        </defs>
+        <rect x="45" y="55" width="60" height="42" rx="5" fill="none" stroke="url(#silver-grad-5-m)" stroke-width="6"/>
+        <path d="M45 58L75 78L105 58" stroke="url(#silver-grad-5-m)" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M92 48C98 48 103 42 101 35C98 25 85 20 75 24" stroke="url(#silver-grad-5-m)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="44" cy="44" r="26" fill="url(#gold-grad-5-m)" stroke="url(#silver-grad-5-m)" stroke-width="5"/>
+        <path d="M28 44L54 32L46 56L42 46L28 44Z" fill="#FFFFFF"/>
+      </svg></span>
       <span class="nav-ar">مراسلات</span>
       <span class="nav-en">Comms</span>
     </button>
@@ -3209,27 +3313,125 @@
   <div id="dt-content">
     <div id="dt-tabs">
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
-        <span class="dt-tab-ico">💰</span>
+        <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad-10-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E5C07B" />
+              <stop offset="50%" stop-color="#C39B54" />
+              <stop offset="100%" stop-color="#A17A36" />
+            </linearGradient>
+            <linearGradient id="silver-grad-10-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F2F2F2" />
+              <stop offset="50%" stop-color="#BDBDBD" />
+              <stop offset="100%" stop-color="#8D8D8D" />
+            </linearGradient>
+          </defs>
+          <rect x="45" y="30" width="55" height="32" rx="3" transform="rotate(-12 45 30)" fill="url(#gold-grad-10-d)" stroke="url(#silver-grad-10-d)" stroke-width="5"/>
+          <circle cx="74" cy="42" r="6" fill="none" stroke="url(#silver-grad-10-d)" stroke-width="3"/>
+          <ellipse cx="98" cy="68" rx="10" ry="4" fill="url(#gold-grad-10-d)" stroke="url(#silver-grad-10-d)" stroke-width="3"/>
+          <ellipse cx="98" cy="74" rx="10" ry="4" fill="url(#gold-grad-10-d)" stroke="url(#silver-grad-10-d)" stroke-width="3"/>
+          <ellipse cx="98" cy="80" rx="10" ry="4" fill="url(#gold-grad-10-d)" stroke="url(#silver-grad-10-d)" stroke-width="3"/>
+          <path d="M25 80H35V95H25V80Z" fill="url(#gold-grad-10-d)" stroke="url(#silver-grad-10-d)" stroke-width="4"/>
+          <path d="M35 84C55 84 62 82 72 82C85 82 98 88 102 85C105 82 95 72 80 72H52" stroke="url(#silver-grad-10-d)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></span>
         <span class="dt-tab-ar">إيرادات</span>
         <span class="dt-tab-en">Revenues</span>
       </button>
       <button class="dt-tab hide" id="dt-t-pay" onclick="setTab('Pay')">
-        <span class="dt-tab-ico">💳</span>
+        <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad-2-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E5C07B" />
+              <stop offset="50%" stop-color="#C39B54" />
+              <stop offset="100%" stop-color="#A17A36" />
+            </linearGradient>
+            <linearGradient id="silver-grad-2-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F2F2F2" />
+              <stop offset="50%" stop-color="#BDBDBD" />
+              <stop offset="100%" stop-color="#8D8D8D" />
+            </linearGradient>
+          </defs>
+          <path d="M25 65L65 35M25 75L65 45" stroke="url(#silver-grad-2-d)" stroke-width="6" stroke-linecap="round"/>
+          <rect x="35" y="45" width="65" height="40" rx="4" transform="rotate(-30 35 45)" fill="url(#gold-grad-2-d)" stroke="url(#silver-grad-2-d)" stroke-width="6"/>
+          <circle cx="62" cy="52" r="8" fill="none" stroke="url(#silver-grad-2-d)" stroke-width="4"/>
+          <path d="M40 30L95 85M95 85H70M95 85V60" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.25))"/>
+          <path d="M40 30L95 85M95 85H70M95 85V60" stroke="url(#silver-grad-2-d)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></span>
         <span class="dt-tab-ar">مركز الدفع</span>
         <span class="dt-tab-en">Pay Hub</span>
       </button>
       <button class="dt-tab dt-rep" id="dt-t-rep" onclick="setTab('Report')">
-        <span class="dt-tab-ico">📄</span>
+        <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad-7-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E5C07B" />
+              <stop offset="50%" stop-color="#C39B54" />
+              <stop offset="100%" stop-color="#A17A36" />
+            </linearGradient>
+            <linearGradient id="silver-grad-7-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F2F2F2" />
+              <stop offset="50%" stop-color="#BDBDBD" />
+              <stop offset="100%" stop-color="#8D8D8D" />
+            </linearGradient>
+          </defs>
+          <path d="M35 34V98H85V74" stroke="url(#silver-grad-7-d)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M50 24H70M55 20H65" stroke="url(#gold-grad-7-d)" stroke-width="5" stroke-linecap="round"/>
+          <rect x="45" y="68" width="8" height="20" rx="2" fill="url(#gold-grad-7-d)"/>
+          <rect x="58" y="54" width="8" height="34" rx="2" fill="url(#gold-grad-7-d)"/>
+          <path d="M44 46L49 36L54 46M46 43H52" stroke="url(#gold-grad-7-d)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="74" y="64" width="30" height="42" rx="4" fill="#FFFFFF" stroke="url(#silver-grad-7-d)" stroke-width="5"/>
+          <rect x="80" y="70" width="18" height="6" rx="1" fill="url(#gold-grad-7-d)"/>
+          <circle cx="81" cy="84" r="2" fill="url(#silver-grad-7-d)"/><circle cx="89" cy="84" r="2" fill="url(#silver-grad-7-d)"/><circle cx="97" cy="84" r="2" fill="url(#silver-grad-7-d)"/>
+          <circle cx="81" cy="92" r="2" fill="url(#silver-grad-7-d)"/><circle cx="89" cy="92" r="2" fill="url(#silver-grad-7-d)"/><circle cx="97" cy="92" r="2" fill="url(#silver-grad-7-d)"/>
+        </svg></span>
         <span class="dt-tab-ar">تقارير</span>
         <span class="dt-tab-en">Reports</span>
       </button>
       <button class="dt-tab hide" id="dt-t-mtr" onclick="setTab('Meter')">
-        <span class="dt-tab-ico">📈</span>
+        <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad-4-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E5C07B" />
+              <stop offset="50%" stop-color="#C39B54" />
+              <stop offset="100%" stop-color="#A17A36" />
+            </linearGradient>
+            <linearGradient id="silver-grad-4-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F2F2F2" />
+              <stop offset="50%" stop-color="#BDBDBD" />
+              <stop offset="100%" stop-color="#8D8D8D" />
+            </linearGradient>
+          </defs>
+          <circle cx="64" cy="64" r="48" stroke="url(#silver-grad-4-d)" stroke-width="7" fill="none"/>
+          <circle cx="64" cy="64" r="40" fill="url(#gold-grad-4-d)" opacity="0.15"/>
+          <path d="M64 64L85 43" stroke="url(#silver-grad-4-d)" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="64" cy="64" r="5" fill="url(#silver-grad-4-d)"/>
+          <path d="M64 24L58 36H66L60 48" stroke="url(#silver-grad-4-d)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="40" y="76" width="48" height="16" rx="3" fill="#FFFFFF" stroke="url(#silver-grad-4-d)" stroke-width="3"/>
+          <text x="64" y="89" font-family="monospace" font-size="11" font-weight="bold" fill="url(#gold-grad-4-d)" text-anchor="middle" letter-spacing="1">03472</text>
+        </svg></span>
         <span class="dt-tab-ar">عدادات</span>
         <span class="dt-tab-en">Meters</span>
       </button>
       <button class="dt-tab hide" id="dt-t-com" onclick="setTab('Communications')">
-        <span class="dt-tab-ico">📡</span>
+        <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad-5-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E5C07B" />
+              <stop offset="50%" stop-color="#C39B54" />
+              <stop offset="100%" stop-color="#A17A36" />
+            </linearGradient>
+            <linearGradient id="silver-grad-5-d" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F2F2F2" />
+              <stop offset="50%" stop-color="#BDBDBD" />
+              <stop offset="100%" stop-color="#8D8D8D" />
+            </linearGradient>
+          </defs>
+          <rect x="45" y="55" width="60" height="42" rx="5" fill="none" stroke="url(#silver-grad-5-d)" stroke-width="6"/>
+          <path d="M45 58L75 78L105 58" stroke="url(#silver-grad-5-d)" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M92 48C98 48 103 42 101 35C98 25 85 20 75 24" stroke="url(#silver-grad-5-d)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="44" cy="44" r="26" fill="url(#gold-grad-5-d)" stroke="url(#silver-grad-5-d)" stroke-width="5"/>
+          <path d="M28 44L54 32L46 56L42 46L28 44Z" fill="#FFFFFF"/>
+        </svg></span>
         <span class="dt-tab-ar">مراسلات</span>
         <span class="dt-tab-en">Comms</span>
       </button>

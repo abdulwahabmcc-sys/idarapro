@@ -2073,7 +2073,23 @@
 
   <!-- Welcome state (shown briefly after correct PIN) -->
   <div class="lgn-welcome" id="lgn-welcome">
-    <div class="lgn-welcome-icon">✅</div>
+    <div class="lgn-welcome-icon" style="font-size:0; line-height:0;"><svg width="56" height="56" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="seal-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#E5C07B"/>
+          <stop offset="50%" stop-color="#C39B54"/>
+          <stop offset="100%" stop-color="#A17A36"/>
+        </linearGradient>
+        <linearGradient id="seal-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F2F2F2"/>
+          <stop offset="50%" stop-color="#A2B0C0"/>
+          <stop offset="100%" stop-color="#788896"/>
+        </linearGradient>
+      </defs>
+      <rect x="12" y="12" width="104" height="104" rx="24" fill="url(#seal-gold)" stroke="url(#seal-rim)" stroke-width="2"/>
+      <path d="M36 66L54 84L92 44" stroke="#000000" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.12" transform="translate(0,3)"/>
+      <path d="M36 66L54 84L92 44" stroke="#1B2A4A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg></div>
     <div class="lgn-welcome-name" id="lgn-welcome-name"></div>
     <div class="lgn-welcome-role" id="lgn-welcome-role"></div>
   </div>

@@ -3182,18 +3182,7 @@
          Render populated by _renderFinancialHealth() at Op 14.
          Visibility controlled by setTab('FH') / applyPermissionUI cascade. -->
     <div id="f-fh" class="hide" dir="rtl">
-      <!-- Header -->
-      <div class="fh-head">
-        <h1 class="fh-h1">
-          <span class="fh-hp">المؤشر المالي</span>
-          <span class="fh-en">Financial Health</span>
-        </h1>
-        <p class="fh-sub">
-          ما يملكه المبنى، وما له، وما عليه — بلمحة واحدة.
-          <span class="fh-en">What the building has, is owed, and owes — at a glance.</span>
-        </p>
-      </div>
-
+      <!-- FH-UX-1 D1: top preamble (title + tagline) removed; pane starts at the verdict hero. -->
       <!-- Verdict hero (state class set dynamically: fh-stable / fh-attention / fh-strained) -->
       <div id="fh-verdict" class="fh-verdict fh-stable">
         <div class="fh-verdict-main">
@@ -3335,33 +3324,7 @@
         </div>
       </div>
 
-      <!-- Band legend (3 bands; static — describes the scale) -->
-      <div class="fh-legend">
-        <div class="fh-band">
-          <span class="fh-band-dot" style="background: var(--forest);"></span>
-          <span>
-            <span class="fh-bp">مستقر</span>
-            <span class="fh-bx">النقد يغطّي كل ما على المبنى</span>
-            <span class="fh-en">Stable — cash covers all the building owes</span>
-          </span>
-        </div>
-        <div class="fh-band">
-          <span class="fh-band-dot" style="background: var(--gold-deep, #A8862F);"></span>
-          <span>
-            <span class="fh-bp">يستدعي الانتباه</span>
-            <span class="fh-bx">يُغطّى فقط بعد تحصيل الذمم</span>
-            <span class="fh-en">Attention — covered only once dues are collected</span>
-          </span>
-        </div>
-        <div class="fh-band">
-          <span class="fh-band-dot" style="background: var(--burg);"></span>
-          <span>
-            <span class="fh-bp">متعثّر</span>
-            <span class="fh-bx">ما على المبنى يفوق قدرته على التغطية</span>
-            <span class="fh-en">Strained — owes more than it can cover</span>
-          </span>
-        </div>
-      </div>
+      <!-- FH-UX-1 D3: band legend removed; pane ends after evidence cards. -->
     </div><!-- /f-fh -->
 
     <!-- Submit button — no more PIN field -->
@@ -9003,7 +8966,9 @@ function _renderFinancialHealth(data) {
 
   var band = data.band || 'attention';
   var bandInfo = BAND_LABELS[band] || BAND_LABELS['attention'];
-  var sentenceTpl = BAND_SENTENCES[band] || BAND_SENTENCES['attention'];
+
+  // FH-UX-1 D2 (Option a): band-sentence template var removed with the success-state builder.
+  // BAND_SENTENCES retained (unused) — not refactored per §7.
 
   // Verdict hero state class
   var verdictEl = _el('fh-verdict');
@@ -9017,28 +8982,13 @@ function _renderFinancialHealth(data) {
   if (verdictArEl) verdictArEl.textContent = bandInfo.ar;
   if (verdictEnEl) verdictEnEl.textContent = bandInfo.en;
 
-  // Verdict sentence with token interpolation
+  // FH-UX-1 D2 (Option a): verbose success-state verdict sentence builder removed.
+  // The #fh-verdict-sentence markup is intentionally PRESERVED as the error-writer target
+  // (loadFinancialHealth .catch). On success it must be EMPTIED — the markup ships with a
+  // default "Loading..." placeholder that the old builder used to overwrite; clear it here
+  // so the slot is blank/invisible on load success (ratified Option (a) behaviour).
   var sentenceEl = _el('fh-verdict-sentence');
-  if (sentenceEl) {
-    var netPosAbs = fmtMoney(Math.abs(data.netPosition));
-    var rate = _fmtRate(data.dues.collectionRate);
-    var shortfallAmt = fmtMoney(Math.max(0,
-      data.liabilities.total - Math.max(0, data.cash.total) - data.dues.outstanding));
-    var cashDeficitAmt = fmtMoney(Math.abs(Math.min(0, data.cash.total)));
-
-    var arText = sentenceTpl.ar
-      .replace('{netPos}', netPosAbs)
-      .replace('{rate}', rate)
-      .replace('{shortfall}', shortfallAmt)
-      .replace('{cashDeficit}', cashDeficitAmt);
-    var enText = sentenceTpl.en
-      .replace('{netPos}', netPosAbs)
-      .replace('{rate}', rate)
-      .replace('{shortfall}', shortfallAmt)
-      .replace('{cashDeficit}', cashDeficitAmt);
-
-    sentenceEl.innerHTML = arText + '<span class="fh-en">' + enText + '</span>';
-  }
+  if (sentenceEl) sentenceEl.innerHTML = '';
 
   // Net Position primary number
   var netEl = _el('fh-net-position');

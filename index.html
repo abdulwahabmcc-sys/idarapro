@@ -5316,6 +5316,21 @@ function applyPermissionUI(auth) {
   // only REP_SEC=true (the original Ghada bug).
   var hasAnyReport = perms.REP_BLD || perms.REP_SEC;
 
+  // MT-4.3 Change 1 (R-PERMS-FH frontend close): non-Admin Financial Health
+  // tab visibility. Parallels the Admin branch un-hide (t-fh + dt-t-fh at the
+  // role==='Admin' block above) gated on STRICT perms.FH === true. FH=FALSE or
+  // empty re-asserts the default 'hide' class so the tab stays hidden. The
+  // Admin path returns before reaching here, so Admin visibility is unaffected.
+  var tFhNon  = document.getElementById('t-fh');
+  var dtFhNon = document.getElementById('dt-t-fh');
+  if (perms && perms.FH === true) {
+    if (tFhNon)  tFhNon.classList.remove('hide');
+    if (dtFhNon) dtFhNon.classList.remove('hide');
+  } else {
+    if (tFhNon)  tFhNon.classList.add('hide');
+    if (dtFhNon) dtFhNon.classList.add('hide');
+  }
+
 
   if (!perms.INC) { 
     tInc.classList.add('hide'); 
@@ -11793,6 +11808,9 @@ function loadUsers() {
             (u.active
               ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',false)">إيقاف</button>'
               : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(u.name) + '\',true)">تفعيل</button>') +
+            (_session && _session.role === 'Admin'
+              ? '<button type="button" class="stg-user-btn danger" onclick="_forceExpireUserSession(\'' + escHtml(u.name) + '\')">إنهاء الجلسة / Force Expire</button>'
+              : '') +
           '</div>' +
         '</div>';
       }).join('');
@@ -11977,8 +11995,9 @@ function _openUserSheetInner(name, isEdit) {
     document.getElementById('usr-perm-mtr').checked = !!u.perms.MTR_RED;
     document.getElementById('usr-perm-dispatch').checked = !!u.perms.DISPATCH;
     document.getElementById('usr-perm-rep-sec').checked = !!u.perms.REP_SEC;
+    document.getElementById('usr-perm-fh').checked = !!u.perms.FH;
   } else {
-    ['usr-perm-inc','usr-perm-exp','usr-perm-inv','usr-perm-inv-pay','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec']
+    ['usr-perm-inc','usr-perm-exp','usr-perm-inv','usr-perm-inv-pay','usr-perm-rep-bld','usr-perm-rep-acc','usr-perm-mtr','usr-perm-dispatch','usr-perm-rep-sec','usr-perm-fh']
       .forEach(function(id){ document.getElementById(id).checked = false; });
   }
 
@@ -12067,7 +12086,8 @@ function submitUser() {
     REP_ACC: document.getElementById('usr-perm-rep-acc').checked,
     MTR_RED:  document.getElementById('usr-perm-mtr').checked,
     DISPATCH: document.getElementById('usr-perm-dispatch').checked,
-    REP_SEC:  document.getElementById('usr-perm-rep-sec').checked
+    REP_SEC:  document.getElementById('usr-perm-rep-sec').checked,
+    FH:       document.getElementById('usr-perm-fh').checked
   };
 
   var errEl = document.getElementById('usr-inline-err');
@@ -12721,6 +12741,30 @@ function resetPin(name) {
     .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); });
 }
 
+// MT-4.3 Change 3 (R-PERMS-FORCE-EXPIRE frontend UI): Admin force-expires a
+// user's active session (security revoke). Bilingual native confirm() matches
+// the user-management section convention (resetPin/toggleUserStatus use native
+// prompt/no-modal, not showConfirm). gasPost is invoked with the PROMISE
+// convention used throughout this file (.then/.catch) — NOT the callback shape
+// sketched in the dispatch. Backend forceExpireUserSession is gated by
+// forceExpireUserSessionForRouter (resolveAuth + Admin) per MT-4.2; router case
+// at Routers.gs L304.
+function _forceExpireUserSession(name) {
+  if (!sessionValid()) return;
+  var ok = confirm(
+    'Force expire ' + name + "'s session? They will be logged out immediately and required to log in again.\n\n" +
+    'إنهاء جلسة ' + name + '؟ سيتم تسجيل خروجهم فوراً وسيُطلب منهم تسجيل الدخول مرة أخرى.'
+  );
+  if (!ok) return;
+  gasPost({ action: 'forceExpireUserSession', payload: { userName: name, reason: '' }, token: _session.token })
+    .then(function() {
+      toast('✅ Session expired for ' + name + ' / تم إنهاء الجلسة', 'ok');
+    })
+    .catch(function(e) {
+      toast(_iconOnce('❌', e.message), 'fail');
+    });
+}
+
 function toggleUserStatus(name, activate) {
   if (!sessionValid()) return;
 
@@ -12750,6 +12794,9 @@ function toggleUserStatus(name, activate) {
           (usr.active
             ? '<button class="stg-user-btn danger" onclick="toggleUserStatus(\'' + escHtml(usr.name) + '\',false)">إيقاف</button>'
             : '<button class="stg-user-btn" onclick="toggleUserStatus(\'' + escHtml(usr.name) + '\',true)">تفعيل</button>') +
+          (_session && _session.role === 'Admin'
+            ? '<button type="button" class="stg-user-btn danger" onclick="_forceExpireUserSession(\'' + escHtml(usr.name) + '\')">إنهاء الجلسة / Force Expire</button>'
+            : '') +
         '</div>' +
       '</div>';
     }).join('');
@@ -17131,6 +17178,9 @@ function fmtMoney(val) {
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
           <input type="checkbox" id="usr-perm-rep-sec"> بيانات الأقسام / Statements
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <input type="checkbox" id="usr-perm-fh"> Financial Health / الصحة المالية
         </label>
       </div>
     </div>

@@ -2339,6 +2339,15 @@
     <!-- Status + attempts (shown on wrong PIN / error) -->
     <div class="lgn-status" id="lgn-status"></div>
     <div class="lgn-attempts" id="lgn-attempts"></div>
+
+    <!-- R-AUTH-FULLPW MT-FP-7: password / setup affordances. PIN above stays
+         the primary path on trusted devices; these open the email+password
+         panel without touching the PIN numeric path. -->
+    <div style="margin-top:18px; text-align:center; line-height:1.9;">
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Sign in with password | الدخول بكلمة المرور</button>
+      <br>
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('provision')">First time? Set up email &amp; password | لأول مرة؟ إعداد البريد وكلمة المرور</button>
+    </div>
   </div>
 
   <!-- Lockout banner -->
@@ -2352,6 +2361,173 @@
 
 </div>
 <!-- /login-screen -->
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     R-AUTH-FULLPW MT-FP-7 — frontend auth surfaces (step-up, AD notice,
+     password login, reset/verify, provisioning). Bilingual EN/AR.
+     z-index sits above app chrome but the login-screen (z:10000, Patch 5b)
+     and session-expired-overlay are unaffected.
+     ════════════════════════════════════════════════════════════════════════ -->
+<style id="mtfp7-styles">
+  .mtfp7-modal { position:fixed; inset:0; z-index:2147483646; display:none;
+    align-items:center; justify-content:center; background:rgba(27,42,74,0.55);
+    padding:18px; box-sizing:border-box; }
+  .mtfp7-modal.show { display:flex; }
+  .mtfp7-card { background:var(--surf,#fff); border-radius:18px; width:100%;
+    max-width:360px; box-sizing:border-box; padding:22px 20px; box-shadow:0 12px 40px rgba(27,42,74,0.28);
+    font-family:var(--font, system-ui); max-height:92vh; overflow-y:auto; }
+  .mtfp7-card h3 { margin:0 0 4px; font-size:15px; color:var(--navy,#1B2A4A); font-weight:700; }
+  .mtfp7-sub { font-size:12px; color:var(--muted,#6b7280); margin:0 0 14px; line-height:1.7; }
+  .mtfp7-card label { display:block; font-size:10px; font-weight:600; letter-spacing:0.6px;
+    text-transform:uppercase; color:var(--muted,#6b7280); margin:12px 0 5px; }
+  .mtfp7-card input { width:100%; box-sizing:border-box; background:var(--surf,#fff);
+    border:1.5px solid var(--bdr,#d8dde6); border-radius:12px; padding:10px 12px;
+    font-size:15px; color:var(--navy,#1B2A4A); outline:none; font-family:var(--font, system-ui); }
+  .mtfp7-card input:focus { border-color:var(--gold,#C9A84C); box-shadow:0 0 0 3px rgba(201,168,76,0.16); }
+  .mtfp7-row { display:flex; gap:8px; margin-top:14px; }
+  .mtfp7-btn { flex:1; border:none; border-radius:12px; padding:11px 12px; font-size:13px;
+    font-weight:600; cursor:pointer; font-family:var(--font, system-ui); line-height:1.4; }
+  .mtfp7-btn.primary { background:var(--navy,#1B2A4A); color:#fff; }
+  .mtfp7-btn.gold { background:var(--gold,#C9A84C); color:#1B2A4A; }
+  .mtfp7-btn.ghost { background:transparent; color:var(--muted,#6b7280); border:1.5px solid var(--bdr,#d8dde6); }
+  .mtfp7-msg { font-size:12px; line-height:1.7; margin-top:12px; min-height:18px; color:var(--navy,#1B2A4A); word-break:break-word; }
+  .mtfp7-link { display:inline-block; margin:6px 8px 0 0; font-size:12px; color:var(--navy,#1B2A4A);
+    background:none; border:none; cursor:pointer; text-decoration:underline; font-family:var(--font, system-ui); padding:0; }
+  .mtfp7-hr { border:none; border-top:1px solid var(--bdr,#e6e9ef); margin:16px 0; }
+</style>
+
+<!-- Step-up modal (SC-4) -->
+<div class="mtfp7-modal" id="stepup-modal">
+  <div class="mtfp7-card">
+    <h3 id="su-title-en">Authorize this action</h3>
+    <div class="mtfp7-sub" id="su-title-ar" style="direction:rtl;">اعتماد العملية</div>
+    <input type="password" id="su-input" inputmode="numeric" maxlength="4" autocomplete="off"
+           placeholder="••••" onkeydown="if(event.key==='Enter'){_stepUpSubmit();}">
+    <div class="mtfp7-msg" id="su-msg"></div>
+    <div class="mtfp7-row">
+      <button type="button" class="mtfp7-btn ghost" onclick="_stepUpCancel()">Cancel | إلغاء</button>
+      <button type="button" class="mtfp7-btn gold" onclick="_stepUpSubmit()">Authorize | اعتماد</button>
+    </div>
+  </div>
+</div>
+
+<!-- AD-runtime required (SC-2 Gate-2) — distinct from step-up -->
+<div class="mtfp7-modal" id="adreq-modal">
+  <div class="mtfp7-card">
+    <h3>⚠️ Email verification needed</h3>
+    <div class="mtfp7-sub" id="adreq-msg-en">Email verification required before authorizing cash actions.</div>
+    <div class="mtfp7-sub" id="adreq-msg-ar" style="direction:rtl;">يلزم التحقق من بريدك الإلكتروني قبل اعتماد العمليات المالية.</div>
+    <div class="mtfp7-row">
+      <button type="button" class="mtfp7-btn ghost" onclick="_adreqClose()">Close | إغلاق</button>
+      <button type="button" class="mtfp7-btn primary" onclick="_adreqGoVerify()">Verify email | تحقّق من البريد</button>
+    </div>
+  </div>
+</div>
+
+<!-- Auth panel: password login / reset / verify / provisioning -->
+<div class="mtfp7-modal" id="auth-panel">
+  <div class="mtfp7-card">
+
+    <!-- Password login -->
+    <div id="ap-login">
+      <h3>Sign in with password</h3>
+      <div class="mtfp7-sub" style="direction:rtl;">تسجيل الدخول بالبريد وكلمة المرور</div>
+      <label>Email | البريد الإلكتروني</label>
+      <input type="email" id="pw-email" autocomplete="username" inputmode="email" placeholder="name@example.com">
+      <label>Password | كلمة المرور</label>
+      <input type="password" id="pw-password" autocomplete="current-password" placeholder="••••••••••••"
+             onkeydown="if(event.key==='Enter'){submitPasswordLogin();}">
+      <div class="mtfp7-msg" id="pw-msg"></div>
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn ghost" onclick="closeAuthPanel()">Cancel | إلغاء</button>
+        <button type="button" class="mtfp7-btn primary" id="pw-submit" onclick="submitPasswordLogin()">Sign in | دخول</button>
+      </div>
+      <hr class="mtfp7-hr">
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('resetReq')">Forgot password? | نسيت كلمة المرور؟</button>
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('verify')">Verify email | تأكيد البريد</button>
+    </div>
+
+    <!-- Reset request -->
+    <div id="ap-reset-req" style="display:none;">
+      <h3>Reset your password</h3>
+      <div class="mtfp7-sub">Enter your email and we'll send a reset code. | أدخل بريدك وسنرسل رمز إعادة التعيين.</div>
+      <label>Email | البريد الإلكتروني</label>
+      <input type="email" id="rr-email" inputmode="email" placeholder="name@example.com">
+      <div class="mtfp7-msg" id="rr-msg"></div>
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn ghost" onclick="openAuthPanel('login')">Back | رجوع</button>
+        <button type="button" class="mtfp7-btn primary" onclick="submitResetRequest()">Send code | إرسال الرمز</button>
+      </div>
+      <hr class="mtfp7-hr">
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('resetConfirm')">I have a code | لديّ رمز</button>
+    </div>
+
+    <!-- Reset confirm -->
+    <div id="ap-reset-confirm" style="display:none;">
+      <h3>Enter reset code</h3>
+      <div class="mtfp7-sub">Code expires in 30 minutes, single use. | ينتهي الرمز خلال 30 دقيقة ويُستخدم مرة واحدة.</div>
+      <label>Email | البريد الإلكتروني</label>
+      <input type="email" id="rc-email" inputmode="email" placeholder="name@example.com">
+      <label>Reset code | رمز إعادة التعيين</label>
+      <input type="text" id="rc-token" autocomplete="off" placeholder="code from email">
+      <label>New password | كلمة المرور الجديدة</label>
+      <input type="password" id="rc-pw" autocomplete="new-password" placeholder="at least 12 characters">
+      <div class="mtfp7-msg" id="rc-msg"></div>
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn ghost" onclick="openAuthPanel('login')">Back | رجوع</button>
+        <button type="button" class="mtfp7-btn primary" onclick="submitResetConfirm()">Set password | تعيين</button>
+      </div>
+    </div>
+
+    <!-- Email verify -->
+    <div id="ap-verify" style="display:none;">
+      <h3>Verify your email</h3>
+      <div class="mtfp7-sub">Send a code, then enter it to confirm your email. | أرسل رمزاً ثم أدخله لتأكيد بريدك.</div>
+      <label>Email | البريد الإلكتروني</label>
+      <input type="email" id="ev-email" inputmode="email" placeholder="name@example.com">
+      <label>Verification code | رمز التحقق</label>
+      <input type="text" id="ev-code" autocomplete="off" placeholder="code from email">
+      <div class="mtfp7-msg" id="ev-msg"></div>
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn ghost" onclick="submitSendVerification()">Send code | إرسال الرمز</button>
+        <button type="button" class="mtfp7-btn primary" onclick="submitConfirmVerification()">Verify | تحقّق</button>
+      </div>
+      <hr class="mtfp7-hr">
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Back | رجوع</button>
+    </div>
+
+    <!-- Provisioning (Q1 reset-flow reuse): verify email → set password -->
+    <div id="ap-provision" style="display:none;">
+      <h3>Set up email &amp; password</h3>
+      <div class="mtfp7-sub">Step 1 — verify your email. Step 2 — set a password. Your PIN keeps working. | الخطوة 1 تحقّق من البريد، الخطوة 2 عيّن كلمة المرور. يبقى رمزك فعّالاً.</div>
+      <label>Email | البريد الإلكتروني</label>
+      <input type="email" id="pv-email" inputmode="email" placeholder="name@example.com">
+      <label>Verification code | رمز التحقق</label>
+      <input type="text" id="pv-vcode" autocomplete="off" placeholder="code from email">
+      <div class="mtfp7-msg" id="pv-msg"></div>
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn ghost" onclick="pvSendVerify()">Send code | إرسال الرمز</button>
+        <button type="button" class="mtfp7-btn primary" onclick="pvConfirmVerify()">Verify email | تحقّق</button>
+      </div>
+      <div id="pv-step2" style="display:none;">
+        <hr class="mtfp7-hr">
+        <div class="mtfp7-sub">Step 2 — set your password. | الخطوة 2 عيّن كلمة المرور.</div>
+        <label>Setup code | رمز الإعداد</label>
+        <input type="text" id="pv-scode" autocomplete="off" placeholder="code from email">
+        <label>New password | كلمة المرور الجديدة</label>
+        <input type="password" id="pv-pw" autocomplete="new-password" placeholder="at least 12 characters">
+        <div class="mtfp7-msg" id="pv-msg2"></div>
+        <div class="mtfp7-row">
+          <button type="button" class="mtfp7-btn ghost" onclick="pvSendSetupCode()">Send setup code | إرسال رمز الإعداد</button>
+          <button type="button" class="mtfp7-btn gold" onclick="pvSetPassword()">Set password | تعيين</button>
+        </div>
+      </div>
+      <hr class="mtfp7-hr">
+      <button type="button" class="mtfp7-link" onclick="closeAuthPanel()">Done | تم</button>
+    </div>
+
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════
      TOAST
@@ -3973,8 +4149,27 @@ function gasPost(body) {
         _decrementOnce();
         throw new Error(r.error);
       }
+      // ── R-AUTH-FULLPW MT-FP-7 — centralized step-up / AD-runtime interceptor ──
+      // processEntry / processInvoicePayment return the gate object as a NORMAL
+      // value (no throw) → router wraps {ok:true, data:{...}} → r.data carries the
+      // gate signal here. stepUpRequired / adRequired are emitted ONLY by
+      // requireCashActionAuth — no other action emits them, and the registered
+      // previewFiscalClose double-wrap rides gasGet / its own unwrap, so there is
+      // no overlap with the actions this interceptor wraps. Single unwrap site →
+      // every cash callsite (~94) is covered once; the retry re-issues the FULL
+      // original body (same action + payload), not a partial.
+      var _d = r.data;
+      if (_d && _d.stepUpRequired === true) {
+        _decrementOnce();
+        return _handleStepUp(_d.factor, body);   // prompt → verifyStepUp → retry(body); rejects on cancel/lock/fail
+      }
+      if (_d && _d.adRequired === true) {
+        _decrementOnce();
+        showAdRequiredPrompt(_d.message);          // distinct from step-up → routes to email-verify
+        throw new Error(_d.message || 'Email verification required. | يلزم التحقق من البريد الإلكتروني.');
+      }
       _decrementOnce();
-      return r.data;
+      return _d;
     })
     .catch(function(e) {
       // Catches: network errors, JSON parse failures, AND re-throws from
@@ -3982,6 +4177,219 @@ function gasPost(body) {
       _decrementOnce();
       throw e;
     });
+}
+
+// ============================================================================
+// R-AUTH-FULLPW MT-FP-7 — FRONTEND AUTH FLOWS
+// Step-up re-prompt + AD-runtime notice + password login + reset/verify +
+// clean provisioning (reset-flow reuse, Q1 ratified). Bilingual EN/AR.
+// Contracts verified against live Auth.gs + Routers.gs (CONTRACT LOCK).
+// All backend calls go through gasPost (deviceId auto-injected).
+// ============================================================================
+
+var _stepUpFactor  = null;   // 'PIN' | 'PASSWORD' for the active prompt
+var _stepUpResolve = null;   // resolver for the active step-up promise
+
+/**
+ * _handleStepUp(factor, originalBody) — centralized cash-action step-up.
+ * Prompts inline for the missing factor, calls verifyStepUp, and on success
+ * RE-ISSUES the full original body (same action + payload) exactly once,
+ * resolving with the retried action's data. Rejects on cancel / lockout /
+ * wrong factor so the caller's .catch() handles it. Returns a Promise.
+ */
+function _handleStepUp(factor, originalBody) {
+  return _promptStepUp(factor).then(function(value) {
+    if (value === null) {
+      var ce = new Error('Step-up cancelled. | تم إلغاء التحقق الإضافي.');
+      ce._stepUpCancelled = true;
+      throw ce;
+    }
+    var vbody = { action: 'verifyStepUp', token: (_session && _session.token) };
+    if (factor === 'PIN') { vbody.pin = value; } else { vbody.password = value; }
+    // verifyStepUp returns {ok:true} | {ok:false, locked?, message} (router-wrapped → r.data).
+    return gasPost(vbody).then(function(vr) {
+      if (vr && vr.ok === true) {
+        return gasPost(originalBody);   // elevation recorded backend-side → retry ORIGINAL action once
+      }
+      var m = (vr && vr.locked)
+        ? '🔒 Account locked. Contact your administrator. | تم تجميد الحساب. تواصل مع المسؤول.'
+        : ((vr && vr.message) ? vr.message
+            : (factor === 'PIN' ? 'Incorrect PIN. | رمز غير صحيح.'
+                                : 'Incorrect password. | كلمة مرور غير صحيحة.'));
+      toast('🛑 ' + m, 'error');
+      throw new Error(m);
+    });
+  });
+}
+
+function _promptStepUp(factor) {
+  return new Promise(function(resolve) {
+    _stepUpFactor = factor;
+    document.getElementById('su-title-en').textContent =
+      (factor === 'PIN') ? 'Enter your PIN to authorize this action'
+                         : 'Enter your password to authorize this action';
+    document.getElementById('su-title-ar').textContent =
+      (factor === 'PIN') ? 'أدخل رمزك لاعتماد هذه العملية'
+                         : 'أدخل كلمة المرور لاعتماد هذه العملية';
+    var inp = document.getElementById('su-input');
+    inp.value = '';
+    if (factor === 'PIN') { inp.setAttribute('inputmode', 'numeric'); inp.setAttribute('maxlength', '4'); }
+    else { inp.setAttribute('inputmode', 'text'); inp.removeAttribute('maxlength'); }
+    document.getElementById('su-msg').textContent = '';
+    document.getElementById('stepup-modal').classList.add('show');
+    setTimeout(function() { inp.focus(); }, 50);
+    _stepUpResolve = resolve;
+  });
+}
+function _stepUpSubmit() {
+  var v = String(document.getElementById('su-input').value || '').trim();
+  if (!v) {
+    document.getElementById('su-msg').textContent =
+      (_stepUpFactor === 'PIN') ? 'PIN required. | الرمز مطلوب.' : 'Password required. | كلمة المرور مطلوبة.';
+    return;
+  }
+  document.getElementById('stepup-modal').classList.remove('show');
+  var r = _stepUpResolve; _stepUpResolve = null;
+  if (r) r(v);
+}
+function _stepUpCancel() {
+  document.getElementById('stepup-modal').classList.remove('show');
+  var r = _stepUpResolve; _stepUpResolve = null;
+  if (r) r(null);
+}
+
+/** AD-runtime notice (SC-2 Gate-2) — distinct from step-up; routes to email-verify. */
+function showAdRequiredPrompt(message) {
+  document.getElementById('adreq-msg-en').textContent =
+    message || 'Email verification required before authorizing cash actions.';
+  document.getElementById('adreq-msg-ar').textContent =
+    'يلزم التحقق من بريدك الإلكتروني قبل اعتماد العمليات المالية.';
+  document.getElementById('adreq-modal').classList.add('show');
+}
+function _adreqClose() { document.getElementById('adreq-modal').classList.remove('show'); }
+function _adreqGoVerify() { _adreqClose(); openAuthPanel('verify'); }
+
+// ── Auth panel (password login / reset / verify / provisioning) ──────────────
+function openAuthPanel(which) {
+  var ids = ['ap-login', 'ap-reset-req', 'ap-reset-confirm', 'ap-verify', 'ap-provision'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.style.display = 'none';
+  }
+  var map = { login: 'ap-login', resetReq: 'ap-reset-req', resetConfirm: 'ap-reset-confirm',
+              verify: 'ap-verify', provision: 'ap-provision' };
+  var show = document.getElementById(map[which] || 'ap-login');
+  if (show) show.style.display = 'block';
+  document.getElementById('auth-panel').classList.add('show');
+}
+function closeAuthPanel() { document.getElementById('auth-panel').classList.remove('show'); }
+function _setMsg(id, msg) { var el = document.getElementById(id); if (el) el.textContent = msg || ''; }
+
+/** Password login — displace-by-intent; no singleSessionPrompt handshake. */
+function submitPasswordLogin() {
+  var email = String(document.getElementById('pw-email').value || '').trim();
+  var pass  = String(document.getElementById('pw-password').value || '');
+  if (!email || !pass) { _setMsg('pw-msg', '⚠️ Email and password required. | البريد وكلمة المرور مطلوبان.'); return; }
+  _setMsg('pw-msg', '');
+  document.getElementById('pw-submit').disabled = true;
+  gasPost({
+    action: 'loginWithPassword',
+    email: email,
+    password: pass,
+    deviceId: getOrCreateDeviceId(),
+    token: (_session && _session.token)   // defensive — none exists pre-login
+  })
+  .then(function(r) {
+    document.getElementById('pw-submit').disabled = false;
+    if (!r || !r.user) { _setMsg('pw-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); return; }
+    closeAuthPanel();
+    onLoginSuccess(r.user, r.token);
+  })
+  .catch(function(e) {
+    document.getElementById('pw-submit').disabled = false;
+    var msg = (e && e.message) ? String(e.message) : '';
+    if (msg.indexOf('Too many attempts') !== -1) { _setMsg('pw-msg', '⏳ ' + msg); }
+    else if (msg.toLowerCase().indexOf('invalid') !== -1) { _setMsg('pw-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); }
+    else { _setMsg('pw-msg', '📡 Network issue — check your connection. | مشكلة في الاتصال.'); }
+  });
+}
+
+// ── Reset request (generic/neutral — no enumeration oracle) ──
+function submitResetRequest() {
+  var email = String(document.getElementById('rr-email').value || '').trim();
+  if (!email) { _setMsg('rr-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
+  var NEUTRAL = '✅ If that account exists, a reset code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز إعادة التعيين.';
+  gasPost({ action: 'requestPasswordReset', email: email })
+    .then(function() { _setMsg('rr-msg', NEUTRAL); })
+    .catch(function() { _setMsg('rr-msg', NEUTRAL); });   // neutral on error too
+}
+// ── Reset confirm (token = emailed code; anonymous; backend enforces strength + SC-2 AD-gate) ──
+function submitResetConfirm() {
+  var email = String(document.getElementById('rc-email').value || '').trim();
+  var code  = String(document.getElementById('rc-token').value || '').trim();
+  var pw    = String(document.getElementById('rc-pw').value || '');
+  if (!email || !code || !pw) { _setMsg('rc-msg', '⚠️ All fields required. | جميع الحقول مطلوبة.'); return; }
+  gasPost({ action: 'confirmPasswordReset', email: email, token: code, newPassword: pw })
+    .then(function(r) { _setMsg('rc-msg', '✅ ' + ((r && r.message) || 'Password updated. Please log in with your new password.')); })
+    .catch(function(e) { _setMsg('rc-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired reset. | إعادة تعيين غير صالحة أو منتهية.')); });
+}
+// ── Email verification (send + confirm) ──
+function submitSendVerification() {
+  var email = String(document.getElementById('ev-email').value || '').trim();
+  if (!email) { _setMsg('ev-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
+  var NEUTRAL = '✅ If that account exists, a verification code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز التحقق.';
+  gasPost({ action: 'sendEmailVerification', email: email })
+    .then(function() { _setMsg('ev-msg', NEUTRAL); })
+    .catch(function() { _setMsg('ev-msg', NEUTRAL); });
+}
+function submitConfirmVerification() {
+  var email = String(document.getElementById('ev-email').value || '').trim();
+  var code  = String(document.getElementById('ev-code').value || '').trim();
+  if (!email || !code) { _setMsg('ev-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
+  gasPost({ action: 'confirmEmailVerification', email: email, code: code })
+    .then(function(r) { _setMsg('ev-msg', '✅ ' + ((r && r.message) || 'Email verified. | تم التحقق من البريد.')); })
+    .catch(function(e) { _setMsg('ev-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
+}
+
+// ── Clean provisioning (Q1 ratified: reset-flow reuse) ──
+// Step 1: verify email → AD=TRUE.  Step 2: request + confirm password-set code.
+// confirmPasswordReset's SC-2 AD-gate enforces the privileged precondition in
+// ONE place (no second enforcement site). PIN stays live throughout.
+function pvSendVerify() {
+  var email = String(document.getElementById('pv-email').value || '').trim();
+  if (!email) { _setMsg('pv-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
+  var NEUTRAL = '✅ If that account exists, a verification code has been sent. | تم إرسال رمز التحقق إن وُجد الحساب.';
+  gasPost({ action: 'sendEmailVerification', email: email })
+    .then(function() { _setMsg('pv-msg', NEUTRAL); })
+    .catch(function() { _setMsg('pv-msg', NEUTRAL); });
+}
+function pvConfirmVerify() {
+  var email = String(document.getElementById('pv-email').value || '').trim();
+  var code  = String(document.getElementById('pv-vcode').value || '').trim();
+  if (!email || !code) { _setMsg('pv-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
+  gasPost({ action: 'confirmEmailVerification', email: email, code: code })
+    .then(function(r) {
+      _setMsg('pv-msg', '✅ ' + ((r && r.message) || 'Email verified.') + ' — now set your password below. | الآن عيّن كلمة المرور أدناه.');
+      document.getElementById('pv-step2').style.display = 'block';
+    })
+    .catch(function(e) { _setMsg('pv-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification.')); });
+}
+function pvSendSetupCode() {
+  var email = String(document.getElementById('pv-email').value || '').trim();
+  if (!email) { _setMsg('pv-msg2', '⚠️ Email required. | البريد مطلوب.'); return; }
+  var NEUTRAL = '✅ If that account exists, a setup code has been sent. | تم إرسال رمز الإعداد إن وُجد الحساب.';
+  gasPost({ action: 'requestPasswordReset', email: email })
+    .then(function() { _setMsg('pv-msg2', NEUTRAL); })
+    .catch(function() { _setMsg('pv-msg2', NEUTRAL); });
+}
+function pvSetPassword() {
+  var email = String(document.getElementById('pv-email').value || '').trim();
+  var code  = String(document.getElementById('pv-scode').value || '').trim();
+  var pw    = String(document.getElementById('pv-pw').value || '');
+  if (!email || !code || !pw) { _setMsg('pv-msg2', '⚠️ All fields required. | جميع الحقول مطلوبة.'); return; }
+  gasPost({ action: 'confirmPasswordReset', email: email, token: code, newPassword: pw })
+    .then(function(r) { _setMsg('pv-msg2', '✅ ' + ((r && r.message) || 'Password set. You can now log in with email + password.') + ' | تم تعيين كلمة المرور.'); })
+    .catch(function(e) { _setMsg('pv-msg2', '⚠️ ' + ((e && e.message) || 'Could not set password. | تعذّر تعيين كلمة المرور.')); });
 }
 
 // ============================================================================

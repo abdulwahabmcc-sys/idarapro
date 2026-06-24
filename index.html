@@ -5583,7 +5583,11 @@ function doLogout() {
 
   // Reset welcome state for next login
   document.getElementById('lgn-welcome').classList.remove('show');
-  document.getElementById('lgn-main').style.display = '';
+  // R-AUTH-UX §3: logout-path #lgn-main reveal neutralized to 'none' (was '') — it was
+  // dead + ordering-dependent. showLoginScreen() below re-runs the trust-gated mount, so the
+  // ONLY reveal-to-visible of the PIN pad is now the getLoginMode-gated site in
+  // routeToPinFastUnlock (grep-verifiable: sole `lgn-main').style.display = ''`).
+  document.getElementById('lgn-main').style.display = 'none';
   for (var i = 0; i < 4; i++)
     document.getElementById('d' + i).classList.remove('filled','error','success');
 

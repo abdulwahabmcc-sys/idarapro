@@ -2247,6 +2247,32 @@
     <div class="lgn-welcome-role" id="lgn-welcome-role"></div>
   </div>
 
+  <!-- R-AUTH-UX SC-UX-3 / Q1=A: EMAIL-FIRST primary landing. On a cold/untrusted device the
+       PIN pad (#lgn-main) is NOT mounted — email/password IS the screen. The PIN fast-unlock
+       is revealed ONLY after getLoginMode returns PIN for the entered email (trusted device). -->
+  <div id="lgn-emailfirst" style="display:none; width:100%; max-width:300px; margin:0 auto;">
+    <label class="lf-label">Email | البريد الإلكتروني</label>
+    <input type="email" id="lf-email" autocomplete="username" inputmode="email" placeholder="name@example.com"
+           onkeydown="if(event.key==='Enter'){landingContinue();}">
+    <div id="lf-pw-wrap" style="display:none;">
+      <label class="lf-label">Password | كلمة المرور</label>
+      <input type="password" id="lf-pw" autocomplete="current-password" placeholder="••••••••••••"
+             onkeydown="if(event.key==='Enter'){landingPasswordLogin();}">
+    </div>
+    <div class="mtfp7-msg" id="lf-msg"></div>
+    <div class="mtfp7-row">
+      <button type="button" class="mtfp7-btn primary" id="lf-continue" onclick="landingContinue()">Continue | متابعة</button>
+    </div>
+    <div id="lf-pw-actions" style="display:none;">
+      <div class="mtfp7-row">
+        <button type="button" class="mtfp7-btn gold" onclick="landingPasswordLogin()">Sign in | دخول</button>
+      </div>
+    </div>
+    <hr class="mtfp7-hr">
+    <button type="button" class="mtfp7-link" onclick="openAuthPanel('resetReq')">Forgot password? | نسيت كلمة المرور؟</button>
+    <button type="button" class="mtfp7-link" onclick="openAuthPanel('newuser')">First time? Set up email &amp; password | لأول مرة؟</button>
+  </div>
+
   <!-- Normal login state -->
   <div id="lgn-main">
     <!-- Name input — Phase 12 Step 2a -->
@@ -2346,7 +2372,7 @@
     <div style="margin-top:18px; text-align:center; line-height:1.9;">
       <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Sign in with password | الدخول بكلمة المرور</button>
       <br>
-      <button type="button" class="mtfp7-link" onclick="openAuthPanel('provision')">First time? Set up email &amp; password | لأول مرة؟ إعداد البريد وكلمة المرور</button>
+      <button type="button" class="mtfp7-link" onclick="openAuthPanel('newuser')">First time? Set up email &amp; password | لأول مرة؟ إعداد البريد وكلمة المرور</button>
     </div>
   </div>
 
@@ -2394,6 +2420,9 @@
   .mtfp7-link { display:inline-block; margin:6px 8px 0 0; font-size:12px; color:var(--navy,#1B2A4A);
     background:none; border:none; cursor:pointer; text-decoration:underline; font-family:var(--font, system-ui); padding:0; }
   .mtfp7-hr { border:none; border-top:1px solid var(--bdr,#e6e9ef); margin:16px 0; }
+  #lgn-emailfirst .lf-label { display:block; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted,#6b7280); text-align:center; margin:12px 0 6px; }
+  #lgn-emailfirst input { width:100%; box-sizing:border-box; background:var(--surf,#fff); border:1.5px solid var(--bdr,#d8dde6); border-radius:12px; padding:11px 12px; font-size:15px; color:var(--navy,#1B2A4A); outline:none; font-family:var(--font, system-ui); text-align:center; }
+  #lgn-emailfirst input:focus { border-color:var(--gold,#C9A84C); box-shadow:0 0 0 3px rgba(201,168,76,0.16); }
 </style>
 
 <!-- Step-up modal (SC-4) -->
@@ -2433,7 +2462,13 @@
       <h3>Sign in with password</h3>
       <div class="mtfp7-sub" style="direction:rtl;">تسجيل الدخول بالبريد وكلمة المرور</div>
       <label>Email | البريد الإلكتروني</label>
-      <input type="email" id="pw-email" autocomplete="username" inputmode="email" placeholder="name@example.com">
+      <input type="email" id="pw-email" autocomplete="username" inputmode="email" placeholder="name@example.com"
+             onblur="routeLoginMode()">
+      <!-- R-AUTH-UX Q1-A: device-trust routing. getLoginMode returns PIN only on a trusted
+           device (fingerprint match) → offer PIN fast-unlock; every miss → stays password. -->
+      <div id="pw-pin-hint" style="display:none; margin:8px 0 0;">
+        <button type="button" class="mtfp7-link" onclick="closeAuthPanel()">✓ This device is trusted — use your PIN instead | هذا الجهاز موثوق — استخدم رمزك</button>
+      </div>
       <label>Password | كلمة المرور</label>
       <input type="password" id="pw-password" autocomplete="current-password" placeholder="••••••••••••"
              onkeydown="if(event.key==='Enter'){submitPasswordLogin();}">
@@ -2496,30 +2531,27 @@
       <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Back | رجوع</button>
     </div>
 
-    <!-- Provisioning (Q1 reset-flow reuse): verify email → set password -->
-    <div id="ap-provision" style="display:none;">
+    <!-- §A new-user provisioning (grant-based; single popup, no second emailed code) -->
+    <div id="ap-newuser" style="display:none;">
       <h3>Set up email &amp; password</h3>
-      <div class="mtfp7-sub">Step 1 — verify your email. Step 2 — set a password. Your PIN keeps working. | الخطوة 1 تحقّق من البريد، الخطوة 2 عيّن كلمة المرور. يبقى رمزك فعّالاً.</div>
+      <div class="mtfp7-sub">Step 1 — verify your email. Step 2 — set a password. Your PIN keeps working. | الخطوة 1 تحقّق من بريدك، الخطوة 2 عيّن كلمة المرور. يبقى رمزك فعّالاً.</div>
       <label>Email | البريد الإلكتروني</label>
-      <input type="email" id="pv-email" inputmode="email" placeholder="name@example.com">
+      <input type="email" id="nu-email" inputmode="email" placeholder="name@example.com">
       <label>Verification code | رمز التحقق</label>
-      <input type="text" id="pv-vcode" autocomplete="off" placeholder="code from email">
-      <div class="mtfp7-msg" id="pv-msg"></div>
+      <input type="text" id="nu-vcode" autocomplete="off" placeholder="code from email">
+      <div class="mtfp7-msg" id="nu-msg"></div>
       <div class="mtfp7-row">
-        <button type="button" class="mtfp7-btn ghost" onclick="pvSendVerify()">Send code | إرسال الرمز</button>
-        <button type="button" class="mtfp7-btn primary" onclick="pvConfirmVerify()">Verify email | تحقّق</button>
+        <button type="button" class="mtfp7-btn ghost" onclick="nuSendVerify()">Send code | إرسال الرمز</button>
+        <button type="button" class="mtfp7-btn primary" onclick="nuConfirmVerify()">Verify email | تحقّق</button>
       </div>
-      <div id="pv-step2" style="display:none;">
+      <div id="nu-step2" style="display:none;">
         <hr class="mtfp7-hr">
         <div class="mtfp7-sub">Step 2 — set your password. | الخطوة 2 عيّن كلمة المرور.</div>
-        <label>Setup code | رمز الإعداد</label>
-        <input type="text" id="pv-scode" autocomplete="off" placeholder="code from email">
         <label>New password | كلمة المرور الجديدة</label>
-        <input type="password" id="pv-pw" autocomplete="new-password" placeholder="at least 12 characters">
-        <div class="mtfp7-msg" id="pv-msg2"></div>
+        <input type="password" id="nu-pw" autocomplete="new-password" placeholder="at least 12 characters">
+        <div class="mtfp7-msg" id="nu-msg2"></div>
         <div class="mtfp7-row">
-          <button type="button" class="mtfp7-btn ghost" onclick="pvSendSetupCode()">Send setup code | إرسال رمز الإعداد</button>
-          <button type="button" class="mtfp7-btn gold" onclick="pvSetPassword()">Set password | تعيين</button>
+          <button type="button" class="mtfp7-btn gold" onclick="nuSetPassword()">Set password | تعيين</button>
         </div>
       </div>
       <hr class="mtfp7-hr">
@@ -4271,13 +4303,13 @@ function _adreqGoVerify() { _adreqClose(); openAuthPanel('verify'); }
 
 // ── Auth panel (password login / reset / verify / provisioning) ──────────────
 function openAuthPanel(which) {
-  var ids = ['ap-login', 'ap-reset-req', 'ap-reset-confirm', 'ap-verify', 'ap-provision'];
+  var ids = ['ap-login', 'ap-reset-req', 'ap-reset-confirm', 'ap-verify', 'ap-newuser'];
   for (var i = 0; i < ids.length; i++) {
     var el = document.getElementById(ids[i]);
     if (el) el.style.display = 'none';
   }
   var map = { login: 'ap-login', resetReq: 'ap-reset-req', resetConfirm: 'ap-reset-confirm',
-              verify: 'ap-verify', provision: 'ap-provision' };
+              verify: 'ap-verify', newuser: 'ap-newuser' };
   var show = document.getElementById(map[which] || 'ap-login');
   if (show) show.style.display = 'block';
   document.getElementById('auth-panel').classList.add('show');
@@ -4351,45 +4383,57 @@ function submitConfirmVerification() {
     .catch(function(e) { _setMsg('ev-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
 }
 
-// ── Clean provisioning (Q1 ratified: reset-flow reuse) ──
-// Step 1: verify email → AD=TRUE.  Step 2: request + confirm password-set code.
-// confirmPasswordReset's SC-2 AD-gate enforces the privileged precondition in
-// ONE place (no second enforcement site). PIN stays live throughout.
-function pvSendVerify() {
-  var email = String(document.getElementById('pv-email').value || '').trim();
-  if (!email) { _setMsg('pv-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
-  var NEUTRAL = '✅ If that account exists, a verification code has been sent. | تم إرسال رمز التحقق إن وُجد الحساب.';
+// ── R-AUTH-UX §A new-user provisioning (grant-based; single popup, no second email) ──
+// Step 1: verify email → confirmEmailVerification returns provisionGrant (held client-side).
+// Step 2: setPasswordWithGrant(email, grant, newPassword). The §A endpoint is first-set-only
+// + AD-gated + strength-floored + cross-account-safe + grant-consumed. PIN stays live.
+// Enumeration neutrality re-proved ON THIS SURFACE: send/verify render IDENTICAL copy for
+// registered and unregistered — no registered/unregistered branching.
+var _nuGrant = null;   // provisionGrant held from confirmEmailVerification
+function nuSendVerify() {
+  var email = String(document.getElementById('nu-email').value || '').trim();
+  if (!email) { _setMsg('nu-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
+  var NEUTRAL = '✅ If that account exists, a verification code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز التحقق.';
   gasPost({ action: 'sendEmailVerification', email: email })
-    .then(function() { _setMsg('pv-msg', NEUTRAL); })
-    .catch(function() { _setMsg('pv-msg', NEUTRAL); });
+    .then(function() { _setMsg('nu-msg', NEUTRAL); })
+    .catch(function() { _setMsg('nu-msg', NEUTRAL); });   // identical on both paths → no enumeration oracle
 }
-function pvConfirmVerify() {
-  var email = String(document.getElementById('pv-email').value || '').trim();
-  var code  = String(document.getElementById('pv-vcode').value || '').trim();
-  if (!email || !code) { _setMsg('pv-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
+function nuConfirmVerify() {
+  var email = String(document.getElementById('nu-email').value || '').trim();
+  var code  = String(document.getElementById('nu-vcode').value || '').trim();
+  if (!email || !code) { _setMsg('nu-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
   gasPost({ action: 'confirmEmailVerification', email: email, code: code })
     .then(function(r) {
-      _setMsg('pv-msg', '✅ ' + ((r && r.message) || 'Email verified.') + ' — now set your password below. | الآن عيّن كلمة المرور أدناه.');
-      document.getElementById('pv-step2').style.display = 'block';
+      _nuGrant = (r && r.provisionGrant) ? r.provisionGrant : null;
+      _setMsg('nu-msg', '✅ ' + ((r && r.message) || 'Email verified.') + ' — now set your password below. | الآن عيّن كلمة المرور أدناه.');
+      document.getElementById('nu-step2').style.display = 'block';
     })
-    .catch(function(e) { _setMsg('pv-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification.')); });
+    .catch(function(e) { _setMsg('nu-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
 }
-function pvSendSetupCode() {
-  var email = String(document.getElementById('pv-email').value || '').trim();
-  if (!email) { _setMsg('pv-msg2', '⚠️ Email required. | البريد مطلوب.'); return; }
-  var NEUTRAL = '✅ If that account exists, a setup code has been sent. | تم إرسال رمز الإعداد إن وُجد الحساب.';
-  gasPost({ action: 'requestPasswordReset', email: email })
-    .then(function() { _setMsg('pv-msg2', NEUTRAL); })
-    .catch(function() { _setMsg('pv-msg2', NEUTRAL); });
+function nuSetPassword() {
+  var email = String(document.getElementById('nu-email').value || '').trim();
+  var pw    = String(document.getElementById('nu-pw').value || '');
+  if (!email || !pw) { _setMsg('nu-msg2', '⚠️ Password required. | كلمة المرور مطلوبة.'); return; }
+  if (!_nuGrant) { _setMsg('nu-msg2', '⚠️ Verify your email first. | تحقّق من بريدك أولاً.'); return; }
+  gasPost({ action: 'setPasswordWithGrant', email: email, grant: _nuGrant, newPassword: pw })
+    .then(function(r) {
+      _nuGrant = null;
+      _setMsg('nu-msg2', '✅ ' + ((r && r.message) || 'Password set. Please log in with your email and new password.') + ' | تم تعيين كلمة المرور.');
+    })
+    .catch(function(e) { _setMsg('nu-msg2', '⚠️ ' + ((e && e.message) || 'Could not set password. | تعذّر تعيين كلمة المرور.')); });
 }
-function pvSetPassword() {
-  var email = String(document.getElementById('pv-email').value || '').trim();
-  var code  = String(document.getElementById('pv-scode').value || '').trim();
-  var pw    = String(document.getElementById('pv-pw').value || '');
-  if (!email || !code || !pw) { _setMsg('pv-msg2', '⚠️ All fields required. | جميع الحقول مطلوبة.'); return; }
-  gasPost({ action: 'confirmPasswordReset', email: email, token: code, newPassword: pw })
-    .then(function(r) { _setMsg('pv-msg2', '✅ ' + ((r && r.message) || 'Password set. You can now log in with email + password.') + ' | تم تعيين كلمة المرور.'); })
-    .catch(function(e) { _setMsg('pv-msg2', '⚠️ ' + ((e && e.message) || 'Could not set password. | تعذّر تعيين كلمة المرور.')); });
+
+// ── R-AUTH-UX Q1-A device-trust routing (behavioral; password-first landing) ──
+// On email entry, ask getLoginMode whether THIS device is trusted. PIN only on a
+// fingerprint-trusted device → offer PIN fast-unlock; every miss (unregistered / untrusted /
+// ambiguous / error) → stays password (no PIN offer, no existence signal).
+function routeLoginMode() {
+  var hint = document.getElementById('pw-pin-hint');
+  var email = String(document.getElementById('pw-email').value || '').trim();
+  if (!email) { if (hint) hint.style.display = 'none'; return; }
+  gasPost({ action: 'getLoginMode', email: email, deviceId: getOrCreateDeviceId() })
+    .then(function(r) { if (hint) hint.style.display = (r && r.mode === 'PIN') ? 'block' : 'none'; })
+    .catch(function() { if (hint) hint.style.display = 'none'; });   // fail → password (no hint)
 }
 
 // ============================================================================
@@ -4942,15 +4986,83 @@ function showLoginScreen() {
   var nameEl = document.getElementById('lgn-name');
   if (nameEl) nameEl.value = '';
 
-  // Focus hidden input so desktop keyboard works
-  setTimeout(function() {
-    document.getElementById('pin-input').focus();
-  }, 100);
+  // R-AUTH-UX SC-UX-3 / Q1=A conformance: EMAIL-FIRST landing. The name-keyed PIN pad
+  // (#lgn-main) is NOT mounted on a cold/untrusted device — email/password IS the screen.
+  // The PIN fast-unlock is rendered ONLY when getLoginMode returns PIN for the entered email
+  // (trusted device), via landingContinue() → routeToPinFastUnlock().
+  mountEmailFirstLanding();
 
   // Check if still locked out
   if (_lockedUntil > Date.now()) {
     showLockout();
   }
+}
+
+// R-AUTH-UX: mount the email-first landing; hide the PIN pad so it is unreachable at cold start.
+function mountEmailFirstLanding() {
+  document.getElementById('lgn-main').style.display = 'none';   // PIN pad unreachable at mount
+  var ef = document.getElementById('lgn-emailfirst');
+  if (ef) ef.style.display = 'block';
+  _setMsg('lf-msg', '');
+  var pwWrap = document.getElementById('lf-pw-wrap');   if (pwWrap) pwWrap.style.display = 'none';
+  var pwAct  = document.getElementById('lf-pw-actions'); if (pwAct) pwAct.style.display = 'none';
+  var cont   = document.getElementById('lf-continue');   if (cont) { cont.style.display = ''; cont.disabled = false; }
+  var lfEmail = document.getElementById('lf-email'); if (lfEmail) lfEmail.value = '';
+  var lfPw    = document.getElementById('lf-pw');    if (lfPw) lfPw.value = '';
+  setTimeout(function() { if (lfEmail) lfEmail.focus(); }, 100);
+}
+
+// Email entered → route. PIN (trusted) → mount the prefilled PIN pad; every miss → password IS the screen.
+function landingContinue() {
+  var email = String(document.getElementById('lf-email').value || '').trim();
+  if (!email) { _setMsg('lf-msg', '⚠️ Enter your email. | أدخل بريدك الإلكتروني.'); return; }
+  _setMsg('lf-msg', '');
+  var cont = document.getElementById('lf-continue'); if (cont) cont.disabled = true;
+  gasPost({ action: 'getLoginMode', email: email, deviceId: getOrCreateDeviceId() })
+    .then(function(r) {
+      if (cont) cont.disabled = false;
+      if (r && r.mode === 'PIN') {
+        routeToPinFastUnlock(r.name || '');                 // trusted device only
+      } else {
+        _revealLandingPassword();                            // every miss → password screen
+      }
+    })
+    .catch(function() { if (cont) cont.disabled = false; _revealLandingPassword(); });  // fail-safe → password
+}
+
+function _revealLandingPassword() {
+  document.getElementById('lf-pw-wrap').style.display = 'block';
+  document.getElementById('lf-pw-actions').style.display = 'block';
+  setTimeout(function(){ var el = document.getElementById('lf-pw'); if (el) el.focus(); }, 50);
+}
+
+// Trusted device → mount the (name-keyed) PIN fast-unlock, prefilled with the resolved name
+// from getLoginMode's PIN response (enumeration-safe: name only ever returned to a trusted device).
+function routeToPinFastUnlock(name) {
+  document.getElementById('lgn-emailfirst').style.display = 'none';
+  document.getElementById('lgn-main').style.display = '';   // PIN pad shown ONLY now
+  var nameEl = document.getElementById('lgn-name');
+  if (nameEl && name) nameEl.value = name;
+  _pinBuffer = ''; updateDots(); setLoginStatus('');
+  setTimeout(function() { var pe = document.getElementById('pin-input'); if (pe) pe.focus(); }, 80);
+}
+
+function landingPasswordLogin() {
+  var email = String(document.getElementById('lf-email').value || '').trim();
+  var pw    = String(document.getElementById('lf-pw').value || '');
+  if (!email || !pw) { _setMsg('lf-msg', '⚠️ Email and password required. | البريد وكلمة المرور مطلوبان.'); return; }
+  _setMsg('lf-msg', '');
+  gasPost({ action: 'loginWithPassword', email: email, password: pw, deviceId: getOrCreateDeviceId(), token: (_session && _session.token) })
+    .then(function(r) {
+      if (!r || !r.user) { _setMsg('lf-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); return; }
+      onLoginSuccess(r.user, r.token);
+    })
+    .catch(function(e) {
+      var msg = (e && e.message) ? String(e.message) : '';
+      if (msg.indexOf('Too many attempts') !== -1) _setMsg('lf-msg', '⏳ ' + msg);
+      else if (msg.toLowerCase().indexOf('invalid') !== -1) _setMsg('lf-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.');
+      else _setMsg('lf-msg', '📡 Network issue — check your connection. | مشكلة في الاتصال.');
+    });
 }
 
 function hideLoginScreen() {
@@ -5235,11 +5347,12 @@ function startLockoutCountdown() {
 }
 
 function hideLockout() {
-  document.getElementById('lgn-main').style.display  = '';
   document.getElementById('lockout-banner').classList.remove('show');
   setLoginStatus('');
   setAttemptsMsg('');
   updateDots();
+  // R-AUTH-UX SC-UX-3: re-mount email-first after lockout (do NOT reveal the PIN pad directly).
+  mountEmailFirstLanding();
 }
 
 // ── Login success ────────────────────────────────────────────────────────────

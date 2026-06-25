@@ -2265,7 +2265,7 @@
     </div>
     <div id="lf-pw-actions" style="display:none;">
       <div class="mtfp7-row">
-        <button type="button" class="mtfp7-btn gold" onclick="landingPasswordLogin()">Sign in | دخول</button>
+        <button type="button" class="mtfp7-btn gold" id="lf-signin" onclick="landingPasswordLogin()">Sign in | دخول</button>
       </div>
     </div>
     <hr class="mtfp7-hr">
@@ -2366,14 +2366,12 @@
     <div class="lgn-status" id="lgn-status"></div>
     <div class="lgn-attempts" id="lgn-attempts"></div>
 
-    <!-- R-AUTH-FULLPW MT-FP-7: password / setup affordances. PIN above stays
-         the primary path on trusted devices; these open the email+password
-         panel without touching the PIN numeric path. -->
-    <div style="margin-top:18px; text-align:center; line-height:1.9;">
-      <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Sign in with password | الدخول بكلمة المرور</button>
-      <br>
-      <button type="button" class="mtfp7-link" onclick="openAuthPanel('newuser')">First time? Set up email &amp; password | لأول مرة؟ إعداد البريد وكلمة المرور</button>
-    </div>
+    <!-- Item 8 (OWNER RULED): clean trusted-device PIN page — PIN pad + prepopulated name ONLY.
+         Footer affordances REMOVED entirely (no 'Sign in with password', no 'First time?', no
+         back/different-account link). The PIN page is post-verification by definition; recovery
+         is the auditable admin-clears-DEVICE_-trust path, and log-in-as-someone-else displaces
+         via email/password (not a PIN-page shortcut). Return-to-email is via refresh/logout
+         (model-safe; owner ruling — no explicit back affordance). Zero footer by design. -->
   </div>
 
   <!-- Lockout banner -->
@@ -2414,6 +2412,14 @@
   .mtfp7-btn { flex:1; border:none; border-radius:12px; padding:11px 12px; font-size:13px;
     font-weight:600; cursor:pointer; font-family:var(--font, system-ui); line-height:1.4; }
   .mtfp7-btn.primary { background:var(--navy,#1B2A4A); color:#fff; }
+  /* Items 1–3: action-button in-flight feedback (presentation only; backend floors timing). */
+  .mtfp7-btn:disabled, .mtfp7-link:disabled { cursor:default; }
+  .mtfp7-btn.is-busy, .mtfp7-link.is-busy { opacity:0.72; }
+  .mtfp7-btn:active:not(:disabled), .mtfp7-link:active:not(:disabled) { transform:translateY(1px); }
+  .btn-spin { display:inline-block; width:12px; height:12px; margin-right:7px; vertical-align:-1px;
+    border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
+    animation: btnspin 0.6s linear infinite; }
+  @keyframes btnspin { to { transform: rotate(360deg); } }
   .mtfp7-btn.gold { background:var(--gold,#C9A84C); color:#1B2A4A; }
   .mtfp7-btn.ghost { background:transparent; color:var(--muted,#6b7280); border:1.5px solid var(--bdr,#d8dde6); }
   .mtfp7-msg { font-size:12px; line-height:1.7; margin-top:12px; min-height:18px; color:var(--navy,#1B2A4A); word-break:break-word; }
@@ -2491,7 +2497,7 @@
       <div class="mtfp7-msg" id="rr-msg"></div>
       <div class="mtfp7-row">
         <button type="button" class="mtfp7-btn ghost" onclick="openAuthPanel('login')">Back | رجوع</button>
-        <button type="button" class="mtfp7-btn primary" onclick="submitResetRequest()">Send code | إرسال الرمز</button>
+        <button type="button" class="mtfp7-btn primary" id="rr-send" onclick="submitResetRequest()">Send code | إرسال الرمز</button>
       </div>
       <hr class="mtfp7-hr">
       <button type="button" class="mtfp7-link" onclick="openAuthPanel('resetConfirm')">I have a code | لديّ رمز</button>
@@ -2510,7 +2516,7 @@
       <div class="mtfp7-msg" id="rc-msg"></div>
       <div class="mtfp7-row">
         <button type="button" class="mtfp7-btn ghost" onclick="openAuthPanel('login')">Back | رجوع</button>
-        <button type="button" class="mtfp7-btn primary" onclick="submitResetConfirm()">Set password | تعيين</button>
+        <button type="button" class="mtfp7-btn primary" id="rc-set" onclick="submitResetConfirm()">Set password | تعيين</button>
       </div>
     </div>
 
@@ -2524,26 +2530,38 @@
       <input type="text" id="ev-code" autocomplete="off" placeholder="code from email">
       <div class="mtfp7-msg" id="ev-msg"></div>
       <div class="mtfp7-row">
-        <button type="button" class="mtfp7-btn ghost" onclick="submitSendVerification()">Send code | إرسال الرمز</button>
-        <button type="button" class="mtfp7-btn primary" onclick="submitConfirmVerification()">Verify | تحقّق</button>
+        <button type="button" class="mtfp7-btn ghost" id="ev-send" onclick="submitSendVerification()">Send code | إرسال الرمز</button>
+        <button type="button" class="mtfp7-btn primary" id="ev-verify" onclick="submitConfirmVerification()">Verify | تحقّق</button>
       </div>
       <hr class="mtfp7-hr">
       <button type="button" class="mtfp7-link" onclick="openAuthPanel('login')">Back | رجوع</button>
     </div>
 
     <!-- §A new-user provisioning (grant-based; single popup, no second emailed code) -->
+    <!-- Items 4-5: PROGRESSIVE DISCLOSURE. Stage 1 = Email + Send only. Stage 2 (nu-step1b) =
+         Code + Verify, revealed on send-code RESPONSE-ARRIVAL via the shared nuRevealCode() from
+         BOTH .then AND .catch (§3a: never content-gated). Stage 3 (nu-step2) = Password, revealed
+         on verify SUCCESS (.then only — post-code gate, no existence leak). -->
     <div id="ap-newuser" style="display:none;">
       <h3>Set up email &amp; password</h3>
       <div class="mtfp7-sub">Step 1 — verify your email. Step 2 — set a password. Your PIN keeps working. | الخطوة 1 تحقّق من بريدك، الخطوة 2 عيّن كلمة المرور. يبقى رمزك فعّالاً.</div>
       <label>Email | البريد الإلكتروني</label>
       <input type="email" id="nu-email" inputmode="email" placeholder="name@example.com">
-      <label>Verification code | رمز التحقق</label>
-      <input type="text" id="nu-vcode" autocomplete="off" placeholder="code from email">
       <div class="mtfp7-msg" id="nu-msg"></div>
       <div class="mtfp7-row">
-        <button type="button" class="mtfp7-btn ghost" onclick="nuSendVerify()">Send code | إرسال الرمز</button>
-        <button type="button" class="mtfp7-btn primary" onclick="nuConfirmVerify()">Verify email | تحقّق</button>
+        <button type="button" class="mtfp7-btn primary" id="nu-send-btn" onclick="nuSendVerify()">Send code | إرسال الرمز</button>
       </div>
+
+      <!-- Stage 2 — revealed on send-code response arrival (both paths, shared fn) -->
+      <div id="nu-step1b" style="display:none;">
+        <label>Verification code | رمز التحقق</label>
+        <input type="text" id="nu-vcode" autocomplete="off" placeholder="code from email">
+        <div class="mtfp7-row">
+          <button type="button" class="mtfp7-btn primary" id="nu-verify-btn" onclick="nuConfirmVerify()">Verify email | تحقّق</button>
+        </div>
+      </div>
+
+      <!-- Stage 3 — revealed on verify SUCCESS only -->
       <div id="nu-step2" style="display:none;">
         <hr class="mtfp7-hr">
         <div class="mtfp7-sub">Step 2 — set your password. | الخطوة 2 عيّن كلمة المرور.</div>
@@ -2551,7 +2569,7 @@
         <input type="password" id="nu-pw" autocomplete="new-password" placeholder="at least 12 characters">
         <div class="mtfp7-msg" id="nu-msg2"></div>
         <div class="mtfp7-row">
-          <button type="button" class="mtfp7-btn gold" onclick="nuSetPassword()">Set password | تعيين</button>
+          <button type="button" class="mtfp7-btn gold" id="nu-set-btn" onclick="nuSetPassword()">Set password | تعيين</button>
         </div>
       </div>
       <hr class="mtfp7-hr">
@@ -4312,6 +4330,17 @@ function openAuthPanel(which) {
               verify: 'ap-verify', newuser: 'ap-newuser' };
   var show = document.getElementById(map[which] || 'ap-login');
   if (show) show.style.display = 'block';
+  // Items 4-5: entering the new-user popup always starts at Stage 1 (Email + Send only).
+  if ((map[which] || '') === 'ap-newuser') {
+    var s1b = document.getElementById('nu-step1b'); if (s1b) s1b.style.display = 'none';
+    var s2  = document.getElementById('nu-step2');  if (s2)  s2.style.display  = 'none';
+    var ne  = document.getElementById('nu-email');  if (ne)  ne.value = '';
+    var nv  = document.getElementById('nu-vcode');  if (nv)  nv.value = '';
+    var np  = document.getElementById('nu-pw');     if (np)  np.value = '';
+    _setMsg('nu-msg', ''); _setMsg('nu-msg2', '');
+    _btnIdle('nu-send-btn'); _btnIdle('nu-verify-btn'); _btnIdle('nu-set-btn');
+    _nuGrant = null;
+  }
   document.getElementById('auth-panel').classList.add('show');
 }
 function closeAuthPanel() { document.getElementById('auth-panel').classList.remove('show'); }
@@ -4323,7 +4352,7 @@ function submitPasswordLogin() {
   var pass  = String(document.getElementById('pw-password').value || '');
   if (!email || !pass) { _setMsg('pw-msg', '⚠️ Email and password required. | البريد وكلمة المرور مطلوبان.'); return; }
   _setMsg('pw-msg', '');
-  document.getElementById('pw-submit').disabled = true;
+  _btnBusy('pw-submit');
   gasPost({
     action: 'loginWithPassword',
     email: email,
@@ -4332,13 +4361,13 @@ function submitPasswordLogin() {
     token: (_session && _session.token)   // defensive — none exists pre-login
   })
   .then(function(r) {
-    document.getElementById('pw-submit').disabled = false;
+    _btnIdle('pw-submit');
     if (!r || !r.user) { _setMsg('pw-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); return; }
     closeAuthPanel();
     onLoginSuccess(r.user, r.token);
   })
   .catch(function(e) {
-    document.getElementById('pw-submit').disabled = false;
+    _btnIdle('pw-submit');
     var msg = (e && e.message) ? String(e.message) : '';
     if (msg.indexOf('Too many attempts') !== -1) { _setMsg('pw-msg', '⏳ ' + msg); }
     else if (msg.toLowerCase().indexOf('invalid') !== -1) { _setMsg('pw-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); }
@@ -4351,9 +4380,10 @@ function submitResetRequest() {
   var email = String(document.getElementById('rr-email').value || '').trim();
   if (!email) { _setMsg('rr-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
   var NEUTRAL = '✅ If that account exists, a reset code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز إعادة التعيين.';
+  _btnBusy('rr-send');
   gasPost({ action: 'requestPasswordReset', email: email })
-    .then(function() { _setMsg('rr-msg', NEUTRAL); })
-    .catch(function() { _setMsg('rr-msg', NEUTRAL); });   // neutral on error too
+    .then(function() { _btnIdle('rr-send'); _setMsg('rr-msg', NEUTRAL); })
+    .catch(function() { _btnIdle('rr-send'); _setMsg('rr-msg', NEUTRAL); });   // neutral on error too
 }
 // ── Reset confirm (token = emailed code; anonymous; backend enforces strength + SC-2 AD-gate) ──
 function submitResetConfirm() {
@@ -4361,26 +4391,48 @@ function submitResetConfirm() {
   var code  = String(document.getElementById('rc-token').value || '').trim();
   var pw    = String(document.getElementById('rc-pw').value || '');
   if (!email || !code || !pw) { _setMsg('rc-msg', '⚠️ All fields required. | جميع الحقول مطلوبة.'); return; }
+  _btnBusy('rc-set');
   gasPost({ action: 'confirmPasswordReset', email: email, token: code, newPassword: pw })
-    .then(function(r) { _setMsg('rc-msg', '✅ ' + ((r && r.message) || 'Password updated. Please log in with your new password.')); })
-    .catch(function(e) { _setMsg('rc-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired reset. | إعادة تعيين غير صالحة أو منتهية.')); });
+    .then(function(r) { _btnIdle('rc-set'); _setMsg('rc-msg', '✅ ' + ((r && r.message) || 'Password updated. Please log in with your new password.')); })
+    .catch(function(e) { _btnIdle('rc-set'); _setMsg('rc-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired reset. | إعادة تعيين غير صالحة أو منتهية.')); });
 }
 // ── Email verification (send + confirm) ──
 function submitSendVerification() {
   var email = String(document.getElementById('ev-email').value || '').trim();
   if (!email) { _setMsg('ev-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
   var NEUTRAL = '✅ If that account exists, a verification code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز التحقق.';
+  _btnBusy('ev-send');
   gasPost({ action: 'sendEmailVerification', email: email })
-    .then(function() { _setMsg('ev-msg', NEUTRAL); })
-    .catch(function() { _setMsg('ev-msg', NEUTRAL); });
+    .then(function() { _btnIdle('ev-send'); _setMsg('ev-msg', NEUTRAL); })
+    .catch(function() { _btnIdle('ev-send'); _setMsg('ev-msg', NEUTRAL); });
 }
 function submitConfirmVerification() {
   var email = String(document.getElementById('ev-email').value || '').trim();
   var code  = String(document.getElementById('ev-code').value || '').trim();
   if (!email || !code) { _setMsg('ev-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
+  _btnBusy('ev-verify');
   gasPost({ action: 'confirmEmailVerification', email: email, code: code })
-    .then(function(r) { _setMsg('ev-msg', '✅ ' + ((r && r.message) || 'Email verified. | تم التحقق من البريد.')); })
-    .catch(function(e) { _setMsg('ev-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
+    .then(function(r) { _btnIdle('ev-verify'); _setMsg('ev-msg', '✅ ' + ((r && r.message) || 'Email verified. | تم التحقق من البريد.')); })
+    .catch(function(e) { _btnIdle('ev-verify'); _setMsg('ev-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
+}
+
+// ── Items 1–3: action-button in-flight feedback (presentation only) ──
+// Click → disable + pressed + spinner; response → restore. The backend response-floor
+// already neutralizes timing, so this is pure UX — no min-duration / floor logic here.
+function _btnBusy(id) {
+  var b = document.getElementById(id); if (!b) return;
+  if (b.getAttribute('data-busy') === '1') return;
+  b.setAttribute('data-busy', '1');
+  b.setAttribute('data-label', b.innerHTML);
+  b.disabled = true; b.classList.add('is-busy');
+  b.innerHTML = '<span class="btn-spin"></span>' + b.getAttribute('data-label');
+}
+function _btnIdle(id) {
+  var b = document.getElementById(id); if (!b) return;
+  if (b.getAttribute('data-busy') !== '1') return;
+  b.removeAttribute('data-busy');
+  var lbl = b.getAttribute('data-label'); if (lbl !== null) b.innerHTML = lbl;
+  b.disabled = false; b.classList.remove('is-busy');
 }
 
 // ── R-AUTH-UX §A new-user provisioning (grant-based; single popup, no second email) ──
@@ -4390,37 +4442,63 @@ function submitConfirmVerification() {
 // Enumeration neutrality re-proved ON THIS SURFACE: send/verify render IDENTICAL copy for
 // registered and unregistered — no registered/unregistered branching.
 var _nuGrant = null;   // provisionGrant held from confirmEmailVerification
+
+// §3a HARD must-preserve: ONE shared reveal fn, called from BOTH .then AND .catch of the
+// send-code action — reveal is driven by RESPONSE-ARRIVAL, never by account-existence or
+// response content. (Reveal-on-exists-only would be an enumeration oracle.) Idempotent.
+function nuRevealCode() {
+  var s = document.getElementById('nu-step1b');
+  if (s) s.style.display = 'block';
+  setTimeout(function(){ var el = document.getElementById('nu-vcode'); if (el) el.focus(); }, 50);
+}
+
 function nuSendVerify() {
   var email = String(document.getElementById('nu-email').value || '').trim();
   if (!email) { _setMsg('nu-msg', '⚠️ Email required. | البريد مطلوب.'); return; }
+  // Item 6 send-step: NEUTRAL only (never "no such account").
   var NEUTRAL = '✅ If that account exists, a verification code has been sent. | إذا كان هذا الحساب موجوداً، تم إرسال رمز التحقق.';
+  _btnBusy('nu-send-btn');
   gasPost({ action: 'sendEmailVerification', email: email })
-    .then(function() { _setMsg('nu-msg', NEUTRAL); })
-    .catch(function() { _setMsg('nu-msg', NEUTRAL); });   // identical on both paths → no enumeration oracle
+    .then(function() { _btnIdle('nu-send-btn'); _setMsg('nu-msg', NEUTRAL); nuRevealCode(); })
+    .catch(function() { _btnIdle('nu-send-btn'); _setMsg('nu-msg', NEUTRAL); nuRevealCode(); });
+  // ↑ §3a: identical message AND identical reveal on BOTH paths → no enumeration oracle.
 }
 function nuConfirmVerify() {
   var email = String(document.getElementById('nu-email').value || '').trim();
   var code  = String(document.getElementById('nu-vcode').value || '').trim();
   if (!email || !code) { _setMsg('nu-msg', '⚠️ Email and code required. | البريد والرمز مطلوبان.'); return; }
+  _btnBusy('nu-verify-btn');
   gasPost({ action: 'confirmEmailVerification', email: email, code: code })
     .then(function(r) {
+      _btnIdle('nu-verify-btn');
       _nuGrant = (r && r.provisionGrant) ? r.provisionGrant : null;
       _setMsg('nu-msg', '✅ ' + ((r && r.message) || 'Email verified.') + ' — now set your password below. | الآن عيّن كلمة المرور أدناه.');
-      document.getElementById('nu-step2').style.display = 'block';
+      document.getElementById('nu-step2').style.display = 'block';   // reveal on SUCCESS only (post-code gate)
     })
-    .catch(function(e) { _setMsg('nu-msg', '⚠️ ' + ((e && e.message) || 'Invalid or expired verification. | تحقق غير صالح أو منتهٍ.')); });
+    // Item 6 verify-step: IDENTICAL message for wrong/expired code AND non-existent email
+    // (backend throws one identical 'Invalid or expired verification.'). No existence branch.
+    .catch(function() {
+      _btnIdle('nu-verify-btn');
+      _setMsg('nu-msg', '⚠️ Invalid or expired code — re-enter or resend. | رمز غير صالح أو منتهٍ — أعد الإدخال أو الإرسال.');
+    });
 }
 function nuSetPassword() {
   var email = String(document.getElementById('nu-email').value || '').trim();
   var pw    = String(document.getElementById('nu-pw').value || '');
   if (!email || !pw) { _setMsg('nu-msg2', '⚠️ Password required. | كلمة المرور مطلوبة.'); return; }
   if (!_nuGrant) { _setMsg('nu-msg2', '⚠️ Verify your email first. | تحقّق من بريدك أولاً.'); return; }
+  _btnBusy('nu-set-btn');
   gasPost({ action: 'setPasswordWithGrant', email: email, grant: _nuGrant, newPassword: pw })
     .then(function(r) {
+      _btnIdle('nu-set-btn');
       _nuGrant = null;
       _setMsg('nu-msg2', '✅ ' + ((r && r.message) || 'Password set. Please log in with your email and new password.') + ' | تم تعيين كلمة المرور.');
     })
-    .catch(function(e) { _setMsg('nu-msg2', '⚠️ ' + ((e && e.message) || 'Could not set password. | تعذّر تعيين كلمة المرور.')); });
+    // Item 6 password-step: SPECIFIC — surface the actual strength reason from the backend.
+    .catch(function(e) {
+      _btnIdle('nu-set-btn');
+      _setMsg('nu-msg2', '⚠️ ' + ((e && e.message) || 'Could not set password. | تعذّر تعيين كلمة المرور.'));
+    });
 }
 
 // ── R-AUTH-UX Q1-A device-trust routing (behavioral; password-first landing) ──
@@ -5006,7 +5084,7 @@ function mountEmailFirstLanding() {
   _setMsg('lf-msg', '');
   var pwWrap = document.getElementById('lf-pw-wrap');   if (pwWrap) pwWrap.style.display = 'none';
   var pwAct  = document.getElementById('lf-pw-actions'); if (pwAct) pwAct.style.display = 'none';
-  var cont   = document.getElementById('lf-continue');   if (cont) { cont.style.display = ''; cont.disabled = false; }
+  var cont   = document.getElementById('lf-continue');   if (cont) { _btnIdle('lf-continue'); cont.style.display = ''; cont.disabled = false; }
   var lfEmail = document.getElementById('lf-email'); if (lfEmail) lfEmail.value = '';
   var lfPw    = document.getElementById('lf-pw');    if (lfPw) lfPw.value = '';
   setTimeout(function() { if (lfEmail) lfEmail.focus(); }, 100);
@@ -5017,22 +5095,26 @@ function landingContinue() {
   var email = String(document.getElementById('lf-email').value || '').trim();
   if (!email) { _setMsg('lf-msg', '⚠️ Enter your email. | أدخل بريدك الإلكتروني.'); return; }
   _setMsg('lf-msg', '');
-  var cont = document.getElementById('lf-continue'); if (cont) cont.disabled = true;
+  _btnBusy('lf-continue');
   gasPost({ action: 'getLoginMode', email: email, deviceId: getOrCreateDeviceId() })
     .then(function(r) {
-      if (cont) cont.disabled = false;
+      _btnIdle('lf-continue');
       if (r && r.mode === 'PIN') {
         routeToPinFastUnlock(r.name || '');                 // trusted device only
       } else {
         _revealLandingPassword();                            // every miss → password screen
       }
     })
-    .catch(function() { if (cont) cont.disabled = false; _revealLandingPassword(); });  // fail-safe → password
+    .catch(function() { _btnIdle('lf-continue'); _revealLandingPassword(); });  // fail-safe → password
 }
 
 function _revealLandingPassword() {
   document.getElementById('lf-pw-wrap').style.display = 'block';
   document.getElementById('lf-pw-actions').style.display = 'block';
+  // Item 7: once the PASSWORD branch shows, hide 'Continue' — only 'Sign in' remains.
+  // Visibility-only; routing is untouched (getLoginMode already resolved). mountEmailFirstLanding
+  // restores lf-continue's display on re-entry.
+  var cont = document.getElementById('lf-continue'); if (cont) cont.style.display = 'none';
   setTimeout(function(){ var el = document.getElementById('lf-pw'); if (el) el.focus(); }, 50);
 }
 
@@ -5052,12 +5134,15 @@ function landingPasswordLogin() {
   var pw    = String(document.getElementById('lf-pw').value || '');
   if (!email || !pw) { _setMsg('lf-msg', '⚠️ Email and password required. | البريد وكلمة المرور مطلوبان.'); return; }
   _setMsg('lf-msg', '');
+  _btnBusy('lf-signin');
   gasPost({ action: 'loginWithPassword', email: email, password: pw, deviceId: getOrCreateDeviceId(), token: (_session && _session.token) })
     .then(function(r) {
+      _btnIdle('lf-signin');
       if (!r || !r.user) { _setMsg('lf-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.'); return; }
       onLoginSuccess(r.user, r.token);
     })
     .catch(function(e) {
+      _btnIdle('lf-signin');
       var msg = (e && e.message) ? String(e.message) : '';
       if (msg.indexOf('Too many attempts') !== -1) _setMsg('lf-msg', '⏳ ' + msg);
       else if (msg.toLowerCase().indexOf('invalid') !== -1) _setMsg('lf-msg', '⚠️ Invalid email or password. | بريد أو كلمة مرور غير صحيحة.');

@@ -6296,6 +6296,17 @@ function openRepViewer(html, title, reportType, dateFrom, dateTo) {
   _repViewerReportType = reportType;
   _repViewerDateFrom   = dateFrom;
   _repViewerDateTo     = dateTo;
+
+  // PLUS-PDF admin-visibility gate (EXPERIENCE layer only — the real protection is the
+  // server-side admin gate in approvePlusPdfForRouter). Uniform rule: the gold PDF button is
+  // admin-only on EVERY report preview (hidden for any non-admin, shown to admins). The action
+  // routing still differs by type (YTD+ → approvePlusPdf engine; others → generateReportPdf).
+  var _repDlBtn = document.getElementById('rep-dl-btn');
+  if (_repDlBtn) {
+    var _repIsAdmin = !!(_session && _session.role === 'Admin');
+    _repDlBtn.style.display = (!_repIsAdmin) ? 'none' : '';
+  }
+
   if (titleEl) titleEl.textContent = title || 'Report';
   content.innerHTML = html;
   overlay.style.display = 'flex';
@@ -6313,6 +6324,34 @@ function downloadRepPdf() {
   var btn = document.getElementById('rep-dl-btn');
   var origText = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'جاري التحضير...'; }
+
+  // ── PLUS-PDF: YTD+ routes to the new admin-gated PDFShift engine (approvePlusPdf). ──
+  // approvePlusPdfForRouter returns { reportType, period, fileName, mimeType, contentBase64 }
+  // (gasPost unwraps the {ok,data} envelope; the gate/limit/render errors throw → .catch).
+  // Dedupe returns the EXISTING file as a normal success (contentBase64 present) → just download.
+  // Other report types keep their existing in-GAS generateReportPdf path (below) untouched.
+  if (_repViewerReportType === 'YTD_PLUS') {
+    gasPost({
+      action:     'approvePlusPdf',
+      buildingId: 'LE_PORTER',   // single building (pre-launch); backend defaults to the same
+      token:      _session.token
+    })
+      .then(function(r) {
+        var d = typeof r === 'string' ? JSON.parse(r) : r;
+        var a = document.createElement('a');
+        a.href     = 'data:application/pdf;base64,' + d.contentBase64;
+        a.download = d.fileName || ('YTD_Plus_' + (d.period || '') + '.pdf');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast('✅ PDF downloaded / تم تحميل التقرير', 'ok');
+      })
+      .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); })
+      .finally(function() {
+        if (btn) { btn.disabled = false; btn.textContent = origText; }
+      });
+    return;
+  }
 
   gasPost({
     action:     'generateReportPdf',

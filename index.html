@@ -6287,6 +6287,7 @@ function setTab(type) {
 var _repViewerReportType = '';
 var _repViewerDateFrom   = '';
 var _repViewerDateTo     = '';
+var _repViewerFileId     = '';   // saved-file identity (set by openStmtPreview); '' for live previews
 
 function openRepViewer(html, title, reportType, dateFrom, dateTo) {
   var overlay = document.getElementById('rep-viewer-overlay');
@@ -6296,11 +6297,12 @@ function openRepViewer(html, title, reportType, dateFrom, dateTo) {
   _repViewerReportType = reportType;
   _repViewerDateFrom   = dateFrom;
   _repViewerDateTo     = dateTo;
+  _repViewerFileId     = '';   // default: live preview (no saved file). openStmtPreview sets it after.
 
-  // PLUS-PDF admin-visibility gate (EXPERIENCE layer only — the real protection is the
-  // server-side admin gate in approvePlusPdfForRouter). Uniform rule: the gold PDF button is
-  // admin-only on EVERY report preview (hidden for any non-admin, shown to admins). The action
-  // routing still differs by type (YTD+ → approvePlusPdf engine; others → generateReportPdf).
+  // PLUS-PDF admin-visibility gate (EXPERIENCE layer only — the real protection is the server-side
+  // admin gate in approvePlusPdfForRouter). Uniform rule: the gold PDF button is admin-only on EVERY
+  // report preview (hidden for any non-admin, shown to admins). The button passes report IDENTITY
+  // (fileId for saved previews, reportType for live YTD+); the SERVER sources the HTML.
   var _repDlBtn = document.getElementById('rep-dl-btn');
   if (_repDlBtn) {
     var _repIsAdmin = !!(_session && _session.role === 'Admin');
@@ -6325,51 +6327,25 @@ function downloadRepPdf() {
   var origText = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'جاري التحضير...'; }
 
-  // ── PLUS-PDF: YTD+ routes to the new admin-gated PDFShift engine (approvePlusPdf). ──
-  // approvePlusPdfForRouter returns { reportType, period, fileName, mimeType, contentBase64 }
-  // (gasPost unwraps the {ok,data} envelope; the gate/limit/render errors throw → .catch).
+  // ── PLUS-PDF: the button passes report IDENTITY; the SERVER sources the HTML (regenerates a live
+  // YTD+, or fetches saved bytes by fileId). The client NEVER sends HTML — that would let the server
+  // render arbitrary client DOM (SSRF / loss of server attestation / client-influenced period).
+  //   saved-file preview → fileId (captured by openStmtPreview); live YTD+ → reportType 'YTD_PLUS'.
+  // approvePlusPdfForRouter is admin-gated server-side; returns { reportType, period, fileName,
+  // mimeType, contentBase64 } (gasPost unwraps {ok,data}; gate/limit/render errors throw → .catch).
   // Dedupe returns the EXISTING file as a normal success (contentBase64 present) → just download.
-  // Other report types keep their existing in-GAS generateReportPdf path (below) untouched.
-  if (_repViewerReportType === 'YTD_PLUS') {
-    gasPost({
-      action:     'approvePlusPdf',
-      buildingId: 'LE_PORTER',   // single building (pre-launch); backend defaults to the same
-      token:      _session.token
-    })
-      .then(function(r) {
-        var d = typeof r === 'string' ? JSON.parse(r) : r;
-        var a = document.createElement('a');
-        a.href     = 'data:application/pdf;base64,' + d.contentBase64;
-        a.download = d.fileName || ('YTD_Plus_' + (d.period || '') + '.pdf');
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        toast('✅ PDF downloaded / تم تحميل التقرير', 'ok');
-      })
-      .catch(function(e) { toast(_iconOnce('❌', e.message), 'fail'); })
-      .finally(function() {
-        if (btn) { btn.disabled = false; btn.textContent = origText; }
-      });
-    return;
-  }
-
   gasPost({
-    action:     'generateReportPdf',
-    reportType: _repViewerReportType,
-    dateFrom:   _repViewerDateFrom || '',
-    dateTo:     _repViewerDateTo   || '',
+    action:     'approvePlusPdf',
+    buildingId: 'LE_PORTER',                     // single building (pre-launch); backend defaults to same
+    fileId:     _repViewerFileId || '',          // saved-file identity ('' for a live preview)
+    reportType: _repViewerReportType || '',      // live identity (e.g. 'YTD_PLUS'); server arbitrates
     token:      _session.token
   })
     .then(function(r) {
-      var parsed = typeof r === 'string' ? JSON.parse(r) : r;
-      if (!parsed.ok) {
-        if (parsed.blocked) { showReportBlock(parsed.error); }
-        else { toast(_iconOnce('❌', parsed.error), 'fail'); }
-        return;
-      }
+      var d = typeof r === 'string' ? JSON.parse(r) : r;
       var a = document.createElement('a');
-      a.href     = 'data:application/pdf;base64,' + parsed.base64;
-      a.download = parsed.filename || 'report.pdf';
+      a.href     = 'data:application/pdf;base64,' + d.contentBase64;
+      a.download = d.fileName || ('report_' + (d.period || '') + '.pdf');
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -7288,6 +7264,7 @@ function openStmtPreview(fileId) {
       return;
     }
     openRepViewer(parsed.html, 'معاينة البيان / Statement Preview', '', '', '');
+    _repViewerFileId = String(fileId).trim();   // saved-file identity for the PLUS-PDF button
     // LEG 5+ stranded-pending fix: terminal-on-success-branch (CO-5 extension).
     // Without this terminal, the L6041 'backstop' toast swaps to no-response
     // at 30s even though openRepViewer rendered successfully. Same defect

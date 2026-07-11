@@ -3407,6 +3407,16 @@
          Per owner design v2 ratification. Audience line dropped per reconciliation 2.
          Render populated by _renderFinancialHealth() at Op 14.
          Visibility controlled by setTab('FH') / applyPermissionUI cascade. -->
+    <!-- ══ OCCUPANT TAB (occupant only) — snapshot-derived, read-own section ══ -->
+    <div id="f-occ" class="hide" dir="rtl">
+      <div class="panel-hdr">
+        <div class="panel-htitle">قسمي / My Section</div>
+        <div class="panel-hsub" id="occ-stamp">—</div>
+      </div>
+      <div id="occ-block1" class="card" style="padding:16px;margin-bottom:12px;"></div>
+      <div id="occ-block2" class="card" style="padding:16px;"></div>
+    </div>
+
     <div id="f-fh" class="hide" dir="rtl">
       <!-- FH-UX-1 D1: top preamble (title + tagline) removed; pane starts at the verdict hero. -->
       <!-- Verdict hero (state class set dynamically: fh-stable / fh-attention / fh-strained) -->
@@ -3878,6 +3888,13 @@
         </span>
         <span class="dt-tab-ar">المؤشر المالي</span>
         <span class="dt-tab-en">Financial Health</span>
+      </button>
+      <button class="dt-tab hide" id="dt-t-occ" onclick="setTab('Occupant')">
+        <span class="nav-ico">
+          <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="128" height="128" rx="28" fill="#1B2A4A"/><g stroke="#C9A84C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M30 62L64 32L98 62"/><path d="M40 58V94H88V58"/><path d="M56 94V74H72V94"/></g></svg>
+        </span>
+        <span class="dt-tab-ar">قسمي</span>
+        <span class="dt-tab-en">My Section</span>
       </button>
       <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
         <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -5788,6 +5805,67 @@ function launchApp(auth) {
   });
 }
 
+// ── §5 Occupant tab — load + render (snapshot-derived; no download in v1, §8 seam) ──
+function _occEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function _occItem(label, val) {
+  return '<div><div style="font-size:11px;color:var(--muted);">' + label +
+         '</div><div style="font-size:15px;font-weight:600;">' + _occEsc(val) + '</div></div>';
+}
+function loadOccupantTab() {
+  var b1 = _el('occ-block1'), b2 = _el('occ-block2');
+  if (b1) b1.innerHTML = '<div style="color:var(--muted);padding:12px;">جارٍ التحميل… / Loading…</div>';
+  if (b2) b2.innerHTML = '';
+  gasPost({ action: 'getOccupantTabData', token: _session.token })
+    .then(function(r){ var d = typeof r === 'string' ? JSON.parse(r) : r; renderOccupantTab(d); })
+    .catch(function(e){ if (b1) b1.innerHTML = '<div style="color:var(--burg);padding:12px;">' + _occEsc(e.message) + '</div>'; });
+}
+function renderOccupantTab(d) {
+  var b1 = _el('occ-block1'), b2 = _el('occ-block2'), stamp = _el('occ-stamp');
+  if (!d || !d.hasData) {
+    if (b1) b1.innerHTML = '<div style="color:var(--muted);padding:12px;">لا توجد بيانات لقسمك بعد — تواصل مع الإدارة. / No section data yet — contact management.</div>';
+    if (b2) b2.innerHTML = '';
+    if (stamp) stamp.textContent = '—';
+    return;
+  }
+  var s = d.block1;
+  if (stamp) stamp.textContent = s.snapshotStamp;
+  var balColor = s.currentBalance.label === 'Amount Due' ? 'var(--burg)'
+               : (s.currentBalance.label === 'Credit' ? 'var(--forest)' : 'var(--muted)');
+  b1.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+      _occItem('الرصيد الافتتاحي / Opening Balance', s.openingBalance.display) +
+      _occItem('إجمالي الرسوم / Total Charges',      s.totalCharges.display) +
+      _occItem('إجمالي المدفوعات / Total Payments',  s.totalPayments.display) +
+      '<div style="grid-column:1/-1;border-top:1px solid var(--bdr);margin-top:4px;padding-top:10px;">' +
+        '<div style="font-size:12px;color:var(--muted);">الرصيد الحالي / Current Balance</div>' +
+        '<div style="font-size:20px;font-weight:700;color:' + balColor + ';">' + _occEsc(s.currentBalance.display) + '</div>' +
+      '</div>' +
+    '</div>';
+  var rows = (d.block2 && d.block2.payments) || [];
+  var html = '<div style="font-weight:700;margin-bottom:8px;">سجل المدفوعات / Payment History</div>';
+  if (!rows.length) {
+    html += '<div style="color:var(--muted);">لا مدفوعات في هذه الفترة. / No payments this period.</div>';
+  } else {
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+      '<tr style="color:var(--muted);font-size:11px;text-align:right;">' +
+      '<th style="padding:4px 6px;">التاريخ / Date</th>' +
+      '<th style="padding:4px 6px;">المبلغ / Amount</th>' +
+      '<th style="padding:4px 6px;">رقم العملية / TRX</th></tr>';
+    for (var i = 0; i < rows.length; i++) {
+      html += '<tr style="border-top:0.5px solid var(--bdr);">' +
+        '<td style="padding:4px 6px;">' + _occEsc(rows[i].date) + '</td>' +
+        '<td style="padding:4px 6px;">' + _occEsc(rows[i].amountDisplay) + '</td>' +
+        '<td style="padding:4px 6px;font-family:monospace;font-size:11px;">' + _occEsc(rows[i].trxId) + '</td></tr>';
+    }
+    html += '</table>';
+  }
+  b2.innerHTML = html;
+}
+
 function applyPermissionUI(auth) {
   var perms = auth.permissions;
   var role  = auth.role;
@@ -5837,6 +5915,23 @@ function applyPermissionUI(auth) {
     // all-FALSE handler at the bottom of this function will route to
     // setTab('NoAccess'), and #scroll stays visible so placeholder renders.
   }
+  if (role === 'Occupant') {
+    // §5 — Occupant sees ONLY the My-Section tab + Financial Health (if perms.FH). All admin /
+    // report / financial surfaces hidden. This is the EXPERIENCE layer; the server enforces
+    // independently (report perms FALSE at every REP_* gate; getOccupantTabData serves the caller's
+    // own section only). Mirrors the Dispatcher early-return pattern.
+    ['t-fh','t-inc','t-exp','t-rep','t-mtr','t-com','t-pay'].forEach(function(id){ var el=_el(id); if(el) el.classList.add('hide'); });
+    ['dt-t-fh','dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com','dt-t-pay'].forEach(function(id){ var el=_el(id); if(el) el.classList.add('hide'); });
+    var occTabD = _el('dt-t-occ'); if (occTabD) occTabD.classList.remove('hide');
+    var occTabM = _el('t-occ');    if (occTabM) occTabM.classList.remove('hide');
+    if (perms && perms.FH === true) {
+      var occFhM = _el('t-fh');    if (occFhM) occFhM.classList.remove('hide');
+      var occFhD = _el('dt-t-fh'); if (occFhD) occFhD.classList.remove('hide');
+    }
+    setTab('Occupant');
+    return;
+  }
+
   if (role === 'Admin') {
     // Patch I-perms-parity Layer 4 (Lesson E): Admin-only dashboard chrome.
     // Aggregate financial state follows ownership; only Admin sees the
@@ -6164,7 +6259,7 @@ function setTab(type) {
   // follow sibling-symmetric pattern with f-inc/f-exp (initial class="hide"
   // at L2899/L2912 + hide-list cascade at this line). Lesson L verbatim
   // reuse of working visibility-cascade list across new content panels.
-  ['f-fh','f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay','f-noaccess','log-inc','log-exp'].forEach(function(id) {
+  ['f-fh','f-inc','f-exp','f-rep','f-amt','f-mtr','f-com','f-pay','f-noaccess','log-inc','log-exp','f-occ'].forEach(function(id) {
     var el = _el(id);
     if (el) el.classList.add('hide');
   });
@@ -6257,6 +6352,16 @@ function setTab(type) {
     if (_btnCard) _btnCard.style.display = 'none';
     _el('scroll').scrollTop = 0;
     loadFinancialHealth();
+    return;
+
+  } else if (type === 'Occupant') {
+    // Occupant "My Section" tab — snapshot-derived, read-own. Mirrors the FH read-only pattern.
+    var dtOcc = _el('dt-t-occ'); if (dtOcc) dtOcc.className = 'dt-tab dt-fh';
+    var fOcc  = _el('f-occ');    if (fOcc)  fOcc.classList.remove('hide');
+    btn.style.display = 'none';
+    if (_btnCard) _btnCard.style.display = 'none';
+    _el('scroll').scrollTop = 0;
+    loadOccupantTab();
     return;
 
   } else if (type === 'NoAccess') {

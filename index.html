@@ -5966,7 +5966,8 @@ function applyPermissionUI(auth) {
     var mobSummaryDiv2 = document.getElementById('mob-summary-divider');
     if (mobLiabPanel2)  mobLiabPanel2.classList.remove('hide');
     if (mobSummaryDiv2) mobSummaryDiv2.classList.remove('hide');
-    // MT-1.3 Rev 4 — Financial Health nav buttons (Admin-only at MVP per owner §7.1).
+    // MT-1.3 Rev 4 — Financial Health nav buttons. FH is perms.FH-gated (§5 FH ruling, Option a:
+    // occupants see FH + their tab, perms.FH=TRUE).
     // No fh-card to un-hide; f-fh content pane is the entire FH destination.
     // Forward-compatible to perms.FH === true via non-Admin cascade extension (R-PERMS-FH).
     var tFh   = document.getElementById('t-fh');
@@ -6342,7 +6343,7 @@ function setTab(type) {
 
   } else if (type === 'FH') {
     // MT-1.3 — Financial Health read-only display tile (mirrors Pay read-only pattern).
-    // Admin-only at MVP per owner §7.1; forward-compatible to perms.FH per R-PERMS-FH.
+    // Visibility is perms.FH-gated (§5 FH ruling, Option a: occupants see FH); see R-PERMS-FH.
     // F11 Branch B: uses 'nav-tab n-fh' + 'dt-tab dt-fh' per existing .n-{tab}/.dt-{tab} convention.
     var tFh   = _el('t-fh');     if (tFh)   tFh.className   = 'nav-tab n-fh';
     var dtFh  = _el('dt-t-fh');  if (dtFh)  dtFh.className  = 'dt-tab dt-fh';
@@ -12717,6 +12718,44 @@ function onRoleChange(role) {
   document.getElementById('usr-perm-rep-bld').checked = defaults.bld;
   document.getElementById('usr-perm-rep-acc').checked = defaults.acc;
   document.getElementById('usr-perm-mtr').checked = defaults.mtr;
+
+  // LAYER-1 PICKER: role=Occupant → show the constrained active-contract picker and set the §5 perm
+  // profile (FH=TRUE, all REP_*/others FALSE). Perms section is hidden for Occupant (hidePerms), so
+  // these are set programmatically; submitUser still reads the (hidden) checkboxes.
+  var _occRow = document.getElementById('usr-contract-row');
+  if (role === 'Occupant') {
+    if (_occRow) _occRow.style.display = '';
+    loadContractPicker();
+    var _pf = { 'usr-perm-fh': true, 'usr-perm-rep-bld': false, 'usr-perm-rep-sec': false,
+                'usr-perm-rep-acc': false, 'usr-perm-inc': false, 'usr-perm-exp': false,
+                'usr-perm-inv': false, 'usr-perm-inv-pay': false, 'usr-perm-mtr': false,
+                'usr-perm-dispatch': false };
+    for (var _k in _pf) { var _c = document.getElementById(_k); if (_c) _c.checked = _pf[_k]; }
+  } else if (_occRow) {
+    _occRow.style.display = 'none';
+  }
+}
+
+// Populate the picker from the admin-gated getSettingsOccupancy, ACTIVE only (idx8). Value =
+// contractId; label = section · name · contractId. Occupant can only bind to an existing active contract.
+function loadContractPicker() {
+  var sel = document.getElementById('usr-contract');
+  if (!sel) return;
+  gasPost({ action: 'getSettingsOccupancy', token: _session.token })
+    .then(function(r) {
+      var rows = typeof r === 'string' ? JSON.parse(r) : r;
+      if (!rows || !rows.length) { return; }
+      var cur = sel.value;
+      var html = '<option value="" disabled' + (cur ? '' : ' selected') + '>Select active contract… / اختر عقداً نشطاً…</option>';
+      for (var i = 0; i < rows.length; i++) {
+        var c = rows[i];
+        if (String(c.status).trim().toLowerCase() !== 'active') continue;   // ACTIVE only
+        var label = (c.section || '—') + ' · ' + (c.name || '') + ' · ' + c.contractId;
+        html += '<option value="' + _occEsc(c.contractId) + '"' + (c.contractId === cur ? ' selected' : '') + '>' + _occEsc(label) + '</option>';
+      }
+      sel.innerHTML = html;
+    })
+    .catch(function() { /* leave placeholder; save is guarded server-side regardless */ });
 }
 
 // Called when form loads — only controls visibility, never overwrites saved values
@@ -12758,6 +12797,8 @@ function submitUser() {
   var activeDate   = document.getElementById('usr-active-date').value;
   var inactiveDate = document.getElementById('usr-inactive-date').value;
   var isEdit       = document.getElementById('usr-name').readOnly;
+  var _cSel        = document.getElementById('usr-contract');
+  var contractId   = _cSel ? _cSel.value : '';
   var perms = {
     INC:     document.getElementById('usr-perm-inc').checked,
     EXP:     document.getElementById('usr-perm-exp').checked,
@@ -12776,6 +12817,12 @@ function submitUser() {
 
   if (!name) { showUserErr('❌ Name is required'); return; }
   if (!role) { showUserErr('❌ Role is required'); return; }
+  // LAYER-1 PICKER: a NEW active occupant must have a picked contract (no blank binding created at
+  // provisioning). Edits are NOT blocked here — omitting the contract preserves the existing binding
+  // (backend preserve-on-omit + resulting-binding guard), so a perms-only edit isn't false-blocked.
+  if (!isEdit && role === 'Occupant' && status === 'Active' && !contractId) {
+    showUserErr('❌ Contract required for an active occupant / العقد مطلوب لشاغل نشط'); return;
+  }
   if (!isEdit && (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin))) {
     showUserErr('❌ PIN must be exactly 4 digits for new users'); return;
   }
@@ -12794,7 +12841,7 @@ function submitUser() {
     name: name, email: email, role: role, status: status,
     pin: pin, phone: phone, whatsapp: whatsapp,
     activeDate: activeDate, inactiveDate: inactiveDate,
-    perms: perms, isEdit: isEdit
+    perms: perms, isEdit: isEdit, contractId: contractId
   };
   if (isEdit) {
     payload.recordType = 'user';
@@ -17787,6 +17834,12 @@ function fmtMoney(val) {
           <option value="Porter">Porter</option>
           <option value="External">External / خارجي</option>
           <option value="Occupant">Occupant</option>
+        </select>
+      </div>
+      <div class="cs-field" id="usr-contract-row" style="display:none;grid-column:1/-1;">
+        <div class="cs-lbl">Contract / العقد <span class="req">*</span></div>
+        <select class="inp" id="usr-contract">
+          <option value="" disabled selected>Select active contract… / اختر عقداً نشطاً…</option>
         </select>
       </div>
       <div class="cs-field">

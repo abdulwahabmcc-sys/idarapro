@@ -1337,10 +1337,8 @@
       transition: background 0.2s;
     }
 
-    .nav-tab.n-inc::before { background: var(--forest); }
-    .nav-tab.n-exp::before { background: var(--burg); }
-    .nav-tab.n-rep::before { background: var(--navy); }
-    .nav-tab.n-fh::before  { background: var(--gold); }
+    /* PHASE-1 all-gold: one scoped active indicator, app-wide (mirrors the retired n-fh gold) */
+    .nav-tab.active::before { background: var(--gold); }
 
     .nav-ico { font-size: 22px; line-height: 1; }
     /* MT-4: inline SVG icons inside .nav-ico / .dt-tab-ico size to parent's font-size */
@@ -1352,10 +1350,7 @@
     .nav-ar  { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1; }
     .nav-en  { font-size: 7px; font-weight: 500; color: var(--muted); opacity: 0.7; line-height: 1; }
 
-    .nav-tab.n-inc .nav-ar, .nav-tab.n-inc .nav-en { color: var(--forest); opacity: 1; }
-    .nav-tab.n-exp .nav-ar, .nav-tab.n-exp .nav-en { color: var(--burg);   opacity: 1; }
-    .nav-tab.n-rep .nav-ar, .nav-tab.n-rep .nav-en { color: var(--navy);   opacity: 1; }
-    .nav-tab.n-fh  .nav-ar, .nav-tab.n-fh  .nav-en { color: var(--gold);   opacity: 1; }
+    .nav-tab.active .nav-ar, .nav-tab.active .nav-en { color: var(--gold); opacity: 1; }
 
     .nav-brand {
       display: flex;
@@ -1915,15 +1910,9 @@
       .dt-tab-ar  { font-size: 14px; font-weight: 700; line-height: 1.1; text-align: center; }
       .dt-tab-en  { font-size: 10px; font-weight: 500; line-height: 1.1; opacity: 0.7; text-align: center; }
       .dt-tab.hide { display:none !important; }
-      .dt-tab.dt-inc .dt-tab-ar, .dt-tab.dt-inc .dt-tab-en { color:var(--forest); opacity:1; }
-      .dt-tab.dt-exp .dt-tab-ar, .dt-tab.dt-exp .dt-tab-en { color:var(--burg); opacity:1; }
-      .dt-tab.dt-rep .dt-tab-ar, .dt-tab.dt-rep .dt-tab-en { color:var(--navy); opacity:1; }
-      .dt-tab.dt-fh  .dt-tab-ar, .dt-tab.dt-fh  .dt-tab-en { color:var(--gold); opacity:1; }
+      .dt-tab.active .dt-tab-ar, .dt-tab.active .dt-tab-en { color:var(--gold); opacity:1; }
       .dt-tab:hover { color: var(--navy); background: rgba(27,42,74,0.025); }
-      .dt-tab.dt-inc { border-bottom-color: var(--forest); color: var(--forest); }
-      .dt-tab.dt-exp { border-bottom-color: var(--burg);   color: var(--burg);   }
-      .dt-tab.dt-rep { border-bottom-color: var(--navy);   color: var(--navy);   }
-      .dt-tab.dt-fh  { border-bottom-color: var(--gold);   color: var(--gold);   }
+      .dt-tab.active { border-bottom-color: var(--gold); color: var(--gold); }
 
       #dt-form-scroll { display: none; }
 
@@ -3637,7 +3626,7 @@
       <span class="nav-ar">قسمي</span>
       <span class="nav-en">My Section</span>
     </button>
-    <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
+    <button class="nav-tab" id="t-inc" onclick="setTab('Income')">
       <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="gold-grad-10-m" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -3903,7 +3892,7 @@
         <span class="dt-tab-ar">قسمي</span>
         <span class="dt-tab-en">My Section</span>
       </button>
-      <button class="dt-tab dt-inc" id="dt-t-inc" onclick="setTab('Income')">
+      <button class="dt-tab" id="dt-t-inc" onclick="setTab('Income')">
         <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
             <linearGradient id="gold-grad-10-d" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -3951,7 +3940,7 @@
         <span class="dt-tab-ar">مركز الدفع</span>
         <span class="dt-tab-en">Pay Hub</span>
       </button>
-      <button class="dt-tab dt-rep" id="dt-t-rep" onclick="setTab('Report')">
+      <button class="dt-tab" id="dt-t-rep" onclick="setTab('Report')">
         <span class="dt-tab-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
             <linearGradient id="gold-grad-7-d" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -4026,7 +4015,7 @@
         <span class="dt-tab-ar">مراسلات</span>
         <span class="dt-tab-en">Comms</span>
       </button>
-      <button class="dt-tab dt-exp hide" id="dt-t-exp" onclick="setTab('Expense')">
+      <button class="dt-tab hide" id="dt-t-exp" onclick="setTab('Expense')">
         <span class="dt-tab-ico">📉</span>
         <span class="dt-tab-ar">مصاريف</span>
         <span class="dt-tab-en">Expenses</span>
@@ -5935,7 +5924,9 @@ function applyPermissionUI(auth) {
       var occFhM = _el('t-fh');    if (occFhM) occFhM.classList.remove('hide');
       var occFhD = _el('dt-t-fh'); if (occFhD) occFhD.classList.remove('hide');
     }
-    setTab('Occupant');
+    // PHASE-1 resolve-once: setTab('Occupant') REMOVED — initApp's post-bundle resolver is
+    // the SOLE driver (occupants have FH=true → land on FH; My-Section stays reachable via its nav
+    // button). Visibility un-hides above are KEPT.
     return;
   }
 
@@ -6239,25 +6230,11 @@ function setTab(type) {
   TAB = type;
   _el('eType').value = type;
 
-  // Reset mobile nav tabs — preserve 'hide' visibility state
-  ['t-fh','t-inc','t-exp','t-rep','t-mtr','t-com','t-pay'].forEach(function(id) {
-    var el = _el(id);
-    if (el) {
-      var isHidden = el.classList.contains('hide');
-      el.className = 'nav-tab';
-      if (isHidden) el.classList.add('hide');
-    }
-  });
-
-  // Reset desktop nav tabs — preserve 'hide' visibility state
-  ['dt-t-fh','dt-t-inc','dt-t-exp','dt-t-rep','dt-t-mtr','dt-t-com','dt-t-pay'].forEach(function(id) {
-    var el = _el(id);
-    if (el) {
-      var isHidden = el.classList.contains('hide');
-      el.className = 'dt-tab';
-      if (isHidden) el.classList.add('hide');
-    }
-  });
+  // PHASE-1 STRIP-ALL: remove the gold .active from EVERY nav-tab + dt-tab (incl. t-occ / dt-t-occ —
+  // folding Occupant in fixes the gold-on-both-tabs bleed). 'hide' visibility untouched; setTab then
+  // ADD-ONEs .active on the resolved tab's mobile + desktop buttons.
+  var _allNavTabs = document.querySelectorAll('.nav-tab, .dt-tab');
+  for (var _nt = 0; _nt < _allNavTabs.length; _nt++) _allNavTabs[_nt].classList.remove('active');
 
   // Hide all content panels
   // Patch I-perms-parity (Path B): added 'f-noaccess' to hide-list so the
@@ -6281,8 +6258,8 @@ function setTab(type) {
   if (!_btnCard && btn) _btnCard = btn.closest('.card');
 
   if (type === 'Income') {
-    _el('t-inc').classList.add('n-inc');
-    var dtInc = _el('dt-t-inc'); if (dtInc) dtInc.classList.add('dt-inc');
+    _el('t-inc').classList.add('active');
+    var dtInc = _el('dt-t-inc'); if (dtInc) dtInc.classList.add('active');
     _el('f-inc').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
     // Revenue Log visibility + fetch — Cycle 4B.2 2026-05-18
@@ -6294,8 +6271,8 @@ function setTab(type) {
     ico.textContent = '💰'; txt.textContent = 'تسجيل الدفعة / Record Payment';
 
   } else if (type === 'Expense') {
-    _el('t-exp').classList.add('n-exp');
-    var dtExp = _el('dt-t-exp'); if (dtExp) dtExp.classList.add('dt-exp');
+    _el('t-exp').classList.add('active');
+    var dtExp = _el('dt-t-exp'); if (dtExp) dtExp.classList.add('active');
     _el('f-exp').classList.remove('hide');
     _el('f-amt').classList.remove('hide');
     // Expense Log visibility + fetch — Cycle 4B.2 2026-05-18
@@ -6307,16 +6284,16 @@ function setTab(type) {
     ico.textContent = '📉'; txt.textContent = 'تسجيل مصروف / Record Expense';
 
   } else if (type === 'Report') {
-    _el('t-rep').classList.add('n-rep');
-    var dtRep = _el('dt-t-rep'); if (dtRep) dtRep.classList.add('dt-rep');
+    _el('t-rep').classList.add('active');
+    var dtRep = _el('dt-t-rep'); if (dtRep) dtRep.classList.add('active');
     _el('f-rep').classList.remove('hide');
     initReportTab();
     btn.className = 'btn-sub b-rep';
     ico.textContent = '👁️'; txt.textContent = 'عرض التقرير / View Report';
 
   } else if (type === 'Meter') {
-    var tMtr  = _el('t-mtr');    if (tMtr)  tMtr.classList.add('n-mtr');
-    var dtMtr = _el('dt-t-mtr'); if (dtMtr) dtMtr.classList.add('dt-mtr');
+    var tMtr  = _el('t-mtr');    if (tMtr)  tMtr.classList.add('active');
+    var dtMtr = _el('dt-t-mtr'); if (dtMtr) dtMtr.classList.add('active');
     _el('f-mtr').classList.remove('hide');
     btn.style.display = 'none';
     if (_btnCard) _btnCard.style.display = 'none'; // hide empty card wrapper — confirmed bug fix
@@ -6326,8 +6303,8 @@ function setTab(type) {
   } else if (type === 'Communications') {
     var tCom  = _el('t-com');
     var dtCom = _el('dt-t-com');
-    if (tCom)  tCom.classList.add('n-rep');
-    if (dtCom) dtCom.classList.add('dt-rep');
+    if (tCom)  tCom.classList.add('active');
+    if (dtCom) dtCom.classList.add('active');
     _el('f-com').classList.remove('hide');
     btn.style.display = 'none';
     if (_btnCard) _btnCard.style.display = 'none'; // hide empty card wrapper — confirmed bug fix
@@ -6338,8 +6315,8 @@ function setTab(type) {
   } else if (type === 'Pay') {
     var tPay  = _el('t-pay');
     var dtPay = _el('dt-t-pay');
-    if (tPay)  tPay.classList.add('n-rep');
-    if (dtPay) dtPay.classList.add('dt-rep');
+    if (tPay)  tPay.classList.add('active');
+    if (dtPay) dtPay.classList.add('active');
     _el('f-pay').classList.remove('hide');
     btn.style.display = 'none';
     if (_btnCard) _btnCard.style.display = 'none';
@@ -6352,8 +6329,8 @@ function setTab(type) {
     // MT-1.3 — Financial Health read-only display tile (mirrors Pay read-only pattern).
     // Visibility is perms.FH-gated (§5 FH ruling, Option a: occupants see FH); see R-PERMS-FH.
     // F11 Branch B: uses 'nav-tab n-fh' + 'dt-tab dt-fh' per existing .n-{tab}/.dt-{tab} convention.
-    var tFh   = _el('t-fh');     if (tFh)   tFh.className   = 'nav-tab n-fh';
-    var dtFh  = _el('dt-t-fh');  if (dtFh)  dtFh.className  = 'dt-tab dt-fh';
+    var tFh   = _el('t-fh');     if (tFh)   tFh.classList.add('active');
+    var dtFh  = _el('dt-t-fh');  if (dtFh)  dtFh.classList.add('active');
     var fFh   = _el('f-fh');     if (fFh)   fFh.classList.remove('hide');
     // Hide submit button + submit-card (Pay/Meter convention)
     btn.style.display = 'none';
@@ -6364,8 +6341,8 @@ function setTab(type) {
 
   } else if (type === 'Occupant') {
     // Occupant "My Section" tab — snapshot-derived, read-own. Mirrors the FH read-only pattern.
-    var tOcc  = _el('t-occ');    if (tOcc)  tOcc.className  = 'nav-tab n-fh';   // mobile active-state (mirrors FH)
-    var dtOcc = _el('dt-t-occ'); if (dtOcc) dtOcc.className = 'dt-tab dt-fh';   // desktop active-state
+    var tOcc  = _el('t-occ');    if (tOcc)  tOcc.classList.add('active');   // mobile active-state (mirrors FH)
+    var dtOcc = _el('dt-t-occ'); if (dtOcc) dtOcc.classList.add('active');   // desktop active-state
     var fOcc  = _el('f-occ');    if (fOcc)  fOcc.classList.remove('hide');
     btn.style.display = 'none';
     if (_btnCard) _btnCard.style.display = 'none';

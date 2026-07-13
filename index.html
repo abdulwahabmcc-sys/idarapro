@@ -2797,7 +2797,7 @@
         <!-- Building → Generate -->
         <div class="panel-body" id="bld-pane-generate">
           <div class="lbl"><span class="l-ar">نوع التقرير</span><span class="l-en">Report Type</span></div>
-          <select class="inp" id="bld-rep-type" style="margin-bottom:14px;">
+          <select class="inp" id="bld-rep-type" onchange="_zzTrace('FE-1 SELECTED (building): ' + this.value)" style="margin-bottom:14px;">
             <option value="" disabled selected>جاري التحميل... / Loading...</option>
           </select>
           <button type="button" class="btn-sub b-rep" id="bld-generate-btn" onclick="generateBuildingStatement()">
@@ -6542,8 +6542,26 @@ function renderGenerationLogFromData(logEl, rows, world) {
   _genLogCache[world] = rows;
 }
 
+// ── ZZ-TRACE: diagnostic instrumentation (dropdown-reset hunt). REMOVE after diagnosis,
+// or set ZZ_TRACE=false. Logs to console AND the fixed #zz-trace-line bar. No behavior change. ──
+var ZZ_TRACE = true;
+function _zzTrace(m) {
+  if (!ZZ_TRACE) return;
+  try {
+    var ts = new Date().toISOString().substr(11, 12);
+    console.log('[ZZ-TRACE ' + ts + '] ' + m);
+    var el = document.getElementById('zz-trace-line');
+    if (el) el.textContent = '[ZZ ' + ts + '] ' + m;
+  } catch (e) {}
+}
+function _zzCaller() {
+  try { var a = (new Error()).stack.split('\n'); return (a[3] || a[2] || '').trim().substr(0, 90); }
+  catch (e) { return '(stack n/a)'; }
+}
+
 function _loadGenerateTab(world) {
   if (!sessionValid()) return;
+  _zzTrace('FE-2 _loadGenerateTab FIRED world=' + world + ' — caller: ' + _zzCaller());
   var scope  = world === 'building' ? 'Building' : 'Section';
   var repSel = world === 'building'
     ? document.getElementById('bld-rep-type')
@@ -6559,6 +6577,7 @@ function _loadGenerateTab(world) {
   })
     .then(function(result) {
       if (repSel && result.reportTypes && result.reportTypes.length) {
+        _zzTrace('FE-3 BEFORE rebuild: repSel.value=' + (repSel ? repSel.value : '(none)'));
         repSel.innerHTML = '';
         result.reportTypes.forEach(function(t, idx) {
           var opt = document.createElement('option');
@@ -6567,6 +6586,7 @@ function _loadGenerateTab(world) {
           if (idx === 0) opt.selected = true;
           repSel.appendChild(opt);
         });
+        _zzTrace('FE-3 AFTER rebuild: repSel.value=' + (repSel ? repSel.value : '(none)') + '  (idx-0 was force-selected — prior pick lost if this differs from FE-1)');
 
         // Permission-based hiding for Section dropdown
         if (world === 'section' && _session && _session.permissions) {
@@ -8071,6 +8091,7 @@ function _renderUnprocessedList(el, rows, world) {
 function generateBuildingStatement() {
   if (!sessionValid()) return;
   var reportType = document.getElementById('bld-rep-type').value;
+  _zzTrace('FE-4 GENERATE reads reportType=' + reportType + ' (building) — THE value sent to backend');
   var btn = document.getElementById('bld-generate-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...'; }
   gasPost({ action: 'generateBuildingStatement', reportType: reportType, token: _session.token })
@@ -8131,6 +8152,7 @@ function generateBuildingStatement() {
 function generateStatements() {
   if (!sessionValid()) return;
   var reportType = document.getElementById('sel-rep') ? document.getElementById('sel-rep').value : 'YTD';
+  _zzTrace('FE-4 GENERATE reads reportType=' + reportType + ' (section) — THE value sent to backend');
   var specific   = document.getElementById('scope-specific') && document.getElementById('scope-specific').checked;
   var contractId = specific ? (document.getElementById('scope-contract-sel') ? document.getElementById('scope-contract-sel').value : '') : '';
   var conflictWarn = document.getElementById('sec-conflict-warn');
@@ -9466,6 +9488,7 @@ function sendCommunication(mode) {
 }
 
 function pickReport(type) {
+  _zzTrace('FE-1 SELECTED (section): ' + type);
   REPORT = type;
   var sel = document.getElementById('sel-rep');
   if (sel) sel.value = type;
@@ -18515,5 +18538,6 @@ function fmtMoney(val) {
 </div>
 
 
+  <div id="zz-trace-line" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1B2A4A;color:#C9A84C;font:11px/1.4 monospace;padding:3px 8px;opacity:0.92;pointer-events:none;">[ZZ-TRACE ready — switch to Generate, pick YTD+, click Generate; watch here + console]</div>
 </body>
 </html>

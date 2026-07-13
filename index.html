@@ -3630,6 +3630,13 @@
       <span class="nav-ar">المؤشر المالي</span>
       <span class="nav-en">Financial Health</span>
     </button>
+    <button class="nav-tab hide" id="t-occ" onclick="setTab('Occupant')">
+      <span class="nav-ico">
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="128" height="128" rx="28" fill="#1B2A4A"/><g stroke="#C9A84C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M30 62L64 32L98 62"/><path d="M40 58V94H88V58"/><path d="M56 94V74H72V94"/></g></svg>
+      </span>
+      <span class="nav-ar">قسمي</span>
+      <span class="nav-en">My Section</span>
+    </button>
     <button class="nav-tab n-inc" id="t-inc" onclick="setTab('Income')">
       <span class="nav-ico"><svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
@@ -6357,7 +6364,8 @@ function setTab(type) {
 
   } else if (type === 'Occupant') {
     // Occupant "My Section" tab — snapshot-derived, read-own. Mirrors the FH read-only pattern.
-    var dtOcc = _el('dt-t-occ'); if (dtOcc) dtOcc.className = 'dt-tab dt-fh';
+    var tOcc  = _el('t-occ');    if (tOcc)  tOcc.className  = 'nav-tab n-fh';   // mobile active-state (mirrors FH)
+    var dtOcc = _el('dt-t-occ'); if (dtOcc) dtOcc.className = 'dt-tab dt-fh';   // desktop active-state
     var fOcc  = _el('f-occ');    if (fOcc)  fOcc.classList.remove('hide');
     btn.style.display = 'none';
     if (_btnCard) _btnCard.style.display = 'none';

@@ -2499,7 +2499,10 @@
       <label>Email | البريد الإلكتروني</label>
       <input type="email" id="rc-email" inputmode="email" placeholder="name@example.com">
       <label>Reset code | رمز إعادة التعيين</label>
-      <input type="text" id="rc-token" autocomplete="off" placeholder="code from email">
+      <input type="text" id="rc-token" dir="ltr" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+             autocomplete="one-time-code" placeholder="6-digit code"
+             style="text-align:center; letter-spacing:3px; font-family:monospace; direction:ltr; unicode-bidi:plaintext;"
+             oninput="this.value=_otpDigits(this.value)">
       <label>New password | كلمة المرور الجديدة</label>
       <input type="password" id="rc-pw" autocomplete="new-password" placeholder="at least 12 characters">
       <div class="mtfp7-msg" id="rc-msg"></div>
@@ -2516,7 +2519,10 @@
       <label>Email | البريد الإلكتروني</label>
       <input type="email" id="ev-email" inputmode="email" placeholder="name@example.com">
       <label>Verification code | رمز التحقق</label>
-      <input type="text" id="ev-code" autocomplete="off" placeholder="code from email">
+      <input type="text" id="ev-code" dir="ltr" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               autocomplete="one-time-code" placeholder="6-digit code"
+               style="text-align:center; letter-spacing:3px; font-family:monospace; direction:ltr; unicode-bidi:plaintext;"
+               oninput="this.value=_otpDigits(this.value)">
       <div class="mtfp7-msg" id="ev-msg"></div>
       <div class="mtfp7-row">
         <button type="button" class="mtfp7-btn ghost" id="ev-send" onclick="submitSendVerification()">Send code | إرسال الرمز</button>
@@ -2544,7 +2550,10 @@
       <!-- Stage 2 — revealed on send-code response arrival (both paths, shared fn) -->
       <div id="nu-step1b" style="display:none;">
         <label>Verification code | رمز التحقق</label>
-        <input type="text" id="nu-vcode" autocomplete="off" placeholder="code from email">
+        <input type="text" id="nu-vcode" dir="ltr" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               autocomplete="one-time-code" placeholder="6-digit code"
+               style="text-align:center; letter-spacing:3px; font-family:monospace; direction:ltr; unicode-bidi:plaintext;"
+               oninput="this.value=_otpDigits(this.value)">
         <div class="mtfp7-row">
           <button type="button" class="mtfp7-btn primary" id="nu-verify-btn" onclick="nuConfirmVerify()">Verify email | تحقّق</button>
         </div>
@@ -4476,6 +4485,20 @@ function nuSendVerify() {
     .catch(function() { _btnIdle('nu-send-btn'); _setMsg('nu-msg', NEUTRAL); nuRevealCode(); });
   // ↑ §3a: identical message AND identical reveal on BOTH paths → no enumeration oracle.
 }
+// Code inputs: normalize Arabic-Indic / Persian digits to Latin, drop everything else, cap at 6.
+// Without this an Arabic keyboard produces ٢١٩٩٨٧ and a naive [^0-9] strip empties the field.
+function _otpDigits(v) {
+  var out = '', s = String(v || '');
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    if (c >= 48 && c <= 57)        out += s.charAt(i);
+    else if (c >= 0x0660 && c <= 0x0669) out += String(c - 0x0660);   // ٠-٩
+    else if (c >= 0x06F0 && c <= 0x06F9) out += String(c - 0x06F0);   // ۰-۹
+    if (out.length === 6) break;
+  }
+  return out;
+}
+
 function nuConfirmVerify() {
   var email = String(document.getElementById('nu-email').value || '').trim();
   var code  = String(document.getElementById('nu-vcode').value || '').trim();
